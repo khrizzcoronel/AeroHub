@@ -47,6 +47,9 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "sin_bd: prueba que no requiere MonetDB (exenta del autouse de tests/negative/conftest.py)",
+]
 
 [tool.mypy]
 python_version = "3.12"

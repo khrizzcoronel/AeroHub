@@ -10,6 +10,14 @@ services:
     image: monetdb/monetdb:latest
     container_name: aerohub-monetdb
     environment:
+      # MDB_CREATE_DBS controla que bases se crean AL INICIAR el contenedor
+      # con `monetdb create -p "$MDB_DB_ADMIN_PASS"`. El default de la imagen
+      # es solo "monetdb" (el nombre reservado de MonetDB) — sin listar aqui
+      # "aerohub" explicitamente, esa base no se crea con esta contrasena.
+      # Creado a mano con `monetdb create aerohub` (sin -p) hereda el password
+      # historico por defecto del motor ('monetdb'), no MDB_DB_ADMIN_PASS —
+      # discrepancia real encontrada y corregida en el Sprint S0.2.
+      MDB_CREATE_DBS: aerohub
       MDB_DB_ADMIN_PASS: aerohub
       MDB_DAEMON_PASS: aerohub
     ports:
@@ -26,6 +34,7 @@ services:
     image: monetdb/monetdb:latest
     container_name: aerohub-monetdb-standby
     environment:
+      MDB_CREATE_DBS: aerohub
       MDB_DB_ADMIN_PASS: aerohub
       MDB_DAEMON_PASS: aerohub
     ports:

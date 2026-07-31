@@ -3,7 +3,18 @@ name = "aerohub-repository"
 version = "0.1.0"
 description = "Unico emisor de SQL hacia MonetDB (P1, ADR-014). Guardian de tenant (ADR-019) y journal de continuidad (ADR-018)."
 requires-python = ">=3.12"
-dependencies = ["sqlalchemy>=2.0", "aerohub-kernel"]
+dependencies = [
+    "sqlalchemy>=2.0",
+    "pymonetdb>=1.8",
+    "sqlalchemy-monetdb>=0.1",
+    # sqlalchemy-monetdb importa pkg_resources en tiempo de ejecucion sin
+    # declarar setuptools como dependencia (defecto de empaquetado real,
+    # detectado en S0.2 al intentar conectar). setuptools >=81 elimino
+    # pkg_resources por completo, asi que ademas hay que techarlo por debajo
+    # de esa version — "setuptools" a secas no alcanza.
+    "setuptools<81",
+    "aerohub-kernel",
+]
 
 [build-system]
 requires = ["hatchling"]

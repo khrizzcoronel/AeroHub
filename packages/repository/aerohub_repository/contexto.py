@@ -15,6 +15,8 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 
 _tenant_id: ContextVar[int | None] = ContextVar("aerohub_tenant_id", default=None)
+_rol_actor: ContextVar[str | None] = ContextVar("aerohub_rol_actor", default=None)
+_usuario_id: ContextVar[int | None] = ContextVar("aerohub_usuario_id", default=None)
 _alcance_global_activo: ContextVar[AlcanceGlobalInfo | None] = ContextVar(
     "aerohub_alcance_global", default=None
 )
@@ -52,8 +54,58 @@ def _establecer_tenant_id(tenant_id: int) -> object:
     return _tenant_id.set(tenant_id)
 
 
+def contexto_rol_actor() -> str:
+    """Codigo de rol RBAC (p. ej. 'role_operations_controller') que
+    packages/repository/base.py activa via SET ROLE en cada sesion (P2).
+
+    Determinado por el Gateway a partir del JWT validado -- nunca elegido
+    libremente por el cliente. Distinto del tenant_id: gobierna el eje
+    departamental (privilegio de esquema en el motor), no el eje de tenant.
+    """
+    valor = _rol_actor.get()
+    if valor is None:
+        raise ContextoTenantAusente(
+            "rol_actor no disponible: falta el middleware de services/gateway."
+        )
+    return valor
+
+
+def _establecer_rol_actor(rol_actor: str) -> object:
+    """Uso exclusivo del middleware del Gateway (services/gateway/api/)."""
+    return _rol_actor.set(rol_actor)
+
+
+def contexto_usuario_id() -> int | None:
+    """Id de tenants.usuario del actor humano de la peticion.
+
+    None para sesiones tecnicas sin usuario humano (p. ej. role_elt_reader
+    ejecutando una DAG de Airflow) -- a diferencia de tenant_id y rol_actor,
+    su ausencia no es un error de programacion.
+    """
+    return _usuario_id.get()
+
+
+def _establecer_usuario_id(usuario_id: int | None) -> object:
+    """Uso exclusivo del middleware del Gateway (services/gateway/api/)."""
+    return _usuario_id.set(usuario_id)
+
+
 def alcance_global_activo() -> AlcanceGlobalInfo | None:
     return _alcance_global_activo.get()
+
+
+def rol_activo_de_sesion() -> str:
+    """Rol que packages/repository/base.py debe activar via SET ROLE.
+
+    Bajo alcance_global(), es el rol declarado en el bloque (p. ej.
+    role_elt_reader durante una extraccion cruzada), no el rol_actor de la
+    peticion -- alcance_global no es solo una anotacion de auditoria: activa
+    de verdad ese rol tecnico para la sesion (ADR-019 G3).
+    """
+    info = alcance_global_activo()
+    if info is not None:
+        return info.rol
+    return contexto_rol_actor()
 
 
 @contextmanager
