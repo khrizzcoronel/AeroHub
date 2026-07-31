@@ -1,0 +1,229 @@
+; Reglas de dependencia de ADR-017 §5.4, verificadas en CI (job "arquitectura" de
+; .github/workflows/ci.yml). Un import que las viole hace fallar el build.
+;
+;   api ──► application ──► domain ◄── infrastructure ──► packages/repository
+;
+; Regla 1: domain no importa framework ni driver.
+; Regla 2: application importa domain; nunca importa api.
+; Regla 3: api importa application; nunca infrastructure ni packages/repository.
+; Regla 4: infrastructure es el unico subpaquete que importa packages/repository.
+; Regla 5: ningun modulo de services/ importa el domain/ o application/ de otro modulo.
+
+[importlinter]
+include_external_packages = True
+root_packages =
+    aerohub_gateway
+    aerohub_aodb
+    aerohub_fids
+    aerohub_gates
+    aerohub_ramp
+    aerohub_billing
+    aerohub_passenger
+    aerohub_compliance
+    aerohub_tenancy
+    aerohub_support
+    aerohub_people
+    aerohub_analytics_api
+    aerohub_repository
+    aerohub_contracts
+    aerohub_kernel
+    aerohub_pipelines
+    aerohub_ml
+
+; --- Regla 1 + 2 + 3: capas internas de cada modulo (una entrada por servicio) ---
+
+[importlinter:contract:capas-gateway]
+name = Capas internas de aerohub_gateway (ADR-017 regla 1-3)
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_gateway
+exhaustive = False
+
+[importlinter:contract:capas-aodb]
+name = Capas internas de aerohub_aodb
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_aodb
+exhaustive = False
+
+[importlinter:contract:capas-fids]
+name = Capas internas de aerohub_fids
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_fids
+exhaustive = False
+
+[importlinter:contract:capas-gates]
+name = Capas internas de aerohub_gates
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_gates
+exhaustive = False
+
+[importlinter:contract:capas-ramp]
+name = Capas internas de aerohub_ramp
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_ramp
+exhaustive = False
+
+[importlinter:contract:capas-billing]
+name = Capas internas de aerohub_billing
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_billing
+exhaustive = False
+
+[importlinter:contract:capas-passenger]
+name = Capas internas de aerohub_passenger
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_passenger
+exhaustive = False
+
+[importlinter:contract:capas-compliance]
+name = Capas internas de aerohub_compliance
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_compliance
+exhaustive = False
+
+[importlinter:contract:capas-tenancy]
+name = Capas internas de aerohub_tenancy
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_tenancy
+exhaustive = False
+
+[importlinter:contract:capas-support]
+name = Capas internas de aerohub_support
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_support
+exhaustive = False
+
+[importlinter:contract:capas-people]
+name = Capas internas de aerohub_people
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_people
+exhaustive = False
+
+[importlinter:contract:capas-analytics-api]
+name = Capas internas de aerohub_analytics_api
+type = layers
+layers =
+    api
+    application
+    domain
+containers = aerohub_analytics_api
+exhaustive = False
+
+; --- Regla 1: domain no depende de ningun framework (independencia) ---
+
+[importlinter:contract:domain-independiente]
+name = domain/ de cada modulo no depende de FastAPI, SQLAlchemy, Airflow ni de aerohub_repository
+type = forbidden
+source_modules =
+    aerohub_gateway.domain
+    aerohub_aodb.domain
+    aerohub_fids.domain
+    aerohub_gates.domain
+    aerohub_ramp.domain
+    aerohub_billing.domain
+    aerohub_passenger.domain
+    aerohub_compliance.domain
+    aerohub_tenancy.domain
+    aerohub_support.domain
+    aerohub_people.domain
+    aerohub_analytics_api.domain
+forbidden_modules =
+    fastapi
+    sqlalchemy
+    airflow
+    aerohub_repository
+
+; --- Regla 4: solo infrastructure/ de cada modulo importa aerohub_repository ---
+
+[importlinter:contract:solo-infrastructure-toca-repository]
+name = api/ y application/ de cada modulo no importan aerohub_repository directamente (P1, PN-15)
+type = forbidden
+source_modules =
+    aerohub_gateway.api
+    aerohub_gateway.application
+    aerohub_aodb.api
+    aerohub_aodb.application
+    aerohub_fids.api
+    aerohub_fids.application
+    aerohub_gates.api
+    aerohub_gates.application
+    aerohub_ramp.api
+    aerohub_ramp.application
+    aerohub_billing.api
+    aerohub_billing.application
+    aerohub_passenger.api
+    aerohub_passenger.application
+    aerohub_compliance.api
+    aerohub_compliance.application
+    aerohub_tenancy.api
+    aerohub_tenancy.application
+    aerohub_support.api
+    aerohub_support.application
+    aerohub_people.api
+    aerohub_people.application
+    aerohub_analytics_api.api
+    aerohub_analytics_api.application
+forbidden_modules =
+    aerohub_repository
+
+; --- Regla 5: ningun modulo de services/ importa domain/application de otro modulo ---
+
+[importlinter:contract:sin-importacion-cruzada-entre-modulos]
+name = Ningun modulo importa domain/application de otro modulo (comunicacion solo via aerohub_contracts)
+type = independence
+modules =
+    aerohub_gateway
+    aerohub_aodb
+    aerohub_fids
+    aerohub_gates
+    aerohub_ramp
+    aerohub_billing
+    aerohub_passenger
+    aerohub_compliance
+    aerohub_tenancy
+    aerohub_support
+    aerohub_people
+    aerohub_analytics_api

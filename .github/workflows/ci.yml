@@ -1,0 +1,117 @@
+name: CI
+
+# Cadena de integración continua de AeroHub (Sprint S0.1, Plan §7.1 / §6.4).
+#
+# Verifica en cada PR los controles que la arquitectura declara como puerta de
+# release, no solo el estilo del código:
+#   - ADR-017: reglas de dependencia entre capas y módulos (import-linter)
+#   - Plan §6.1: convención de nomenclatura de DDL
+#   - RF-T06 : SAST, dependencias, contenedores y secretos
+#   - §6.4   : compuerta de pruebas — unitarias siempre; negativas, contrato de
+#              datos y suite cruzada se activan cuando el sprint que las
+#              introduce (S0.2 en adelante) las incorpora al repositorio.
+#              Los pasos que dependen de artefactos de sprints futuros están
+#              condicionados a la existencia del archivo que los habilita,
+#              para que CI nunca finja verificar algo que aún no existe.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  UV_VERSION: "0.11"
+
+jobs:
+  calidad-estatica:
+    name: Lint · SAST · secretos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --all-packages --dev
+      - name: Ruff
+        run: uv run ruff check .
+      - name: Bandit (SAST)
+        run: uv run bandit -r services packages pipelines ml -ll
+      - name: Gitleaks (secretos)
+        uses: gitleaks/gitleaks-action@v2
+
+  arquitectura:
+    name: Reglas de arquitectura (ADR-017) · nomenclatura DDL (§6.1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --all-packages --dev
+      - name: Capas y módulos (ADR-017 §5.4)
+        run: uv run lint-imports
+      - name: Nomenclatura de DDL (Plan §6.1, cierra SDD-DATA-001 M-10)
+        run: uv run python tools/lint_ddl_nomenclature.py
+      # PN-15 (SQL fuera de packages/repository) se incorpora en S0.2, cuando
+      # existe una capa de repositorio con contenido que verificar (Plan §7.2).
+
+  contrato-api:
+    name: OpenAPI 3.1 · Spectral
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar si ya existe especificación que lintear (llega en S1.2)
+        id: existe
+        run: |
+          if [ -f docs/api/openapi.yaml ]; then
+            echo "spec=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "spec=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.existe.outputs.spec == 'true'
+        run: npx --yes @stoplight/spectral-cli lint docs/api/openapi.yaml --fail-severity=error
+
+  contenedores:
+    name: Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+
+  compuerta-de-pruebas:
+    name: Unitarias (§6.4 — todo sprint, sin excepción)
+    runs-on: ubuntu-latest
+    needs: [calidad-estatica, arquitectura]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --all-packages --dev
+
+      - name: Unitarias (domain/ y packages/ sin infraestructura)
+        run: uv run pytest tests/unit -v --cov --cov-report=term-missing
+
+      - name: Integración (se activa cuando existan fixtures de MonetDB/ClickHouse, S0.2+)
+        if: hashFiles('tests/integration/**/*.py') != ''
+        run: uv run pytest tests/integration -v
+
+      - name: Pruebas negativas PN-01…PN-15 (nuevas + regresión completa, desde S0.2)
+        if: hashFiles('tests/negative/**/*.py') != ''
+        run: uv run pytest tests/negative -v
+
+      - name: Suite cruzada por tenant (ADR-019 G4, desde S0.2)
+        if: hashFiles('tests/cross_tenant/**/*.py') != ''
+        run: uv run pytest tests/cross_tenant -v
+
+      - name: Archivar evidencia de la compuerta
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencia-${{ github.sha }}
+          path: docs/evidencia/
+          if-no-files-found: ignore

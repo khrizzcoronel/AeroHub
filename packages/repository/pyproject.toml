@@ -1,0 +1,16 @@
+[project]
+name = "aerohub-repository"
+version = "0.1.0"
+description = "Unico emisor de SQL hacia MonetDB (P1, ADR-014). Guardian de tenant (ADR-019) y journal de continuidad (ADR-018)."
+requires-python = ">=3.12"
+dependencies = ["sqlalchemy>=2.0", "aerohub-kernel"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["aerohub_repository"]
+
+[tool.uv.sources]
+aerohub-kernel = { workspace = true }

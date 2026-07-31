@@ -1,0 +1,53 @@
+[project]
+name = "aerohub"
+version = "0.1.0"
+description = "AeroHub — plataforma SaaS multi-tenant de gestion operativa, comercial y analitica aeroportuaria"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "packages/kernel",
+    "packages/contracts",
+    "packages/repository",
+    "services/gateway",
+    "services/aodb",
+    "services/fids",
+    "services/gates",
+    "services/ramp",
+    "services/billing",
+    "services/passenger",
+    "services/compliance",
+    "services/tenancy",
+    "services/support",
+    "services/people",
+    "services/analytics_api",
+    "pipelines",
+    "ml",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6.9",
+    "mypy>=1.11",
+    "bandit>=1.7",
+    "import-linter>=2.1",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Node / Angular / Nx
+node_modules/
+dist/
+.angular/
+.nx/cache/
+.nx/workspace-data/
+
+# Docker / infra
+infra/prometheus/data/
+pgdata/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+.angular
+
+__screenshots__/
