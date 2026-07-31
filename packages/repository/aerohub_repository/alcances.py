@@ -1,23 +1,15 @@
-"""Registro G1 (ADR-019) de las tablas existentes hasta S0.2.
+"""Registro G1 (ADR-019) de las tablas verdaderamente transversales:
+catalogo (referenciado por todos los modulos via FK), compliance y
+continuidad (infraestructura de auditoria/continuidad, no propiedad de
+ningun modulo de negocio).
 
-Centralizado aqui mientras no exista codigo de repositorio propio por
-modulo (Fase 1 en adelante, Plan §8). A partir de que `services/<modulo>/
-infrastructure/` tenga su propio codigo de acceso a datos, cada modulo
-deberia registrar el alcance de SUS tablas junto a ese codigo, no aqui --
-este archivo queda entonces limitado a las tablas verdaderamente
-transversales (catalogo, compliance, continuidad).
-
-Import este modulo (via aerohub_repository/__init__.py) para que los
-registros existan antes de que cualquier consulta se ejecute; sin esto, G1
-rechaza toda tabla con AlcanceNoDeclarado.
-
-Regla para decidir 'tenant' vs 'interno': no toda tabla del esquema
-`tenants` es de alcance 'tenant' -- solo las que tienen columna `tenant_id`
-y de verdad requieren aislamiento por fila (SDD-DATA-001 §6). `plan`,
-`plan_modulo`, `tenant`, `rol`, `usuario_rol` y `okr*` son catalogos o
-tablas de alcance interno de la plataforma, sin `tenant_id`: el guardian
-G2 no tiene columna que verificar en ellas, y forzar 'tenant' ahi seria
-un alcance mal declarado, no una proteccion real.
+Cualquier tabla propiedad de un modulo especifico se registra junto a su
+propio codigo, en `services/<modulo>/infrastructure/alcances.py` -- ese
+codigo debe importarse (arranque de la app FastAPI del modulo) antes de
+que llegue una peticion, igual que este archivo se importa desde
+aerohub_repository/__init__.py. Historial: `ops.*` vive en
+services/aodb/ y `tenants.*` en services/tenancy/ desde S1.1 (ambos
+registrados centralmente aqui hasta entonces).
 """
 
 from __future__ import annotations
@@ -38,22 +30,6 @@ _CATALOGO = (
 )
 for _tabla in _CATALOGO:
     registrar_alcance("catalogo", _tabla, "global")
-
-_TENANTS_ALCANCE_TENANT = ("licencia", "usuario", "api_key")
-for _tabla in _TENANTS_ALCANCE_TENANT:
-    registrar_alcance("tenants", _tabla, "tenant")
-
-_TENANTS_ALCANCE_INTERNO = (
-    "plan",
-    "plan_modulo",
-    "tenant",
-    "rol",
-    "usuario_rol",
-    "okr",
-    "okr_resultado_clave",
-)
-for _tabla in _TENANTS_ALCANCE_INTERNO:
-    registrar_alcance("tenants", _tabla, "interno")
 
 # tenant_id es nullable en ambas (eventos de alcance de plataforma sin
 # tenant asociado son legitimos, SDD-DATA-001 §10.1 / ADR-018 C1) -- el

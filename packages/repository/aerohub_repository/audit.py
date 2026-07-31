@@ -19,7 +19,7 @@ from aerohub_kernel import generar_id
 from sqlalchemy import JSON, BigInteger, Column, DateTime, MetaData, String, Table, insert
 from sqlalchemy.engine import Connection
 
-from .contexto import contexto_rol_actor, contexto_tenant_id, contexto_usuario_id
+from .contexto import contexto_tenant_id, contexto_usuario_id, rol_activo_de_sesion
 
 _metadata = MetaData()
 
@@ -54,22 +54,29 @@ def registrar_auditoria(
     valores_anteriores: dict[str, Any] | None = None,
     valores_nuevos: dict[str, Any] | None = None,
     ip_origen: str | None = None,
+    tenant_id: int | None = None,
 ) -> int:
+    """`tenant_id`: ver la nota equivalente en journal.escribir_journal --
+    por defecto se toma del contexto ambiente; pasar un valor explicito
+    cuando la fila auditada pertenece a un tenant distinto del contexto
+    (p. ej. CU-O18 bajo alcance_global).
+    """
     if operacion not in _OPERACIONES_VALIDAS:
         raise ValueError(f"operacion invalida para auditoria: {operacion!r}")
 
     id_registro = generar_id()
+    tenant_id_final = tenant_id if tenant_id is not None else _tenant_id_opcional()
 
     conn.execute(
         insert(log_auditoria).values(
             id=id_registro,
-            tenant_id=_tenant_id_opcional(),
+            tenant_id=tenant_id_final,
             esquema=esquema,
             tabla=tabla,
             registro_id=registro_id,
             operacion=operacion,
             usuario_id=contexto_usuario_id(),
-            rol_codigo=contexto_rol_actor(),
+            rol_codigo=rol_activo_de_sesion(),
             valores_anteriores=valores_anteriores,
             valores_nuevos=valores_nuevos,
             ip_origen=ip_origen,

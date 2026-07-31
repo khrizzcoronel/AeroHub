@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from dataclasses import dataclass
 
 _tenant_id: ContextVar[int | None] = ContextVar("aerohub_tenant_id", default=None)
@@ -49,8 +49,14 @@ def contexto_tenant_id() -> int:
     return valor
 
 
-def _establecer_tenant_id(tenant_id: int) -> object:
-    """Uso exclusivo del middleware del Gateway (services/gateway/api/)."""
+def _establecer_tenant_id(tenant_id: int | None) -> Token[int | None]:
+    """Uso exclusivo del middleware del Gateway (services/gateway/api/).
+
+    `None` es valido: un actor de plataforma (p. ej. role_platform_admin
+    aprovisionando un tenant nuevo, CU-O18) no tiene tenant propio -- su JWT
+    no trae `tenant_id`, y `contexto_tenant_id()` debe seguir lanzando
+    `ContextoTenantAusente` para ese caso, no devolver un valor inventado.
+    """
     return _tenant_id.set(tenant_id)
 
 
@@ -70,7 +76,7 @@ def contexto_rol_actor() -> str:
     return valor
 
 
-def _establecer_rol_actor(rol_actor: str) -> object:
+def _establecer_rol_actor(rol_actor: str) -> Token[str | None]:
     """Uso exclusivo del middleware del Gateway (services/gateway/api/)."""
     return _rol_actor.set(rol_actor)
 
@@ -85,7 +91,7 @@ def contexto_usuario_id() -> int | None:
     return _usuario_id.get()
 
 
-def _establecer_usuario_id(usuario_id: int | None) -> object:
+def _establecer_usuario_id(usuario_id: int | None) -> Token[int | None]:
     """Uso exclusivo del middleware del Gateway (services/gateway/api/)."""
     return _usuario_id.set(usuario_id)
 

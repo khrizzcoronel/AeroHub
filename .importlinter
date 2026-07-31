@@ -181,6 +181,13 @@ forbidden_modules =
 [importlinter:contract:solo-infrastructure-toca-repository]
 name = api/ y application/ de cada modulo no importan aerohub_repository directamente (P1, PN-15)
 type = forbidden
+; allow_indirect_imports=True: la regla es literal -- ningun archivo de
+; api/ o application/ debe contener "import aerohub_repository" el mismo.
+; Que application dependa de infrastructure, y esta a su vez de
+; aerohub_repository, es la cadena de capas esperada (ADR-017 regla 4); sin
+; este flag import-linter recorre la cadena completa y marca esa dependencia
+; transitiva legitima como violacion.
+allow_indirect_imports = True
 source_modules =
     aerohub_gateway.api
     aerohub_gateway.application

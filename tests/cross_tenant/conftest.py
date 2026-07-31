@@ -48,8 +48,9 @@ def admin_engine():
 
 @pytest.fixture()
 def canarios(admin_engine):
-    """(tenant_id, usuario_id) de los canarios sembrados por db/seeds/generate.py
-    (Plan §7.2). Falla con un mensaje claro si el seed no corrio -- estas
+    """(tenant_id, usuario_id, vuelo_id) de los canarios sembrados por
+    db/seeds/generate.py (Plan §7.2, ampliado en S1.1 con un vuelo por
+    tenant). Falla con un mensaje claro si el seed no corrio -- estas
     filas son un requisito de entorno, no algo que este test deba crear.
     """
     with admin_engine.connect() as conn:
@@ -68,5 +69,18 @@ def canarios(admin_engine):
                     f"Canario de {codigo} no encontrado -- ejecutar "
                     "'uv run python -m db.seeds.generate' antes de esta suite."
                 )
-            filas[codigo] = {"tenant_id": fila[0], "usuario_id": fila[1]}
+            tenant_id, usuario_id = fila
+            fila_vuelo = conn.execute(
+                text("SELECT id FROM ops.vuelo WHERE tenant_id = :t"), {"t": tenant_id}
+            ).fetchone()
+            if fila_vuelo is None:
+                pytest.fail(
+                    f"Vuelo canario de {codigo} no encontrado -- ejecutar "
+                    "'uv run python -m db.seeds.generate' antes de esta suite."
+                )
+            filas[codigo] = {
+                "tenant_id": tenant_id,
+                "usuario_id": usuario_id,
+                "vuelo_id": fila_vuelo[0],
+            }
     return filas

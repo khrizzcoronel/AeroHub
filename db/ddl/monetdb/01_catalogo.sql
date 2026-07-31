@@ -136,3 +136,14 @@ INSERT INTO catalogo.modulo (id, codigo, nombre, departamento_id) VALUES
     (7, 'M7', 'ETL & Analytics', 4),
     (8, 'M8', 'Observability', 5),
     (9, 'M9', 'Compliance Hub', 5);
+
+-- tipo_vuelo: dominio CERRADO por el propio CHECK de la tabla (SDD-001
+-- §5.6) -- a diferencia de aeropuerto/aerolinea/aeronave (industria real,
+-- se cargan por importacion, ver db/seeds/generate.py), estos 5 valores
+-- son fijos y agotan el dominio; se siembran aqui, no en un seed aparte.
+INSERT INTO catalogo.tipo_vuelo (id, codigo, descripcion) VALUES
+    (1, 'comercial', 'Vuelo comercial de pasajeros'),
+    (2, 'carga', 'Vuelo de carga'),
+    (3, 'charter', 'Vuelo charter'),
+    (4, 'aviacion_general', 'Aviacion general'),
+    (5, 'militar', 'Vuelo militar');

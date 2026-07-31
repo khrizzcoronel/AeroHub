@@ -18,15 +18,20 @@ cumplir en la practica.
 from __future__ import annotations
 
 import pytest
+from aerohub_aodb import infrastructure as _infra_aodb  # noqa: F401 -- side effect: registra G1
 from aerohub_repository.guard import tablas_registradas
+from aerohub_tenancy import (
+    infrastructure as _infra_tenancy,  # noqa: F401 -- side effect: registra G1
+)
 from sqlalchemy import bindparam, create_engine, text
 
 DSN_ADMIN = "monetdb://monetdb:aerohub@localhost:50000/aerohub"
 
 # Esquemas cuyas tablas ya gestiona la aplicacion en este sprint. Los demas
-# (ops, rampa, billing, support, people, etl_control) estan vacios hasta
-# fases posteriores -- no hay nada que verificar en ellos todavia.
-ESQUEMAS_GESTIONADOS = ("catalogo", "tenants", "compliance", "continuidad")
+# (rampa, billing, support, people, etl_control) estan vacios hasta fases
+# posteriores -- no hay nada que verificar en ellos todavia. "ops" se agrego
+# en S1.1 junto con services/aodb.
+ESQUEMAS_GESTIONADOS = ("catalogo", "tenants", "compliance", "continuidad", "ops")
 
 
 def _hay_monetdb() -> bool:

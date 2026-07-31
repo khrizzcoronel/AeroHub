@@ -49,15 +49,23 @@ def escribir_journal(
     operacion: str,
     clave_primaria: dict[str, Any],
     payload: dict[str, Any],
+    tenant_id: int | None = None,
 ) -> int:
     """Devuelve el `lsn` generado, por si el llamador quiere correlacionarlo
     (p. ej. en el propio registro de auditoria).
+
+    `tenant_id`: por defecto se toma del contexto de la peticion (None si
+    no hay uno, p. ej. bajo alcance_global). Pasar un valor explicito
+    cuando la mutacion es DE un tenant que el contexto ambiente no conoce
+    -- el caso tipico es CU-O18 (aprovisionar_tenant), donde quien ejecuta
+    la operacion es role_platform_admin (sin tenant propio) pero la fila
+    que se journaliza SI pertenece al tenant recien creado.
     """
     if operacion not in ("INSERT", "UPDATE", "DELETE_LOGICO", "DDL"):
         raise ValueError(f"operacion invalida para el journal: {operacion!r}")
 
     lsn = generar_id()
-    tenant_id = _tenant_id_opcional()
+    tenant_id = tenant_id if tenant_id is not None else _tenant_id_opcional()
 
     conn.execute(
         insert(journal_mutacion).values(
