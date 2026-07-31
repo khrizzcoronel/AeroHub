@@ -47,3 +47,17 @@ usuario = Table(
     Column("creado_en", DateTime(timezone=True)),
     schema="tenants",
 )
+
+api_key = Table(
+    "api_key",
+    metadata,
+    Column("id", BigInt, primary_key=True),
+    Column("tenant_id", BigInt),
+    Column("prefijo", String(12)),
+    Column("hash_secreto", String(255)),
+    Column("creada_en", DateTime(timezone=True)),
+    Column("rotada_en", DateTime(timezone=True)),
+    Column("expira_en", DateTime(timezone=True)),
+    Column("estado", String(20)),
+    schema="tenants",
+)

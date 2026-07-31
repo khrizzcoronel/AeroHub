@@ -3,7 +3,7 @@ name = "aerohub-contracts"
 version = "0.1.0"
 description = "DTOs y eventos compartidos entre modulos (unico canal de comunicacion inter-modulo permitido, ADR-017 §5.4)"
 requires-python = ">=3.12"
-dependencies = ["pydantic>=2.9", "aerohub-kernel"]
+dependencies = ["pydantic>=2.9", "fastapi>=0.115", "pyjwt>=2.9", "aerohub-kernel"]
 
 [build-system]
 requires = ["hatchling"]

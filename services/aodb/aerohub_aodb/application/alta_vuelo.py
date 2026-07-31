@@ -21,6 +21,7 @@ from ..infrastructure import (
     escribir_journal,
     insertar_vuelo,
     registrar_auditoria,
+    reintentar_en_conflicto,
     sesion,
 )
 
@@ -30,6 +31,7 @@ class ResultadoAltaVuelo:
     vuelo_id: int
 
 
+@reintentar_en_conflicto()
 def alta_vuelo(
     *,
     aerolinea_id: int,

@@ -28,6 +28,11 @@
 -- `usuario_id` se verifica en la aplicacion: el valor proviene siempre del
 -- JWT ya validado por el Gateway, no de entrada arbitraria.
 
+-- 'DENEGADO' se agrego en S1.2 (PN-06): un intento de autenticacion con
+-- API Key revocada o expirada no es una mutacion de datos (INSERT/UPDATE/
+-- DELETE sobre la fila de negocio), pero SI debe quedar auditado -- es el
+-- unico caso de esta tabla donde `registro_id` apunta a la fila cuyo
+-- ACCESO se denego, no a una fila que se escribio.
 CREATE TABLE compliance.log_auditoria (
     id                   BIGINT NOT NULL PRIMARY KEY,
     tenant_id            BIGINT,
@@ -41,7 +46,8 @@ CREATE TABLE compliance.log_auditoria (
     valores_anteriores   JSON,
     valores_nuevos       JSON,
     ip_origen            VARCHAR(45),
-    CONSTRAINT chk_log_auditoria_operacion CHECK (operacion IN ('INSERT', 'UPDATE', 'DELETE'))
+    CONSTRAINT chk_log_auditoria_operacion
+        CHECK (operacion IN ('INSERT', 'UPDATE', 'DELETE', 'DENEGADO'))
 );
 
 CREATE INDEX idx_log_auditoria_tenant_ocurrido ON compliance.log_auditoria (tenant_id, ocurrido_en);

@@ -17,6 +17,7 @@ from .contexto import (
 )
 from .guard import AlcanceNoDeclarado, TenantScopeViolation
 from .journal import escribir_journal
+from .reintentos import reintentar_en_conflicto
 
 __all__ = [
     "contexto_tenant_id",
@@ -30,4 +31,5 @@ __all__ = [
     "sesion",
     "escribir_journal",
     "registrar_auditoria",
+    "reintentar_en_conflicto",
 ]

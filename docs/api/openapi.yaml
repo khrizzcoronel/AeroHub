@@ -1,0 +1,430 @@
+openapi: 3.1.0
+info:
+  title: AeroHub API
+  description: 'API operacional de AeroHub: aprovisionamiento de tenants y seguimiento
+    de vuelos en tiempo real (RF-T02, OpenAPI 3.1).'
+  contact:
+    name: AeroHub Platform Team
+  version: 0.1.0
+servers:
+- url: http://localhost:8000
+  description: Desarrollo local
+paths:
+  /tenants:
+    post:
+      tags:
+      - tenants
+      summary: Crear Tenant
+      description: Aprovisiona un tenant nuevo con su usuario administrador (CU-O18).
+      operationId: crear_tenant_tenants_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCrearRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantCrearResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api-keys:
+    post:
+      tags:
+      - tenants
+      summary: Crear Api Key Endpoint
+      description: 'Genera una API Key nueva para el tenant del llamador (RF-O12).
+
+
+        El secreto en claro se devuelve UNA sola vez -- no se puede recuperar
+
+        despues, solo revocar y crear una nueva.'
+      operationId: crear_api_key_endpoint_api_keys_post
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyCrearResponse'
+  /api-keys/{api_key_id}/revocar:
+    post:
+      tags:
+      - tenants
+      summary: Revocar Api Key Endpoint
+      description: 'Revoca una API Key del propio tenant (PN-06: deja de aceptarse
+        de inmediato).'
+      operationId: revocar_api_key_endpoint_api_keys__api_key_id__revocar_post
+      parameters:
+      - name: api_key_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Api Key Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /vuelos:
+    post:
+      tags:
+      - vuelos
+      summary: Crear Vuelo
+      description: Da de alta un vuelo para el tenant del llamador (RF-O02 parcial).
+      operationId: crear_vuelo_vuelos_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VueloCrearRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VueloCrearResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /vuelos/{vuelo_id}:
+    get:
+      tags:
+      - vuelos
+      summary: Obtener Vuelo
+      description: 'Consulta un vuelo por id (PN-01: 404 si es de otro tenant).'
+      operationId: obtener_vuelo_vuelos__vuelo_id__get
+      parameters:
+      - name: vuelo_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Vuelo Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VueloConsultaResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /vuelos/{vuelo_id}/estados:
+    post:
+      tags:
+      - vuelos
+      summary: Cambiar Estado Vuelo
+      description: 'Registra un cambio de estado y lo publica en el canal en tiempo
+
+        real /vuelos/ws/estado (RF-O04, RNF-P01).'
+      operationId: cambiar_estado_vuelo_vuelos__vuelo_id__estados_post
+      parameters:
+      - name: vuelo_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Vuelo Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CambioEstadoRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CambioEstadoResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    ApiKeyCrearResponse:
+      properties:
+        api_key_id:
+          type: string
+          title: Api Key Id
+        api_key_en_claro:
+          type: string
+          title: Api Key En Claro
+      type: object
+      required:
+      - api_key_id
+      - api_key_en_claro
+      title: ApiKeyCrearResponse
+    CambioEstadoRequest:
+      properties:
+        codigo_estado_nuevo:
+          type: string
+          minLength: 1
+          title: Codigo Estado Nuevo
+        origen_cambio:
+          type: string
+          title: Origen Cambio
+      type: object
+      required:
+      - codigo_estado_nuevo
+      - origen_cambio
+      title: CambioEstadoRequest
+    CambioEstadoResponse:
+      properties:
+        vuelo_estado_id:
+          type: string
+          title: Vuelo Estado Id
+      type: object
+      required:
+      - vuelo_estado_id
+      title: CambioEstadoResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    TenantCrearRequest:
+      properties:
+        codigo:
+          type: string
+          maxLength: 30
+          minLength: 2
+          title: Codigo
+        razon_social:
+          type: string
+          minLength: 1
+          title: Razon Social
+        aeropuerto_id:
+          type: integer
+          title: Aeropuerto Id
+          description: Id Snowflake como string decimal
+        plan_id:
+          type: integer
+          title: Plan Id
+          description: Id Snowflake como string decimal
+        email_admin:
+          type: string
+          title: Email Admin
+        nombre_admin:
+          type: string
+          minLength: 1
+          title: Nombre Admin
+        es_sandbox:
+          type: boolean
+          title: Es Sandbox
+          default: false
+      type: object
+      required:
+      - codigo
+      - razon_social
+      - aeropuerto_id
+      - plan_id
+      - email_admin
+      - nombre_admin
+      title: TenantCrearRequest
+    TenantCrearResponse:
+      properties:
+        tenant_id:
+          type: string
+          title: Tenant Id
+        usuario_admin_id:
+          type: string
+          title: Usuario Admin Id
+        password_temporal:
+          type: string
+          title: Password Temporal
+      type: object
+      required:
+      - tenant_id
+      - usuario_admin_id
+      - password_temporal
+      title: TenantCrearResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VueloConsultaResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        aerolinea_id:
+          type: string
+          title: Aerolinea Id
+        aeronave_id:
+          type: string
+          title: Aeronave Id
+        numero_vuelo:
+          type: string
+          title: Numero Vuelo
+        tipo_vuelo_id:
+          type: string
+          title: Tipo Vuelo Id
+        fecha_operacion:
+          type: string
+          format: date
+          title: Fecha Operacion
+        sentido:
+          type: string
+          title: Sentido
+        aeropuerto_origen_id:
+          type: string
+          title: Aeropuerto Origen Id
+        aeropuerto_destino_id:
+          type: string
+          title: Aeropuerto Destino Id
+        sta_utc:
+          type: string
+          format: date-time
+          title: Sta Utc
+        std_utc:
+          type: string
+          format: date-time
+          title: Std Utc
+        pax_estimado:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Pax Estimado
+      type: object
+      required:
+      - id
+      - aerolinea_id
+      - aeronave_id
+      - numero_vuelo
+      - tipo_vuelo_id
+      - fecha_operacion
+      - sentido
+      - aeropuerto_origen_id
+      - aeropuerto_destino_id
+      - sta_utc
+      - std_utc
+      - pax_estimado
+      title: VueloConsultaResponse
+    VueloCrearRequest:
+      properties:
+        aerolinea_id:
+          type: integer
+          title: Aerolinea Id
+        aeronave_id:
+          type: integer
+          title: Aeronave Id
+        numero_vuelo:
+          type: string
+          maxLength: 10
+          minLength: 1
+          title: Numero Vuelo
+        tipo_vuelo_id:
+          type: integer
+          title: Tipo Vuelo Id
+        fecha_operacion:
+          type: string
+          format: date
+          title: Fecha Operacion
+        sentido:
+          type: string
+          title: Sentido
+        aeropuerto_origen_id:
+          type: integer
+          title: Aeropuerto Origen Id
+        aeropuerto_destino_id:
+          type: integer
+          title: Aeropuerto Destino Id
+        sta_utc:
+          type: string
+          format: date-time
+          title: Sta Utc
+        std_utc:
+          type: string
+          format: date-time
+          title: Std Utc
+        pax_estimado:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Pax Estimado
+        tenant_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Tenant Id
+      type: object
+      required:
+      - aerolinea_id
+      - aeronave_id
+      - numero_vuelo
+      - tipo_vuelo_id
+      - fecha_operacion
+      - sentido
+      - aeropuerto_origen_id
+      - aeropuerto_destino_id
+      - sta_utc
+      - std_utc
+      title: VueloCrearRequest
+    VueloCrearResponse:
+      properties:
+        vuelo_id:
+          type: string
+          title: Vuelo Id
+      type: object
+      required:
+      - vuelo_id
+      title: VueloCrearResponse
+tags:
+- name: tenants
+  description: Aprovisionamiento de tenants y gestion de API Keys.
+- name: vuelos
+  description: Alta, consulta y cambio de estado de vuelos (AODB).

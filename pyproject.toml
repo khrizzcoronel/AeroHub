@@ -49,6 +49,7 @@ testpaths = ["tests"]
 pythonpath = ["."]
 markers = [
     "sin_bd: prueba que no requiere MonetDB (exenta del autouse de tests/negative/conftest.py)",
+    "lento: prueba de varios minutos (p. ej. RNF-P01 con 100 cambios concurrentes reales contra un servidor uvicorn real) -- corre en CI y con 'pytest tests/', se puede excluir en un bucle local rapido con '-m \"not lento\"'.",
 ]
 
 [tool.mypy]

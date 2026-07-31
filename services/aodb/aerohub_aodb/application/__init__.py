@@ -6,6 +6,7 @@ from .registrar_cambio_estado import (
     VueloNoEncontrado,
     registrar_cambio_estado,
 )
+from .tiempo_real import desuscribir_de_estado_vuelo, suscribir_a_estado_vuelo
 
 __all__ = [
     "alta_vuelo",
@@ -16,4 +17,6 @@ __all__ = [
     "ResultadoCambioEstado",
     "VueloNoEncontrado",
     "EstadoDesconocido",
+    "suscribir_a_estado_vuelo",
+    "desuscribir_de_estado_vuelo",
 ]

@@ -1,4 +1,9 @@
-from aerohub_repository import escribir_journal, registrar_auditoria, sesion
+from aerohub_repository import (
+    escribir_journal,
+    registrar_auditoria,
+    reintentar_en_conflicto,
+    sesion,
+)
 from aerohub_repository.contexto import contexto_tenant_id, contexto_usuario_id
 
 from . import alcances as _alcances  # noqa: F401 -- side effect: registra G1 de ops.*
@@ -9,6 +14,7 @@ from .consultas import (
     obtener_estado_vuelo_actual_por_id,
     obtener_vuelo_por_id,
 )
+from .eventos import EventoEstadoVuelo, broadcaster_global
 
 # Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
 # solo infrastructure/ importa aerohub_repository. application/ obtiene
@@ -26,4 +32,7 @@ __all__ = [
     "registrar_auditoria",
     "contexto_tenant_id",
     "contexto_usuario_id",
+    "broadcaster_global",
+    "EventoEstadoVuelo",
+    "reintentar_en_conflicto",
 ]

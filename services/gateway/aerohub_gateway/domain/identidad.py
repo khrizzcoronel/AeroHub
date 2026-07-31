@@ -1,13 +1,14 @@
-"""Identidad autenticada de la peticion (Sprint S1.1, Plan §8.1; ADR-014 P2).
+"""Identidad autenticada de la peticion (Sprint S1.1, Plan §8.1; ADR-014 P2;
+scopes agregados en S1.2, Plan §8.2, PN-07).
 
-Resultado de validar un JWT ya firmado -- las invariantes de FORMA que toda
-identidad valida debe cumplir, no la validacion criptografica en si (eso es
-infrastructure/jwt_.py, que si depende de PyJWT).
+Resultado de validar un JWT o una API Key ya verificados -- las invariantes
+de FORMA que toda identidad valida debe cumplir, no la validacion
+criptografica en si (eso es infrastructure/, que si depende de PyJWT/Argon2).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 class TokenInvalido(Exception):
@@ -23,11 +24,19 @@ class Identidad:
     """`tenant_id` es `None` para actores de plataforma sin tenant propio
     (p. ej. role_platform_admin aprovisionando un tenant nuevo, CU-O18) --
     distinto de un JWT malformado, que se rechaza antes de llegar aqui.
+
+    `scopes`: conjunto de permisos de grano fino (p. ej. "vuelos:leer") que
+    cada api/ de cada modulo verifica con
+    `aerohub_contracts.scopes.requiere_scope` (PN-07: "scope insuficiente"
+    -> 403 sin fuga de informacion). Distinto de `rol`, que gobierna el
+    privilegio a nivel de motor (SET ROLE); scopes es un control adicional
+    a nivel de API, mas granular que un rol RBAC completo.
     """
 
     tenant_id: int | None
     rol: str
     usuario_id: int | None
+    scopes: frozenset[str] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:
         if not self.rol:

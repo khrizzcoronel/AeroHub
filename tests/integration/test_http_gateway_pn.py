@@ -15,50 +15,16 @@ vivir fuera de esa malla).
 
 from __future__ import annotations
 
-import importlib.util
-import sys
 from datetime import UTC, datetime
-from pathlib import Path
 
 import pytest
 from aerohub_gateway.infrastructure import codificar_jwt
+from aerohub_gateway.infrastructure.limitador import LimitadorTasa
 from aerohub_kernel import generar_id
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 
-DSN_ADMIN = "monetdb://monetdb:aerohub@localhost:50000/aerohub"
-
-_RUTA_MAIN = Path(__file__).resolve().parents[2] / "services" / "gateway" / "main.py"
-_spec = importlib.util.spec_from_file_location("_aerohub_gateway_main_bajo_prueba", _RUTA_MAIN)
-assert _spec is not None and _spec.loader is not None
-_gateway_main = importlib.util.module_from_spec(_spec)
-sys.modules[_spec.name] = _gateway_main
-_spec.loader.exec_module(_gateway_main)
-
-
-def _hay_monetdb() -> bool:
-    try:
-        engine = create_engine(DSN_ADMIN)
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        return True
-    except Exception:
-        return False
-
-
-pytestmark = pytest.mark.skipif(
-    not _hay_monetdb(), reason="MonetDB no disponible en localhost:50000"
-)
-
-
-@pytest.fixture()
-def admin_engine():
-    return create_engine(DSN_ADMIN)
-
-
-@pytest.fixture()
-def client():
-    return TestClient(_gateway_main.crear_app())
+# admin_engine, client y el guard de "MonetDB no disponible" vienen de
+# tests/integration/conftest.py (compartidos con el resto de la suite HTTP).
 
 
 @pytest.fixture()
@@ -122,11 +88,15 @@ def datos_canario(admin_engine):
 
 
 def _token_operaciones(tenant_id: int) -> str:
-    return codificar_jwt(rol="role_operations_controller", tenant_id=tenant_id)
+    return codificar_jwt(
+        rol="role_operations_controller",
+        tenant_id=tenant_id,
+        scopes=["vuelos:leer", "vuelos:escribir"],
+    )
 
 
 def _token_platform_admin() -> str:
-    return codificar_jwt(rol="role_platform_admin", tenant_id=None)
+    return codificar_jwt(rol="role_platform_admin", tenant_id=None, scopes=["tenants:crear"])
 
 
 def _auth(token: str) -> dict[str, str]:
@@ -243,3 +213,20 @@ def test_pn02_tenant_id_del_cuerpo_se_ignora(client, datos_canario, admin_engine
         "del JWT -- fuga de PN-02"
     )
     assert fila.tenant_id != datos_canario["uio_tenant_id"]
+
+
+def test_rate_limiting_devuelve_429_al_agotar_el_cupo(client, datos_canario, monkeypatch):
+    import aerohub_gateway.application.limitar_tasa as modulo_limitar
+
+    monkeypatch.setattr(
+        modulo_limitar, "limitador_global", LimitadorTasa(capacidad=2, tasa_recarga=0.0)
+    )
+    token = _token_operaciones(datos_canario["mec_tenant_id"])
+
+    r1 = client.get(f"/vuelos/{datos_canario['mec_vuelo_id']}", headers=_auth(token))
+    r2 = client.get(f"/vuelos/{datos_canario['mec_vuelo_id']}", headers=_auth(token))
+    r3 = client.get(f"/vuelos/{datos_canario['mec_vuelo_id']}", headers=_auth(token))
+
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+    assert r3.status_code == 429

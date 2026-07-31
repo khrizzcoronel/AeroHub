@@ -1,0 +1,48 @@
+<h1>Estado de vuelo en tiempo real</h1>
+
+<div>
+  <label for="tokenJwt">Token JWT (scope vuelos:leer)</label>
+  <textarea
+    id="tokenJwt"
+    rows="3"
+    [ngModel]="tokenJwt()"
+    (ngModelChange)="tokenJwt.set($event)"
+    [disabled]="conectado()"
+    name="tokenJwt"
+  ></textarea>
+</div>
+
+<button type="button" (click)="conectar()" [disabled]="conectado() || !tokenJwt()">
+  Conectar
+</button>
+<button type="button" (click)="desconectar()" [disabled]="!conectado()">Desconectar</button>
+
+<p>Estado: {{ conectado() ? 'conectado' : 'desconectado' }}</p>
+
+@if (error()) {
+  <p role="alert">Error: {{ error() }}</p>
+}
+
+<h2>Ultimos cambios de estado</h2>
+@if (eventos().length === 0) {
+  <p>Sin eventos todavia.</p>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>Vuelo</th>
+        <th>Estado</th>
+        <th>Ocurrido en</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (evento of eventos(); track evento.vuelo_estado_id) {
+        <tr>
+          <td>{{ evento.vuelo_id }}</td>
+          <td>{{ evento.codigo_estado }}</td>
+          <td>{{ evento.ocurrido_en }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

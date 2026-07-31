@@ -1,4 +1,6 @@
-"""Endpoints HTTP de aerohub_aodb (Sprint S1.1, Plan §8.1, RF-O02 parcial).
+"""Endpoints HTTP de aerohub_aodb (Sprint S1.1, Plan §8.1, RF-O02 parcial;
+scopes y WebSocket en tiempo real agregados en S1.2, Plan §8.2, PN-07,
+RF-O04, RNF-P01).
 
 Solo traduce HTTP <-> application/: valida forma con Pydantic, invoca el
 caso de uso, traduce sus excepciones a codigos de estado. Ninguna regla de
@@ -7,9 +9,11 @@ negocio vive aqui (esa es la promesa de "sin capa BFF", SRS §6.4).
 
 from __future__ import annotations
 
+import asyncio
 from datetime import date, datetime
 
-from fastapi import APIRouter, HTTPException
+from aerohub_contracts import TokenWebSocketInvalido, autenticar_websocket, requiere_scope
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
 from ..application import (
@@ -17,11 +21,16 @@ from ..application import (
     VueloNoEncontrado,
     alta_vuelo,
     consultar_vuelo,
+    desuscribir_de_estado_vuelo,
     registrar_cambio_estado,
+    suscribir_a_estado_vuelo,
 )
 from ..domain import TransicionEstadoInvalida, VueloInvalido
 
 router = APIRouter(prefix="/vuelos", tags=["vuelos"])
+
+_CODIGO_CIERRE_NO_AUTENTICADO = 4401  # rango 4000-4999: codigos de app (RFC 6455 §7.4.2)
+_CODIGO_CIERRE_SIN_SCOPE = 4403
 
 
 class VueloCrearRequest(BaseModel):
@@ -79,8 +88,14 @@ class CambioEstadoResponse(BaseModel):
     vuelo_estado_id: str
 
 
-@router.post("", response_model=VueloCrearResponse, status_code=201)
+@router.post(
+    "",
+    response_model=VueloCrearResponse,
+    status_code=201,
+    dependencies=[Depends(requiere_scope("vuelos:escribir"))],
+)
 def crear_vuelo(cuerpo: VueloCrearRequest) -> VueloCrearResponse:
+    """Da de alta un vuelo para el tenant del llamador (RF-O02 parcial)."""
     try:
         resultado = alta_vuelo(
             aerolinea_id=cuerpo.aerolinea_id,
@@ -100,8 +115,13 @@ def crear_vuelo(cuerpo: VueloCrearRequest) -> VueloCrearResponse:
     return VueloCrearResponse(vuelo_id=str(resultado.vuelo_id))
 
 
-@router.get("/{vuelo_id}", response_model=VueloConsultaResponse)
+@router.get(
+    "/{vuelo_id}",
+    response_model=VueloConsultaResponse,
+    dependencies=[Depends(requiere_scope("vuelos:leer"))],
+)
 def obtener_vuelo(vuelo_id: int) -> VueloConsultaResponse:
+    """Consulta un vuelo por id (PN-01: 404 si es de otro tenant)."""
     resultado = consultar_vuelo(vuelo_id)
     if resultado is None:
         # PN-01: un vuelo de otro tenant se ve identico a uno inexistente --
@@ -123,8 +143,16 @@ def obtener_vuelo(vuelo_id: int) -> VueloConsultaResponse:
     )
 
 
-@router.post("/{vuelo_id}/estados", response_model=CambioEstadoResponse, status_code=201)
+@router.post(
+    "/{vuelo_id}/estados",
+    response_model=CambioEstadoResponse,
+    status_code=201,
+    dependencies=[Depends(requiere_scope("vuelos:escribir"))],
+)
 def cambiar_estado_vuelo(vuelo_id: int, cuerpo: CambioEstadoRequest) -> CambioEstadoResponse:
+    """Registra un cambio de estado y lo publica en el canal en tiempo
+    real /vuelos/ws/estado (RF-O04, RNF-P01).
+    """
     try:
         resultado = registrar_cambio_estado(
             vuelo_id=vuelo_id,
@@ -139,3 +167,49 @@ def cambiar_estado_vuelo(vuelo_id: int, cuerpo: CambioEstadoRequest) -> CambioEs
     except TransicionEstadoInvalida as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return CambioEstadoResponse(vuelo_estado_id=str(resultado.vuelo_estado_id))
+
+
+@router.websocket("/ws/estado")
+async def ws_estado_vuelo(websocket: WebSocket) -> None:
+    """Canal en tiempo real de cambios de estado de vuelo (RF-O04, RNF-P01).
+
+    El token viaja por query string (`?token=...`), no por cabecera: la API
+    `WebSocket` del navegador no admite cabeceras personalizadas en el
+    handshake. Ademas, `BaseHTTPMiddleware` (aerohub_gateway) NUNCA se
+    ejecuta para el scope "websocket" de Starlette -- esta ruta se
+    autentica a si misma via `aerohub_contracts.autenticar_websocket`
+    (mismo JWT, verificado independientemente).
+
+    Solo JWT (sin API Key) y solo scope "vuelos:leer" -- ver el docstring
+    de aerohub_contracts.ws_auth para el porque del alcance reducido.
+    """
+    token = websocket.query_params.get("token", "")
+    try:
+        identidad = autenticar_websocket(token)
+    except TokenWebSocketInvalido:
+        await websocket.close(code=_CODIGO_CIERRE_NO_AUTENTICADO)
+        return
+    if "vuelos:leer" not in identidad.scopes:
+        await websocket.close(code=_CODIGO_CIERRE_SIN_SCOPE)
+        return
+
+    await websocket.accept()
+    cola = suscribir_a_estado_vuelo(identidad.tenant_id)
+    try:
+        while True:
+            # get() bloqueante en un hilo aparte -- no bloquea el event
+            # loop mientras espera el proximo evento (posiblemente nunca).
+            evento = await asyncio.to_thread(cola.get)
+            await websocket.send_json(
+                {
+                    "vuelo_id": str(evento.vuelo_id),
+                    "vuelo_estado_id": str(evento.vuelo_estado_id),
+                    "estado_id": str(evento.estado_id),
+                    "codigo_estado": evento.codigo_estado,
+                    "ocurrido_en": evento.ocurrido_en.isoformat(),
+                }
+            )
+    except WebSocketDisconnect:
+        pass
+    finally:
+        desuscribir_de_estado_vuelo(identidad.tenant_id, cola)

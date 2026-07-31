@@ -19,6 +19,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import secrets
 from datetime import UTC, date, datetime
 
 import pymonetdb
@@ -209,6 +210,26 @@ def _obtener_o_crear_vuelo_canario(
     return id_
 
 
+def _obtener_o_crear_api_key_canaria(cur, *, tenant_id: int) -> int:
+    """El secreto en claro no importa para estos fines (G4 solo lee filas
+    por id, nunca autentica con ella) -- se genera y se descarta.
+    """
+    cur.execute("SELECT id FROM tenants.api_key WHERE tenant_id = %s", (tenant_id,))
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    prefijo = secrets.token_hex(6)
+    hash_secreto = hash_credencial(secrets.token_urlsafe(32))
+    cur.execute(
+        "INSERT INTO tenants.api_key "
+        "(id, tenant_id, prefijo, hash_secreto, creada_en, estado) "
+        "VALUES (%s, %s, %s, %s, %s, 'activa')",
+        (id_, tenant_id, prefijo, hash_secreto, datetime.now(UTC)),
+    )
+    return id_
+
+
 def _obtener_o_crear_estado_vuelo_actual(
     cur, *, tenant_id: int, vuelo_id: int, estado_id: int
 ) -> int:
@@ -324,6 +345,11 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
                 estado_id=estados_por_codigo["programado"],
             )
             print(f"  estado 'programado' de XX{100 + i} listo (id={estado_id})")
+
+            api_key_id = _obtener_o_crear_api_key_canaria(
+                cur, tenant_id=info_tenants[codigo]["tenant_id"]
+            )
+            print(f"  api_key canaria de {codigo} lista (id={api_key_id})")
 
         conn.commit()
     except Exception:

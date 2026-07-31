@@ -23,6 +23,7 @@ from ..infrastructure import (
     insertar_tenant,
     insertar_usuario_admin,
     registrar_auditoria,
+    reintentar_en_conflicto,
     sesion,
 )
 
@@ -37,6 +38,7 @@ class ResultadoAprovisionamiento:
     password_temporal: str  # se muestra UNA sola vez; nunca se persiste en claro
 
 
+@reintentar_en_conflicto()
 def aprovisionar_tenant(
     *,
     codigo: str,

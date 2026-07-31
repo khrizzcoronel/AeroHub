@@ -1,19 +1,25 @@
-"""Endpoints HTTP de aerohub_tenancy (Sprint S1.1, Plan §8.1, CU-O18).
+"""Endpoints HTTP de aerohub_tenancy (Sprints S1.1 CU-O18, S1.2 RF-O12).
 
 Solo traduce HTTP <-> application/: valida forma con Pydantic, invoca el
 caso de uso, traduce sus excepciones a codigos de estado. Ninguna regla de
 negocio vive aqui (esa es la promesa de "sin capa BFF", SRS §6.4).
+
+Sin `prefix=` en el APIRouter: /tenants y /api-keys son dos familias de
+recursos con distinto padre logico dentro del mismo modulo, no una
+jerarquia (una api_key no es un sub-recurso de un tenant especifico en la
+URL -- pertenece al tenant del JWT/API Key de quien la gestiona).
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from aerohub_contracts import requiere_scope
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from ..application import aprovisionar_tenant
+from ..application import ApiKeyNoEncontrada, aprovisionar_tenant, crear_api_key, revocar_api_key
 from ..domain import TenantInvalido
 
-router = APIRouter(prefix="/tenants", tags=["tenants"])
+router = APIRouter(tags=["tenants"])
 
 
 class TenantCrearRequest(BaseModel):
@@ -42,8 +48,14 @@ class TenantCrearResponse(BaseModel):
     password_temporal: str
 
 
-@router.post("", response_model=TenantCrearResponse, status_code=201)
+@router.post(
+    "/tenants",
+    response_model=TenantCrearResponse,
+    status_code=201,
+    dependencies=[Depends(requiere_scope("tenants:crear"))],
+)
 def crear_tenant(cuerpo: TenantCrearRequest) -> TenantCrearResponse:
+    """Aprovisiona un tenant nuevo con su usuario administrador (CU-O18)."""
     try:
         resultado = aprovisionar_tenant(
             codigo=cuerpo.codigo,
@@ -61,3 +73,42 @@ def crear_tenant(cuerpo: TenantCrearRequest) -> TenantCrearResponse:
         usuario_admin_id=str(resultado.usuario_admin_id),
         password_temporal=resultado.password_temporal,
     )
+
+
+class ApiKeyCrearResponse(BaseModel):
+    api_key_id: str
+    api_key_en_claro: str
+
+
+@router.post(
+    "/api-keys",
+    response_model=ApiKeyCrearResponse,
+    status_code=201,
+    dependencies=[Depends(requiere_scope("api-keys:administrar"))],
+)
+def crear_api_key_endpoint() -> ApiKeyCrearResponse:
+    """Genera una API Key nueva para el tenant del llamador (RF-O12).
+
+    El secreto en claro se devuelve UNA sola vez -- no se puede recuperar
+    despues, solo revocar y crear una nueva.
+    """
+    resultado = crear_api_key()
+    return ApiKeyCrearResponse(
+        api_key_id=str(resultado.api_key_id),
+        api_key_en_claro=resultado.api_key_en_claro,
+    )
+
+
+@router.post(
+    "/api-keys/{api_key_id}/revocar",
+    status_code=204,
+    dependencies=[Depends(requiere_scope("api-keys:administrar"))],
+)
+def revocar_api_key_endpoint(api_key_id: int) -> None:
+    """Revoca una API Key del propio tenant (PN-06: deja de aceptarse de inmediato)."""
+    try:
+        revocar_api_key(api_key_id=api_key_id)
+    except ApiKeyNoEncontrada as exc:
+        # PN-01: 404, nunca 403 -- no confirmar la existencia de una
+        # api_key ajena.
+        raise HTTPException(status_code=404, detail="api_key no encontrada") from exc

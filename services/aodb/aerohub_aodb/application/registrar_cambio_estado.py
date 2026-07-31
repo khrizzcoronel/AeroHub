@@ -4,18 +4,26 @@ Consulta el estado vigente (ops.v_vuelo_estado_actual) para validar la
 transicion ANTES de insertar -- domain.validar_transicion necesita saber
 si el estado actual es terminal, y esa informacion vive en el motor
 (catalogo.estado_vuelo_catalogo.es_terminal), no en memoria.
+
+`@reintentar_en_conflicto` (S1.2, RNF-P01): bajo cambios de estado
+concurrentes sobre el MISMO vuelo, MonetDB puede abortar la transaccion en
+el commit (SQLSTATE 40001, control de concurrencia optimista) -- se
+reintenta la funcion COMPLETA, no solo el commit (ver el docstring de
+aerohub_repository.reintentos).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from aerohub_kernel import generar_id
+from aerohub_kernel import ahora_utc, generar_id
 from sqlalchemy import select
 from sqlalchemy.engine import Connection
 
 from ..domain import EstadoVuelo, validar_origen_cambio, validar_transicion
 from ..infrastructure import (
+    EventoEstadoVuelo,
+    broadcaster_global,
     contexto_tenant_id,
     contexto_usuario_id,
     escribir_journal,
@@ -25,6 +33,7 @@ from ..infrastructure import (
     obtener_estado_vuelo_actual_por_id,
     obtener_vuelo_por_id,
     registrar_auditoria,
+    reintentar_en_conflicto,
     sesion,
 )
 
@@ -42,6 +51,7 @@ class ResultadoCambioEstado:
     vuelo_estado_id: int
 
 
+@reintentar_en_conflicto()
 def registrar_cambio_estado(
     *, vuelo_id: int, codigo_estado_nuevo: str, origen_cambio: str
 ) -> ResultadoCambioEstado:
@@ -98,6 +108,20 @@ def registrar_cambio_estado(
             valores_nuevos={"vuelo_id": vuelo_id, "codigo_estado": codigo_estado_nuevo},
         )
 
+    # Publicar DESPUES de que la transaccion confirmo (fuera del `with
+    # sesion()`) -- un suscriptor jamas debe ver un evento de una mutacion
+    # que termino revirtiendose (RNF-P01 mide propagacion de cambios
+    # REALES, no intentos).
+    broadcaster_global.publicar(
+        EventoEstadoVuelo(
+            tenant_id=tenant_id,
+            vuelo_id=vuelo_id,
+            vuelo_estado_id=vuelo_estado_id,
+            estado_id=estado_nuevo.id,
+            codigo_estado=codigo_estado_nuevo,
+            ocurrido_en=ahora_utc(),
+        )
+    )
     return ResultadoCambioEstado(vuelo_estado_id=vuelo_estado_id)
 
 

@@ -8,13 +8,15 @@ cruzada aparte (a diferencia de la cobertura "por disciplina" que
 sustituye, SRS §9.3 control 4).
 
 Convencion exigida para que un metodo sea cubierto por esta suite: nombre
-que empiece con "obtener_" y termine en "_por_id", firma
-`(conn: Connection, id: int) -> Row | None`. Cada modulo se registra junto
-con la CLAVE del canario que corresponde al tipo de id que sus metodos
-esperan (`usuario_id`, `vuelo_id`, ...) -- distintos modulos leen
-distintas entidades, no hay un unico id universal que sirva para todas
-(hallazgo de S1.1: aerohub_aodb.consultas.obtener_vuelo_por_id necesita un
-vuelo_id, no el usuario_id que ya usaba aerohub_tenancy).
+"obtener_<X>_por_id(conn: Connection, id: int) -> Row | None". La CLAVE del
+canario correspondiente se deriva del propio nombre (`<X>_id`) -- no hace
+falta emparejarla a mano por modulo: `obtener_usuario_por_id` -> clave
+"usuario_id", `obtener_vuelo_por_id` -> "vuelo_id", `obtener_api_key_por_id`
+-> "api_key_id". Esto tambien cubre el caso (hallazgo de S1.2) de que UN
+mismo modulo tenga varias funciones `_por_id` con tipos de id distintos
+(aerohub_tenancy.consultas ahora tiene obtener_usuario_por_id Y
+obtener_api_key_por_id) -- el emparejamiento explicito (modulo, clave) que
+se usaba hasta S1.1 no podia representar eso.
 """
 
 from __future__ import annotations
@@ -26,10 +28,24 @@ from aerohub_aodb.infrastructure import consultas as consultas_aodb
 from aerohub_repository import contexto, sesion
 from aerohub_tenancy.infrastructure import consultas as consultas_tenants
 
-MODULOS_A_VERIFICAR = [
-    (consultas_tenants, "usuario_id"),
-    (consultas_aodb, "vuelo_id"),
-]
+MODULOS_A_VERIFICAR = [consultas_tenants, consultas_aodb]
+
+# La convencion "obtener_<X>_por_id" -> clave "<X>_id" no siempre coincide
+# con el PARAMETRO real de la funcion -- obtener_estado_vuelo_actual_por_id
+# describe lo que DEVUELVE (el estado vigente), pero su parametro sigue
+# siendo un vuelo_id (busca el estado MAS RECIENTE de ESE vuelo). Excepcion
+# explicita, documentada, en vez de forzar el nombre de la funcion a
+# encajar en la convencion.
+CLAVES_CANARIO_EXPLICITAS: dict[str, str] = {
+    "obtener_estado_vuelo_actual_por_id": "vuelo_id",
+}
+
+
+def _clave_canario_de(nombre_funcion: str) -> str:
+    if nombre_funcion in CLAVES_CANARIO_EXPLICITAS:
+        return CLAVES_CANARIO_EXPLICITAS[nombre_funcion]
+    medio = nombre_funcion.removeprefix("obtener_").removesuffix("_por_id")
+    return f"{medio}_id"
 
 
 def _metodos_obtener_por_id(modulo) -> list[tuple[str, object]]:
@@ -49,9 +65,9 @@ def _metodos_obtener_por_id(modulo) -> list[tuple[str, object]]:
 
 def _todos_los_metodos_cubiertos() -> list[tuple[str, str, object, str]]:
     resultado = []
-    for modulo, clave_canario in MODULOS_A_VERIFICAR:
+    for modulo in MODULOS_A_VERIFICAR:
         for nombre, fn in _metodos_obtener_por_id(modulo):
-            resultado.append((modulo.__name__, nombre, fn, clave_canario))
+            resultado.append((modulo.__name__, nombre, fn, _clave_canario_de(nombre)))
     return resultado
 
 

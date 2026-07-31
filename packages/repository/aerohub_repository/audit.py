@@ -41,7 +41,7 @@ log_auditoria = Table(
     schema="compliance",
 )
 
-_OPERACIONES_VALIDAS = ("INSERT", "UPDATE", "DELETE")
+_OPERACIONES_VALIDAS = ("INSERT", "UPDATE", "DELETE", "DENEGADO")
 
 
 def registrar_auditoria(

@@ -4,6 +4,18 @@ Ningun modulo de services/ importa el domain/ ni el application/ de otro
 modulo (ADR-017 §5.4). Cuando M4 necesita ETA y puerta asignada de M1/M3,
 la dependencia se expresa aqui como evento o DTO, nunca como import directo.
 
-Este paquete empieza vacio por diseno: cada evento/puerto se agrega en el
-sprint que lo requiere (Fase 1 en adelante), no de forma anticipada.
+`scopes.requiere_scope` (S1.2) es el primer inquilino de este paquete: no
+es un DTO/evento de dominio, pero es exactamente el mismo problema
+estructural -- una utilidad que TODO modulo de negocio necesita y que
+ninguno puede importar de otro modulo sin romper la independencia.
 """
+
+from .scopes import requiere_scope
+from .ws_auth import IdentidadWebSocket, TokenWebSocketInvalido, autenticar_websocket
+
+__all__ = [
+    "requiere_scope",
+    "autenticar_websocket",
+    "IdentidadWebSocket",
+    "TokenWebSocketInvalido",
+]

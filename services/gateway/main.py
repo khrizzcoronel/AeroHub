@@ -29,8 +29,23 @@ from fastapi.middleware.cors import CORSMiddleware
 _ORIGENES_DEV = ["http://localhost:4200"]
 
 
+_TAGS = [
+    {"name": "tenants", "description": "Aprovisionamiento de tenants y gestion de API Keys."},
+    {"name": "vuelos", "description": "Alta, consulta y cambio de estado de vuelos (AODB)."},
+]
+
+
 def crear_app() -> FastAPI:
-    app = FastAPI(title="AeroHub API")
+    app = FastAPI(
+        title="AeroHub API",
+        description=(
+            "API operacional de AeroHub: aprovisionamiento de tenants y "
+            "seguimiento de vuelos en tiempo real (RF-T02, OpenAPI 3.1)."
+        ),
+        contact={"name": "AeroHub Platform Team"},
+        servers=[{"url": "http://localhost:8000", "description": "Desarrollo local"}],
+        openapi_tags=_TAGS,
+    )
     # Orden importa: Starlette ejecuta el middleware añadido MAS TARDE
     # primero (es el mas externo) -- CORS debe envolver a la autenticacion,
     # no al reves, o un preflight OPTIONS (sin Authorization) se rechaza con

@@ -19,7 +19,7 @@ from aerohub_repository.contexto import contexto_tenant_id
 from sqlalchemy import select
 from sqlalchemy.engine import Connection, Row
 
-from .tablas import usuario
+from .tablas import api_key, usuario
 
 
 def obtener_usuario_por_id(conn: Connection, usuario_id: int) -> Row | None:
@@ -34,4 +34,23 @@ def obtener_usuario_por_id(conn: Connection, usuario_id: int) -> Row | None:
         usuario.c.estado,
         usuario.c.mfa_habilitado,
     ).where(usuario.c.tenant_id == contexto_tenant_id(), usuario.c.id == usuario_id)
+    return conn.execute(stmt).first()
+
+
+def obtener_api_key_por_id(conn: Connection, api_key_id: int) -> Row | None:
+    """Tenant-scoped -- uso normal de gestion (CU: role_tenant_admin revoca
+    SU PROPIA api_key, PN-01 aplica igual que a cualquier otro recurso).
+
+    La busqueda POR PREFIJO (sin filtro de tenant, necesaria para que
+    services/gateway autentique una API Key sin conocer aun su tenant_id)
+    NO vive aqui: aerohub_gateway no puede importar aerohub_tenancy
+    (contrato de independencia de modulos, .importlinter), asi que declara
+    su propia Table de solo lectura sobre tenants.api_key
+    (aerohub_gateway/infrastructure/api_key.py) -- el guardian de G1/G2
+    resuelve el alcance por (esquema, tabla), no por que modulo declaro el
+    objeto Table, asi que ambas declaraciones conviven sin conflicto.
+    """
+    stmt = select(api_key).where(
+        api_key.c.tenant_id == contexto_tenant_id(), api_key.c.id == api_key_id
+    )
     return conn.execute(stmt).first()
