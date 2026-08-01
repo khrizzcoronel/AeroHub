@@ -35,6 +35,7 @@ GRANT SELECT ON ops.vuelo_demora TO role_platform_admin;
 GRANT SELECT ON ops.v_vuelo_estado_actual TO role_platform_admin;
 GRANT SELECT ON ops.plantilla_fids TO role_platform_admin;
 GRANT SELECT, UPDATE ON ops.pantalla_fids TO role_platform_admin;
+GRANT SELECT ON ops.asignacion_puerta TO role_platform_admin;
 
 GRANT SELECT, INSERT, UPDATE ON ops.terminal TO role_implementation;
 GRANT SELECT, INSERT, UPDATE ON ops.puerta TO role_implementation;
@@ -44,6 +45,7 @@ GRANT SELECT, INSERT, UPDATE ON ops.vuelo_demora TO role_implementation;
 GRANT SELECT ON ops.v_vuelo_estado_actual TO role_implementation;
 GRANT SELECT, INSERT, UPDATE ON ops.plantilla_fids TO role_implementation;
 GRANT SELECT, INSERT, UPDATE ON ops.pantalla_fids TO role_implementation;
+GRANT SELECT, INSERT, UPDATE ON ops.asignacion_puerta TO role_implementation;
 
 GRANT SELECT ON ops.terminal TO role_support;
 GRANT SELECT ON ops.puerta TO role_support;
@@ -53,6 +55,7 @@ GRANT SELECT ON ops.vuelo_demora TO role_support;
 GRANT SELECT ON ops.v_vuelo_estado_actual TO role_support;
 GRANT SELECT ON ops.plantilla_fids TO role_support;
 GRANT SELECT ON ops.pantalla_fids TO role_support;
+GRANT SELECT ON ops.asignacion_puerta TO role_support;
 
 GRANT SELECT, UPDATE ON ops.terminal TO role_tenant_admin;
 GRANT SELECT, UPDATE ON ops.puerta TO role_tenant_admin;
@@ -62,6 +65,7 @@ GRANT SELECT, UPDATE ON ops.vuelo_demora TO role_tenant_admin;
 GRANT SELECT ON ops.v_vuelo_estado_actual TO role_tenant_admin;
 GRANT SELECT, INSERT, UPDATE ON ops.plantilla_fids TO role_tenant_admin;
 GRANT SELECT, INSERT, UPDATE ON ops.pantalla_fids TO role_tenant_admin;
+GRANT SELECT, UPDATE ON ops.asignacion_puerta TO role_tenant_admin;
 
 GRANT SELECT, INSERT, UPDATE ON ops.terminal TO role_operations_controller;
 GRANT SELECT, INSERT, UPDATE ON ops.puerta TO role_operations_controller;
@@ -71,6 +75,7 @@ GRANT SELECT, INSERT, UPDATE ON ops.vuelo_demora TO role_operations_controller;
 GRANT SELECT ON ops.v_vuelo_estado_actual TO role_operations_controller;
 GRANT SELECT ON ops.plantilla_fids TO role_operations_controller;
 GRANT SELECT ON ops.pantalla_fids TO role_operations_controller;
+GRANT SELECT, INSERT, UPDATE ON ops.asignacion_puerta TO role_operations_controller;
 
 GRANT SELECT, INSERT, UPDATE ON ops.terminal TO role_airline_coordinator;
 GRANT SELECT, INSERT, UPDATE ON ops.puerta TO role_airline_coordinator;
@@ -78,6 +83,7 @@ GRANT SELECT, INSERT, UPDATE ON ops.vuelo TO role_airline_coordinator;
 GRANT SELECT, INSERT, UPDATE ON ops.vuelo_estado TO role_airline_coordinator;
 GRANT SELECT, INSERT, UPDATE ON ops.vuelo_demora TO role_airline_coordinator;
 GRANT SELECT ON ops.v_vuelo_estado_actual TO role_airline_coordinator;
+GRANT SELECT, INSERT, UPDATE ON ops.asignacion_puerta TO role_airline_coordinator;
 
 GRANT SELECT ON ops.terminal TO role_ramp_agent;
 GRANT SELECT ON ops.puerta TO role_ramp_agent;
@@ -85,6 +91,7 @@ GRANT SELECT ON ops.vuelo TO role_ramp_agent;
 GRANT SELECT ON ops.vuelo_estado TO role_ramp_agent;
 GRANT SELECT ON ops.vuelo_demora TO role_ramp_agent;
 GRANT SELECT ON ops.v_vuelo_estado_actual TO role_ramp_agent;
+GRANT SELECT ON ops.asignacion_puerta TO role_ramp_agent;
 
 GRANT SELECT ON ops.terminal TO role_elt_reader;
 GRANT SELECT ON ops.puerta TO role_elt_reader;
@@ -94,3 +101,4 @@ GRANT SELECT ON ops.vuelo_demora TO role_elt_reader;
 GRANT SELECT ON ops.plantilla_fids TO role_elt_reader;
 GRANT SELECT ON ops.pantalla_fids TO role_elt_reader;
 GRANT SELECT ON ops.v_vuelo_estado_actual TO role_elt_reader;
+GRANT SELECT ON ops.asignacion_puerta TO role_elt_reader;

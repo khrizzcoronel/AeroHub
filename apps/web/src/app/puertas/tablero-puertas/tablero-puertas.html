@@ -1,0 +1,103 @@
+<h1>Tablero de puertas</h1>
+
+<div>
+  <label for="tokenJwt">Token JWT (scopes puertas:leer, puertas:escribir)</label>
+  <textarea
+    id="tokenJwt"
+    rows="3"
+    [ngModel]="tokenJwt()"
+    (ngModelChange)="tokenJwt.set($event)"
+    name="tokenJwt"
+  ></textarea>
+</div>
+
+<button type="button" (click)="cargarTablero()" [disabled]="cargando() || !tokenJwt()">
+  Cargar tablero
+</button>
+<button type="button" (click)="ejecutarAutomatica()" [disabled]="cargando() || !tokenJwt()">
+  Ejecutar asignacion automatica
+</button>
+
+@if (error()) {
+  <p role="alert">Error: {{ error() }}</p>
+}
+
+@if (resultadoAutomatica(); as resultado) {
+  <p>
+    Asignacion automatica: {{ resultado.asignados.length }} vuelos asignados,
+    {{ resultado.sin_asignar.length }} sin asignar.
+  </p>
+}
+
+<h2>Asignar puerta manualmente</h2>
+<div>
+  <label for="vueloId">Vuelo id</label>
+  <input id="vueloId" type="text" [ngModel]="vueloId()" (ngModelChange)="vueloId.set($event)" name="vueloId" />
+</div>
+<div>
+  <label for="puertaId">Puerta id</label>
+  <input id="puertaId" type="text" [ngModel]="puertaId()" (ngModelChange)="puertaId.set($event)" name="puertaId" />
+</div>
+<div>
+  <label for="inicioPrevisto">Inicio previsto (UTC)</label>
+  <input
+    id="inicioPrevisto"
+    type="datetime-local"
+    [ngModel]="inicioPrevisto()"
+    (ngModelChange)="inicioPrevisto.set($event)"
+    name="inicioPrevisto"
+  />
+</div>
+<div>
+  <label for="finPrevisto">Fin previsto (UTC)</label>
+  <input
+    id="finPrevisto"
+    type="datetime-local"
+    [ngModel]="finPrevisto()"
+    (ngModelChange)="finPrevisto.set($event)"
+    name="finPrevisto"
+  />
+</div>
+<button
+  type="button"
+  (click)="asignar()"
+  [disabled]="asignando() || !tokenJwt() || !vueloId() || !puertaId() || !inicioPrevisto() || !finPrevisto()"
+>
+  Asignar
+</button>
+
+<h2>Puertas</h2>
+@if (puertas().length === 0) {
+  <p>Sin puertas cargadas todavia.</p>
+} @else {
+  @for (puerta of puertas(); track puerta.id) {
+    <section>
+      <h3>{{ puerta.codigo }} ({{ puerta.tipo }}, envergadura max {{ puerta.envergadura_max_m }}m)</h3>
+      @let asignacionesDeEsta = asignacionesPorPuerta().get(puerta.id);
+      @if (!asignacionesDeEsta || asignacionesDeEsta.length === 0) {
+        <p>Sin asignaciones.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Vuelo</th>
+              <th>Inicio previsto</th>
+              <th>Fin previsto</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (asignacion of asignacionesDeEsta; track asignacion.id) {
+              <tr>
+                <td>{{ asignacion.numero_vuelo }}</td>
+                <td>{{ asignacion.inicio_previsto }}</td>
+                <td>{{ asignacion.fin_previsto }}</td>
+                <td>{{ asignacion.estado }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  }
+}

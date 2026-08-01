@@ -169,3 +169,36 @@ CREATE TABLE ops.pantalla_fids (
     CONSTRAINT uq_pantalla_fids_tenant_codigo UNIQUE (tenant_id, codigo),
     CONSTRAINT chk_pantalla_fids_estado CHECK (estado IN ('en_linea', 'sin_senal', 'mantenimiento'))
 );
+
+-- M3 Gate Manager (Sprint S1.4, Plan §8.4; SDD-DATA-001 §7.5). El no
+-- solapamiento de intervalos [inicio_previsto, fin_previsto) sobre la
+-- MISMA puerta_id es una regla de negocio, no declarativa: MonetDB carece
+-- de un tipo de rango con restriccion de exclusion nativa (EXCLUDE USING
+-- gist de PostgreSQL) -- se verifica en aerohub_gates.domain +
+-- transaccion serializable con bloqueo de fila sobre puerta_id antes del
+-- INSERT (PN-05), documentado como riesgo acotado, no como control
+-- cerrado (hallazgo M-08 del plan de mejoras, SDD-DATA-001 §21).
+CREATE TABLE ops.asignacion_puerta (
+    id                          BIGINT NOT NULL PRIMARY KEY,
+    tenant_id                   BIGINT NOT NULL,
+    vuelo_id                    BIGINT NOT NULL,
+    puerta_id                   BIGINT NOT NULL,
+    inicio_previsto             TIMESTAMP WITH TIME ZONE NOT NULL,
+    fin_previsto                TIMESTAMP WITH TIME ZONE NOT NULL,
+    inicio_real                 TIMESTAMP WITH TIME ZONE,
+    fin_real                    TIMESTAMP WITH TIME ZONE,
+    asignado_por_usuario_id     BIGINT NOT NULL,
+    asignado_en                 TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    estado                      VARCHAR(20) NOT NULL,
+    CONSTRAINT fk_asignacion_puerta_tenant FOREIGN KEY (tenant_id) REFERENCES tenants.tenant (id),
+    CONSTRAINT fk_asignacion_puerta_vuelo FOREIGN KEY (vuelo_id) REFERENCES ops.vuelo (id),
+    CONSTRAINT fk_asignacion_puerta_puerta FOREIGN KEY (puerta_id) REFERENCES ops.puerta (id),
+    CONSTRAINT fk_asignacion_puerta_usuario FOREIGN KEY (asignado_por_usuario_id) REFERENCES tenants.usuario (id),
+    CONSTRAINT chk_asignacion_puerta_intervalo CHECK (fin_previsto > inicio_previsto),
+    CONSTRAINT chk_asignacion_puerta_estado
+        CHECK (estado IN ('planificada', 'activa', 'finalizada', 'cancelada'))
+);
+
+-- Soporta la consulta de "asignaciones existentes de esta puerta" que hace
+-- la verificacion de no solapamiento (PN-05) antes de cada INSERT.
+CREATE INDEX idx_asignacion_puerta_tenant_puerta ON ops.asignacion_puerta (tenant_id, puerta_id);

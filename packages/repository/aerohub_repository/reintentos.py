@@ -28,6 +28,18 @@ Esto es seguro porque cada mutacion de negocio vuelve a LEER el estado
 vigente antes de decidir (p. ej. registrar_cambio_estado relee
 v_vuelo_estado_actual) -- no hay una version en memoria que pueda quedar
 obsoleta entre intentos.
+
+Tercer hallazgo (S1.4, aerohub_gates -- "bloqueo de fila" simulado via
+UPDATE sin efecto sobre `ops.puerta`, ver
+aerohub_gates.infrastructure.comandos.bloquear_puerta_para_asignacion):
+cuando DOS transacciones intentan escribir la MISMA fila en simultaneo (no
+solo tablas transversales compartidas como en el hallazgo original de
+S1.2), MonetDB aborta la perdedora de inmediato, EN EL PROPIO UPDATE, con
+SQLSTATE 42000 y el mensaje "Update failed due to conflict with another
+transaction" -- un SQLSTATE y una redaccion distintos del 40001
+("...will ROLLBACK instead") documentado arriba, aunque la misma categoria
+de conflicto de concurrencia optimista. Verificado empiricamente con dos
+peticiones HTTP concurrentes reales sobre la misma puerta (PN-05).
 """
 
 from __future__ import annotations
@@ -51,6 +63,10 @@ _ESPERA_MAXIMA_S = 0.15
 def _es_conflicto_de_concurrencia(exc: DBAPIError) -> bool:
     mensaje = str(exc).lower()
     if "40001" in mensaje and "concurrency conflict" in mensaje:
+        return True
+    # Tercer hallazgo del docstring del modulo (S1.4): conflicto
+    # inmediato sobre la MISMA fila, SQLSTATE 42000, redaccion distinta.
+    if "conflict with another transaction" in mensaje:
         return True
     # Efecto secundario del conflicto (ver docstring del modulo): el
     # rollback de limpieza falla porque el motor ya cerro la conexion.
