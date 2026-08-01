@@ -13,6 +13,27 @@ es "seguir con el siguiente sprint", ir directo a `docs/PLAN_IMPLEMENTACION_v2.0
 §8.`<N+1>` (la sección del sprint siguiente al último completado abajo) en
 vez de re-explorar el repo entero.
 
+## Metodología: Spec-Driven Development (GitHub Spec Kit) -- OBLIGATORIA desde S1.6
+
+El proyecto usa Spec Kit (`.specify/`, skills `speckit-*` en
+`.claude/skills/`). `specs/NNN-<slug>/{spec.md,plan.md,tasks.md}` documenta
+cada sprint -- S0.1 a S1.5 se documentaron RETROACTIVAMENTE
+(`specs/001-` a `specs/007-`, pedido explícito del usuario el 2026-08-01).
+
+**A partir de S1.6, todo sprint nuevo sigue el flujo Spec Kit ANTES/DURANTE
+la implementación, nunca después**: `/speckit-specify` (spec.md a partir de
+la sección correspondiente de `docs/PLAN_IMPLEMENTACION_v2.0.md` §8) →
+`/speckit-plan` → `/speckit-tasks` → `/speckit-implement`. El siguiente
+directorio a crear es `specs/008-<slug>/` para S1.6. Esto es una regla de
+trabajo tan firme como "verificar contra MonetDB real" o "todo servicio en
+Docker" -- no es opcional ni se retoma "cuando convenga".
+
+La constitución del proyecto vive en `.specify/memory/constitution.md`
+(v1.0.0, ratificada 2026-08-01) y formaliza principios ya vigentes desde
+S0.1 (aislamiento fail-closed, arquitectura modular, verificación empírica,
+calidad en verde, aprobación explícita) -- no inventa reglas nuevas, y ante
+cualquier discrepancia con este archivo, la constitución prevalece.
+
 ## Estado del plan (`docs/PLAN_IMPLEMENTACION_v2.0.md` §8)
 
 | Sprint | Contenido | Commit |
