@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["nx", "serve", "web"],
       "port": 4200
+    },
+    {
+      "name": "fids-player",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "serve", "fids-player"],
+      "port": 4300
     }
   ]
 }

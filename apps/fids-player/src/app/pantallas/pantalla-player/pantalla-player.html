@@ -1,0 +1,56 @@
+<h1>Reproductor FIDS</h1>
+
+<div>
+  <label for="codigo">Codigo de pantalla</label>
+  <input
+    id="codigo"
+    type="text"
+    [ngModel]="codigo()"
+    (ngModelChange)="codigo.set($event)"
+    [disabled]="conectado()"
+    name="codigo"
+  />
+</div>
+
+<div>
+  <label for="tokenJwt">Token JWT (scopes fids:leer, fids:heartbeat)</label>
+  <textarea
+    id="tokenJwt"
+    rows="3"
+    [ngModel]="tokenJwt()"
+    (ngModelChange)="tokenJwt.set($event)"
+    [disabled]="conectado()"
+    name="tokenJwt"
+  ></textarea>
+</div>
+
+<button type="button" (click)="conectar()" [disabled]="conectado() || !codigo() || !tokenJwt()">
+  Conectar
+</button>
+<button type="button" (click)="desconectar()" [disabled]="!conectado()">Desconectar</button>
+
+<p>Estado: {{ conectado() ? 'conectado' : 'desconectado' }}</p>
+
+@if (error()) {
+  <p role="alert">Error: {{ error() }}</p>
+}
+
+@if (pantalla()) {
+  <p>Pantalla {{ pantalla()!.codigo }} -- estado registrado: {{ pantalla()!.estado }}</p>
+}
+
+@if (ultimaActualizacion()) {
+  <p>Ultima actualizacion recibida: {{ ultimaActualizacion() }}</p>
+}
+
+<section class="pantalla-fids">
+  @if (!definicionJson()) {
+    <p>Sin plantilla cargada todavia.</p>
+  } @else if (filasDeTexto(); as filas) {
+    @for (texto of filas; track $index) {
+      <p class="fila">{{ texto }}</p>
+    }
+  } @else {
+    <pre>{{ definicionJson() | json }}</pre>
+  }
+</section>

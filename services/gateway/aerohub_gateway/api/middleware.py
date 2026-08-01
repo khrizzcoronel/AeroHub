@@ -18,6 +18,12 @@ el contrato de independencia de modulos.
 Rate limiting: se aplica DESPUES de autenticar (necesita saber tenant_id/rol
 para elegir el cupo correcto), ANTES de reenviar la peticion al router --
 una peticion que agota su cupo nunca llega a application/ ni al motor.
+
+`RUTAS_EXENTAS` (S1.3): `/metrics` no pasa por este middleware -- Prometheus
+scrapea sin credenciales de aplicacion (en produccion, ese endpoint se
+protege por red/mTLS, no por el mismo JWT que el resto de la API). Ninguna
+otra ruta se agrega a esta lista sin una razon documentada igual de
+explicita: es la excepcion, no el patron.
 """
 
 from __future__ import annotations
@@ -36,9 +42,13 @@ from ..domain import Identidad, IdentidadInvalida, TokenInvalido
 
 __all__ = ["AutenticacionJWTMiddleware"]
 
+RUTAS_EXENTAS = frozenset({"/metrics"})
+
 
 class AutenticacionJWTMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        if request.url.path in RUTAS_EXENTAS:
+            return await call_next(request)
         try:
             identidad = self._autenticar(request)
         except (TokenInvalido, IdentidadInvalida) as exc:

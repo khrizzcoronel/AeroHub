@@ -128,3 +128,44 @@ WHERE ve.registrado_en = (
     FROM ops.vuelo_estado ve2
     WHERE ve2.vuelo_id = ve.vuelo_id
 );
+
+-- M2 FIDS (Sprint S1.3, Plan §8.3; SDD-DATA-001 §7.7-7.8). Versionada: cada
+-- fila es una version INMUTABLE (nombre, version) -- publicar una plantilla
+-- nueva es un INSERT, nunca un UPDATE sobre una version ya vigente, para
+-- que una pantalla_fids.plantilla_id historico siga siendo resoluble.
+-- SIN campo alguno que identifique a un pasajero (PN-11, RNF-S05):
+-- definicion_json es un layout declarativo (posiciones, textos estaticos,
+-- referencias a datos agregados de vuelo), no un feed de datos personales.
+CREATE TABLE ops.plantilla_fids (
+    id                      BIGINT NOT NULL PRIMARY KEY,
+    tenant_id               BIGINT NOT NULL,
+    nombre                  VARCHAR(100) NOT NULL,
+    definicion_json         JSON NOT NULL,
+    version                 INTEGER NOT NULL,
+    vigente_desde           TIMESTAMP WITH TIME ZONE NOT NULL,
+    creada_por_usuario_id   BIGINT NOT NULL,
+    CONSTRAINT fk_plantilla_fids_tenant FOREIGN KEY (tenant_id) REFERENCES tenants.tenant (id),
+    CONSTRAINT uq_plantilla_fids_tenant_nombre_version UNIQUE (tenant_id, nombre, version),
+    CONSTRAINT chk_plantilla_fids_version CHECK (version > 0)
+);
+
+-- ultima_senal_en es el corazon de RF-O07/RNF-R04 (deteccion de pantalla
+-- sin senal < 60s): la actualiza cada heartbeat de la pantalla fisica; un
+-- monitor en proceso (services/fids) la compara contra el umbral y
+-- transiciona `estado` a 'sin_senal' cuando se vence.
+CREATE TABLE ops.pantalla_fids (
+    id                      BIGINT NOT NULL PRIMARY KEY,
+    tenant_id               BIGINT NOT NULL,
+    terminal_id             BIGINT NOT NULL,
+    codigo                  VARCHAR(20) NOT NULL,
+    ubicacion_descripcion   VARCHAR(150),
+    plantilla_id            BIGINT NOT NULL,
+    ultima_senal_en         TIMESTAMP WITH TIME ZONE,
+    version_firmware        VARCHAR(20),
+    estado                  VARCHAR(20) NOT NULL,
+    CONSTRAINT fk_pantalla_fids_tenant FOREIGN KEY (tenant_id) REFERENCES tenants.tenant (id),
+    CONSTRAINT fk_pantalla_fids_terminal FOREIGN KEY (terminal_id) REFERENCES ops.terminal (id),
+    CONSTRAINT fk_pantalla_fids_plantilla FOREIGN KEY (plantilla_id) REFERENCES ops.plantilla_fids (id),
+    CONSTRAINT uq_pantalla_fids_tenant_codigo UNIQUE (tenant_id, codigo),
+    CONSTRAINT chk_pantalla_fids_estado CHECK (estado IN ('en_linea', 'sin_senal', 'mantenimiento'))
+);
