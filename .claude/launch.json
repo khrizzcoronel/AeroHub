@@ -3,14 +3,12 @@
   "configurations": [
     {
       "name": "web",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "web"],
+      "url": "http://localhost:4200",
       "port": 4200
     },
     {
       "name": "fids-player",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "fids-player"],
+      "url": "http://localhost:4300",
       "port": 4300
     }
   ]

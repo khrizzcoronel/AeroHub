@@ -29,6 +29,7 @@ from aerohub_fids.application import ejecutar_ciclo_monitoreo
 from aerohub_fids.metricas import contar_pantalla_sin_senal
 from aerohub_gates.api import router as router_gates
 from aerohub_gateway.api import AutenticacionJWTMiddleware
+from aerohub_ramp.api import router as router_ramp
 from aerohub_tenancy.api import router as router_tenancy
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,6 +53,7 @@ _TAGS = [
     {"name": "vuelos", "description": "Alta, consulta y cambio de estado de vuelos (AODB)."},
     {"name": "fids", "description": "Plantillas y pantallas FIDS, publicacion en tiempo real."},
     {"name": "puertas", "description": "Asignacion de puertas, manual y automatica (PuLP)."},
+    {"name": "rampa", "description": "Turnaround, tareas de rampa e incidencias por desviacion."},
 ]
 
 
@@ -111,6 +113,7 @@ def crear_app() -> FastAPI:
     app.include_router(router_aodb)
     app.include_router(router_fids)
     app.include_router(router_gates)
+    app.include_router(router_ramp)
 
     @app.get("/metrics", include_in_schema=False)
     def metricas() -> Response:

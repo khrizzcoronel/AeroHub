@@ -154,6 +154,54 @@ ESTADOS_VUELO = [
     ("desviado", "Desviado a otro aeropuerto", True),
 ]
 
+# Catalogo de tareas de rampa (CU-O16, Sprint S1.5) -- dominio ABIERTO
+# (rampa.tipo_tarea no tiene CHECK cerrado sobre codigo, a diferencia de
+# catalogo.tipo_vuelo). combustible y equipaje se marcan de ruta critica:
+# ambas bloquean el resto del turnaround si se retrasan (no puede salir el
+# vuelo sin repostar ni sin cargar equipaje), a diferencia de catering o
+# limpieza, que pueden solaparse con otras tareas sin extender el
+# turnaround completo.
+TIPOS_TAREA = [
+    ("combustible", "Reabastecimiento de combustible", 30, True),
+    ("catering", "Carga de catering", 20, False),
+    ("limpieza", "Limpieza de cabina", 15, False),
+    ("equipaje", "Carga y descarga de equipaje", 25, True),
+]
+
+TIPOS_INCIDENCIA_RAMPA = [
+    ("desviacion_estandar", "Tarea de rampa que supero la duracion estandar de su tipo"),
+]
+
+
+def _obtener_o_crear_tipo_tarea(
+    cur, codigo: str, nombre: str, duracion_estandar_min: int, es_ruta_critica: bool
+) -> int:
+    cur.execute("SELECT id FROM rampa.tipo_tarea WHERE codigo = %s", (codigo,))
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO rampa.tipo_tarea "
+        "(id, codigo, nombre, duracion_estandar_min, es_ruta_critica) "
+        "VALUES (%s, %s, %s, %s, %s)",
+        (id_, codigo, nombre, duracion_estandar_min, es_ruta_critica),
+    )
+    return id_
+
+
+def _obtener_o_crear_tipo_incidencia_rampa(cur, codigo: str, descripcion: str) -> int:
+    cur.execute("SELECT id FROM rampa.tipo_incidencia_rampa WHERE codigo = %s", (codigo,))
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO rampa.tipo_incidencia_rampa (id, codigo, descripcion) VALUES (%s, %s, %s)",
+        (id_, codigo, descripcion),
+    )
+    return id_
+
 
 def _obtener_o_crear_plan(cur, codigo: str) -> int:
     cur.execute("SELECT id FROM tenants.plan WHERE codigo = %s", (codigo,))
@@ -264,6 +312,11 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
             estados_por_codigo[codigo] = _obtener_o_crear_estado_vuelo(
                 cur, codigo, descripcion, es_terminal
             )
+
+        for codigo, nombre, duracion_estandar_min, es_ruta_critica in TIPOS_TAREA:
+            _obtener_o_crear_tipo_tarea(cur, codigo, nombre, duracion_estandar_min, es_ruta_critica)
+        for codigo, descripcion in TIPOS_INCIDENCIA_RAMPA:
+            _obtener_o_crear_tipo_incidencia_rampa(cur, codigo, descripcion)
 
         aerolinea_id = _obtener_o_crear_aerolinea(cur, "XX", pais_id)
         modelo_aeronave_id = _obtener_o_crear_modelo_aeronave(cur, "B738")

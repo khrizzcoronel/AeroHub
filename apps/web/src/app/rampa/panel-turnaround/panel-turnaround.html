@@ -1,0 +1,192 @@
+<h1>Panel de turnaround (rampa)</h1>
+
+<div>
+  <label for="tokenJwt">Token JWT (scopes rampa:leer, rampa:escribir)</label>
+  <textarea
+    id="tokenJwt"
+    rows="3"
+    [ngModel]="tokenJwt()"
+    (ngModelChange)="tokenJwt.set($event)"
+    name="tokenJwt"
+  ></textarea>
+</div>
+
+<button type="button" (click)="cargarTurnarounds()" [disabled]="!tokenJwt()">
+  Cargar turnarounds
+</button>
+<button type="button" (click)="cargarIncidencias()" [disabled]="!tokenJwt()">
+  Cargar incidencias
+</button>
+
+@if (error()) {
+  <p role="alert">Error: {{ error() }}</p>
+}
+
+<h2>Crear turnaround</h2>
+<div>
+  <label for="vueloLlegadaId">Vuelo llegada id (sentido 'L')</label>
+  <input
+    id="vueloLlegadaId"
+    type="text"
+    [ngModel]="vueloLlegadaId()"
+    (ngModelChange)="vueloLlegadaId.set($event)"
+    name="vueloLlegadaId"
+  />
+</div>
+<div>
+  <label for="vueloSalidaId">Vuelo salida id (sentido 'S', misma aeronave)</label>
+  <input
+    id="vueloSalidaId"
+    type="text"
+    [ngModel]="vueloSalidaId()"
+    (ngModelChange)="vueloSalidaId.set($event)"
+    name="vueloSalidaId"
+  />
+</div>
+<div>
+  <label for="inicioPrevisto">Inicio previsto (UTC)</label>
+  <input
+    id="inicioPrevisto"
+    type="datetime-local"
+    [ngModel]="inicioPrevisto()"
+    (ngModelChange)="inicioPrevisto.set($event)"
+    name="inicioPrevisto"
+  />
+</div>
+<div>
+  <label for="finPrevisto">Fin previsto (UTC)</label>
+  <input
+    id="finPrevisto"
+    type="datetime-local"
+    [ngModel]="finPrevisto()"
+    (ngModelChange)="finPrevisto.set($event)"
+    name="finPrevisto"
+  />
+</div>
+<button
+  type="button"
+  (click)="crearTurnaround()"
+  [disabled]="cargando() || !tokenJwt() || !vueloLlegadaId() || !vueloSalidaId() || !inicioPrevisto() || !finPrevisto()"
+>
+  Crear turnaround
+</button>
+
+<h2>Turnarounds</h2>
+@if (turnarounds().length === 0) {
+  <p>Sin turnarounds cargados todavia.</p>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>Llegada</th>
+        <th>Salida</th>
+        <th>Inicio previsto</th>
+        <th>Fin previsto</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (t of turnarounds(); track t.id) {
+        <tr [class.seleccionado]="t.id === turnaroundSeleccionadoId()">
+          <td>{{ t.numero_vuelo_llegada }}</td>
+          <td>{{ t.numero_vuelo_salida }}</td>
+          <td>{{ t.inicio_previsto }}</td>
+          <td>{{ t.fin_previsto }}</td>
+          <td>{{ t.estado }}</td>
+          <td>
+            <button type="button" (click)="seleccionarTurnaround(t.id)">Ver tareas</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+@if (turnaroundSeleccionadoId()) {
+  <h2>Tareas del turnaround {{ turnaroundSeleccionadoId() }}</h2>
+
+  <div>
+    <label for="tipoTareaId">Tipo de tarea id</label>
+    <input
+      id="tipoTareaId"
+      type="text"
+      [ngModel]="tipoTareaId()"
+      (ngModelChange)="tipoTareaId.set($event)"
+      name="tipoTareaId"
+    />
+  </div>
+  <button type="button" (click)="iniciarTarea()" [disabled]="cargando() || !tipoTareaId()">
+    Iniciar tarea
+  </button>
+
+  <div>
+    <label for="finReal">Fin real (UTC), para finalizar una tarea en curso</label>
+    <input
+      id="finReal"
+      type="datetime-local"
+      [ngModel]="finReal()"
+      (ngModelChange)="finReal.set($event)"
+      name="finReal"
+    />
+  </div>
+
+  @if (tareas().length === 0) {
+    <p>Sin tareas todavia (o ninguna es tuya -- minimo privilegio de role_ramp_agent).</p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo tarea</th>
+          <th>Inicio real</th>
+          <th>Fin real</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (tarea of tareas(); track tarea.id) {
+          <tr>
+            <td>{{ tarea.tipo_tarea_id }}</td>
+            <td>{{ tarea.inicio_real }}</td>
+            <td>{{ tarea.fin_real || '—' }}</td>
+            <td>{{ tarea.estado }}</td>
+            <td>
+              @if (tarea.estado === 'en_curso') {
+                <button type="button" (click)="finalizarTarea(tarea.id)" [disabled]="!finReal()">
+                  Finalizar
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+}
+
+<h2>Incidencias</h2>
+@if (incidencias().length === 0) {
+  <p>Sin incidencias todavia.</p>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th>Descripcion</th>
+        <th>Severidad</th>
+        <th>Detectada en</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (incidencia of incidencias(); track incidencia.id) {
+        <tr>
+          <td>{{ incidencia.tipo_incidencia_codigo }}</td>
+          <td>{{ incidencia.descripcion }}</td>
+          <td>{{ incidencia.severidad }}</td>
+          <td>{{ incidencia.detectada_en }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

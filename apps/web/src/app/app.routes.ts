@@ -1,5 +1,6 @@
 import { Route } from '@angular/router';
 import { TableroPuertas } from './puertas/tablero-puertas/tablero-puertas';
+import { PanelTurnaround } from './rampa/panel-turnaround/panel-turnaround';
 import { TenantCreation } from './tenants/tenant-creation/tenant-creation';
 import { EstadoTiempoReal } from './vuelos/estado-tiempo-real/estado-tiempo-real';
 
@@ -8,4 +9,5 @@ export const appRoutes: Route[] = [
   { path: 'tenants/nuevo', component: TenantCreation },
   { path: 'vuelos/tiempo-real', component: EstadoTiempoReal },
   { path: 'puertas/tablero', component: TableroPuertas },
+  { path: 'rampa/turnaround', component: PanelTurnaround },
 ];
