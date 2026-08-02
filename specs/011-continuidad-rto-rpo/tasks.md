@@ -309,7 +309,7 @@ historias completas e independientemente probadas.
       `docs/runbooks/monetdb.md` o `CLAUDE.md`; si el margen se estrecha,
       evaluar serializar el `payload` de forma más compacta (ADR-018,
       nunca relajar el control)
-- [ ] T042 Actualizar `CLAUDE.md`: fila S1.9 en "Estado del plan" con el
+- [X] T042 Actualizar `CLAUDE.md`: fila S1.9 en "Estado del plan" con el
       hash del commit y nota explícita de que RNF-R01 queda como riesgo
       abierto con mecanismo y métrica (no cerrado), una vez cerrado el
       sprint
