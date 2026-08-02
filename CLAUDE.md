@@ -102,10 +102,42 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.8 | Soporte D6 (tickets/SLA, KB, changelog) + observabilidad (uptime, error budget, bloqueo de despliegue) | `7f77acf` |
 | S1.9 | Continuidad operacional RTO/RPO (ADR-018): snapshot verificado, réplica caliente (shipper), conmutación guiada, prueba de restauración semanal -- RNF-R01 sigue como riesgo abierto (mecanismo + métrica, cierre formal en Fase 4/S4.2) | `0d8b766` |
 | S1.10 | Identidad y acceso (ADR-020): login real, sesión revocable, cambio de contraseña obligatorio, invitaciones/verificación/recuperación por correo, frontend completo de auth | `666b660` |
+| **S1.11** | **Rediseño: sistema de diseño + quitar JWT manual + `vuelos/estado-tiempo-real`** | **siguiente** |
+| S1.12 | Rediseño: `puertas/tablero` + `rampa/turnaround` | pendiente |
+| S1.13 | Rediseño: `billing/facturas` + `tenants/nuevo` + auditoría de las 8 vistas de S1.10 | pendiente |
+| S1.14 | Rediseño: `fids-player/pantalla-player` | pendiente |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
 retomar.
+
+## Rediseño de interfaz (S1.11–S1.14) — aprobado, sin empezar
+
+La capa operativa (S0.1–S1.10) está **completa y commiteada**. Lo siguiente
+acordado con el usuario NO es la Fase 2 del plan de implementación, sino
+4 sprints de rediseño de interfaz: de las 14 vistas existentes, 6 quedaron
+sin ningún estilo (HTML crudo, renderizado por defecto del navegador)
+porque S1.1–S1.6 se construyeron como "Angular mínimo funcional" a
+propósito, y el skill `frontend-design` recién se aplicó en S1.10.
+
+**La dirección estética completa vive en `docs/diseno/DIRECCION_VISUAL.md`**
+— tokens, tipografía, el componente "tira de progreso de vuelo" como
+unidad estructural reutilizada en los 5 módulos, la decisión de densidad
+sobre aire, la autocrítica del plan, y la división exacta de los 4
+sprints. Leer ese archivo antes de tocar cualquier vista; no re-derivar
+la dirección de diseño.
+
+Tres decisiones ya tomadas por el usuario (no re-preguntarlas):
+
+1. **M6/M8/M9 quedan fuera**: tienen backend pero ninguna vista Angular;
+   crearlas sería construir funcionalidad, no rediseñar.
+2. **Quitar el `<textarea>` de JWT manual va incluido** (S1.11): las 5
+   vistas sin estilo y sus 4 servicios todavía reciben `tokenJwt` por
+   parámetro, pese a que `authInterceptor` ya lo agrega desde S1.10 --
+   es código muerto que confunde, no se maquilla, se elimina.
+3. **Cada sprint corre su ciclo Spec Kit completo** (`specs/013-` a
+   `specs/016-`), dividido así deliberadamente para no sobrecargar el
+   contexto de una sola sesión.
 
 ## Reglas de trabajo establecidas (no releer el historial para redescubrirlas)
 
