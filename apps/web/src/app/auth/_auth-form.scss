@@ -1,0 +1,121 @@
+// Estilos de formulario compartidos entre las vistas publicas de /auth
+// (login, cambiar-password, recuperar, restablecer, verificar-correo,
+// aceptar-invitacion) -- evita duplicar .card/.field/.btn en cada una.
+
+.stage-simple {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--ah-paper-50);
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  background: #fff;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  box-shadow: var(--ah-shadow-card);
+  padding: 2rem;
+}
+
+.card h1 {
+  font-size: 1.35rem;
+}
+
+.card__sub {
+  margin: -0.6rem 0 0;
+  color: var(--ah-ink-600);
+  font-size: 0.9rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ah-ink-600);
+}
+
+.field__hint {
+  font-size: 0.78rem;
+  color: var(--ah-ink-400);
+}
+
+.field input {
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--ah-radius);
+  border: 1px solid var(--ah-line-200);
+  font-size: 0.95rem;
+  background: #fff;
+  color: var(--ah-ink-900);
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--ah-blue-500);
+  outline-offset: 1px;
+}
+
+.btn {
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: var(--ah-radius);
+  background: var(--ah-blue-500);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: #2559c4;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ah-navy-900);
+  outline-offset: 2px;
+}
+
+.alert {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--ah-radius);
+  background: var(--ah-danger-50);
+  color: var(--ah-danger-600);
+  font-size: 0.85rem;
+}
+
+.notice {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--ah-radius);
+  background: #eaf1ff;
+  color: var(--ah-navy-800);
+  font-size: 0.85rem;
+}
+
+.card__link {
+  font-size: 0.85rem;
+  color: var(--ah-blue-500);
+  text-decoration: none;
+  text-align: center;
+}
+
+.card__link:hover {
+  text-decoration: underline;
+}

@@ -35,6 +35,11 @@ from aerohub_passenger.api import router as router_passenger
 from aerohub_ramp.api import router as router_ramp
 from aerohub_support.api import router as router_support
 from aerohub_tenancy.api import router as router_tenancy
+from aerohub_tenancy.api import router_auth
+from aerohub_tenancy.infrastructure import (
+    configurar_adaptador_correo,
+    crear_adaptador_smtp_desde_entorno,
+)
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
@@ -54,6 +59,12 @@ _ORIGENES_DEV = ["http://localhost:4200", "http://localhost:4300"]
 _INTERVALO_MONITOR_SENAL_S = 10.0
 
 _TAGS = [
+    {
+        "name": "auth",
+        "description": (
+            "Login, sesion, perfil de acceso, invitaciones y ciclo de vida de la credencial."
+        ),
+    },
     {"name": "tenants", "description": "Aprovisionamiento de tenants y gestion de API Keys."},
     {"name": "vuelos", "description": "Alta, consulta y cambio de estado de vuelos (AODB)."},
     {"name": "fids", "description": "Plantillas y pantallas FIDS, publicacion en tiempo real."},
@@ -150,6 +161,10 @@ def crear_app() -> FastAPI:
         openapi_tags=_TAGS,
         lifespan=_ciclo_de_vida,
     )
+    # S1.10: adaptador SMTP inyectado desde el borde (contracts/correo-puerto.md)
+    # -- aerohub_tenancy/application/ depende solo del puerto EnviarCorreo,
+    # nunca de este adaptador concreto.
+    configurar_adaptador_correo(crear_adaptador_smtp_desde_entorno())
     # Orden importa: Starlette ejecuta el middleware añadido MAS TARDE
     # primero (es el mas externo) -- CORS debe envolver a la autenticacion,
     # no al reves, o un preflight OPTIONS (sin Authorization) se rechaza con
@@ -162,6 +177,7 @@ def crear_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(router_tenancy)
+    app.include_router(router_auth)
     app.include_router(router_aodb)
     app.include_router(router_fids)
     app.include_router(router_gates)

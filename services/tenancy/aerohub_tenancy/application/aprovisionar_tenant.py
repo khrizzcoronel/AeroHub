@@ -13,15 +13,17 @@ from __future__ import annotations
 import secrets
 from dataclasses import dataclass
 
-from aerohub_kernel import generar_id
+from aerohub_kernel import ahora_utc, generar_id
 from aerohub_kernel import hash_credencial as _hash_credencial
 
-from ..domain import Tenant
+from ..domain import Tenant, TenantInvalido
 from ..infrastructure import (
     alcance_global,
     escribir_journal,
     insertar_tenant,
     insertar_usuario_admin,
+    insertar_usuario_rol,
+    obtener_rol_por_codigo,
     registrar_auditoria,
     reintentar_en_conflicto,
     sesion,
@@ -29,6 +31,7 @@ from ..infrastructure import (
 
 _MOTIVO_ALCANCE_GLOBAL = "aprovisionamiento_tenant"
 _ROL_APROVISIONAMIENTO = "role_platform_admin"
+_ROL_ADMIN_DEL_TENANT = "role_tenant_admin"
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,6 +128,38 @@ def aprovisionar_tenant(
             registro_id=usuario_admin_id,
             operacion="INSERT",
             valores_nuevos={"tenant_id": tenant_id, "email": email_admin},
+            tenant_id=tenant_id,
+        )
+
+        # FIX S1.10 (tasks.md T020): sin esta asignacion, el usuario admin
+        # recien creado no tiene ningun rol vigente y nunca podria
+        # loguearse (iniciar_sesion.py exige un rol vigente, FR-014).
+        rol_admin = obtener_rol_por_codigo(conn, _ROL_ADMIN_DEL_TENANT)
+        if rol_admin is None:
+            raise TenantInvalido(f"rol {_ROL_ADMIN_DEL_TENANT!r} no encontrado en tenants.rol")
+        insertar_usuario_rol(
+            conn,
+            usuario_id=usuario_admin_id,
+            rol_id=rol_admin.id,
+            otorgado_por=usuario_admin_id,
+            otorgado_en=ahora_utc(),
+        )
+        escribir_journal(
+            conn,
+            esquema="tenants",
+            tabla="usuario_rol",
+            operacion="INSERT",
+            clave_primaria={"usuario_id": usuario_admin_id, "rol_id": rol_admin.id},
+            payload={"usuario_id": usuario_admin_id, "rol_id": rol_admin.id},
+            tenant_id=tenant_id,
+        )
+        registrar_auditoria(
+            conn,
+            esquema="tenants",
+            tabla="usuario_rol",
+            registro_id=usuario_admin_id,
+            operacion="INSERT",
+            valores_nuevos={"rol_id": rol_admin.id, "rol_codigo": _ROL_ADMIN_DEL_TENANT},
             tenant_id=tenant_id,
         )
 

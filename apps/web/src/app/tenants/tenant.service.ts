@@ -34,14 +34,9 @@ export interface CrearTenantResponse {
 export class TenantService {
   private readonly http = inject(HttpClient);
 
-  crearTenant(
-    peticion: CrearTenantRequest,
-    tokenJwt: string,
-  ): Observable<CrearTenantResponse> {
-    return this.http.post<CrearTenantResponse>(
-      `${API_BASE_URL}/tenants`,
-      peticion,
-      { headers: { Authorization: `Bearer ${tokenJwt}` } },
-    );
+  crearTenant(peticion: CrearTenantRequest): Observable<CrearTenantResponse> {
+    // S1.10: el token ya no viaja por parametro -- lo agrega
+    // authInterceptor a partir de la sesion real (FR-029).
+    return this.http.post<CrearTenantResponse>(`${API_BASE_URL}/tenants`, peticion);
   }
 }

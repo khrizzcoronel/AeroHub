@@ -45,6 +45,86 @@ usuario = Table(
     Column("estado", String(20)),
     Column("mfa_habilitado", Boolean),
     Column("creado_en", DateTime(timezone=True)),
+    # Columnas del ciclo de vida de la credencial, agregadas en S1.10
+    # (data-model.md): `ultimo_acceso_en` ya existia sin usar desde S0.2.
+    Column("email_verificado_en", DateTime(timezone=True)),
+    Column("debe_cambiar_password", Boolean),
+    Column("bloqueado_hasta", DateTime(timezone=True)),
+    Column("ultimo_acceso_en", DateTime(timezone=True)),
+    schema="tenants",
+)
+
+rol = Table(
+    "rol",
+    metadata,
+    Column("id", BigInt, primary_key=True),
+    Column("codigo", String(50)),
+    Column("nombre", String(100)),
+    Column("alcance", String(20)),
+    schema="tenants",
+)
+
+usuario_rol = Table(
+    "usuario_rol",
+    metadata,
+    Column("usuario_id", BigInt, primary_key=True),
+    Column("rol_id", BigInt, primary_key=True),
+    Column("otorgado_por", BigInt),
+    Column("otorgado_en", DateTime(timezone=True)),
+    Column("expira_en", DateTime(timezone=True)),
+    schema="tenants",
+)
+
+sesion = Table(
+    "sesion",
+    metadata,
+    Column("id", BigInt, primary_key=True),
+    Column("usuario_id", BigInt),
+    Column("emitida_en", DateTime(timezone=True)),
+    Column("expira_en", DateTime(timezone=True)),
+    Column("revocada_en", DateTime(timezone=True)),
+    Column("motivo_revocacion", String(30)),
+    Column("ip_origen", String(45)),
+    schema="tenants",
+)
+
+token_acceso = Table(
+    "token_acceso",
+    metadata,
+    Column("id", BigInt, primary_key=True),
+    Column("usuario_id", BigInt),
+    Column("tipo", String(20)),
+    Column("hash_token", String(255)),
+    Column("emitido_en", DateTime(timezone=True)),
+    Column("expira_en", DateTime(timezone=True)),
+    Column("consumido_en", DateTime(timezone=True)),
+    schema="tenants",
+)
+
+invitacion = Table(
+    "invitacion",
+    metadata,
+    Column("id", BigInt, primary_key=True),
+    Column("tenant_id", BigInt),
+    Column("email", String(254)),
+    Column("rol_id", BigInt),
+    Column("invitado_por_usuario_id", BigInt),
+    Column("token_acceso_id", BigInt),
+    Column("estado", String(20)),
+    Column("creada_en", DateTime(timezone=True)),
+    Column("aceptada_en", DateTime(timezone=True)),
+    schema="tenants",
+)
+
+intento_acceso = Table(
+    "intento_acceso",
+    metadata,
+    Column("id", BigInt, primary_key=True),
+    Column("email_intentado", String(254)),
+    Column("usuario_id", BigInt),
+    Column("resultado", String(20)),
+    Column("ocurrido_en", DateTime(timezone=True)),
+    Column("ip_origen", String(45)),
     schema="tenants",
 )
 

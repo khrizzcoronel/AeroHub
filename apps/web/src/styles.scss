@@ -1,1 +1,67 @@
-/* You can add global styles to this file, and also import other style files */
+/* AeroHub — tokens globales (Sprint S1.10, skill frontend-design).
+   Primera vista realmente disenada del proyecto -- S1.1-S1.9 fueron
+   deliberadamente "minimo funcional" sin estilo (CLAUDE.md). El motivo
+   visual viene del artefacto mas caracteristico de una torre de control:
+   la tira de progreso de vuelo (flight progress strip), usada como
+   franja lateral en el login y como acento de estado en el shell. */
+
+:root {
+  --ah-navy-950: #0a1830;
+  --ah-navy-900: #0e2142;
+  --ah-navy-800: #16305c;
+  --ah-blue-500: #2f6fed;
+  --ah-blue-400: #5a8ff5;
+  --ah-amber-500: #f5a623;
+  --ah-paper-50: #f7f8fa;
+  --ah-paper-100: #eef0f4;
+  --ah-line-200: #dfe3ea;
+  --ah-ink-900: #10182b;
+  --ah-ink-600: #4b5768;
+  --ah-ink-400: #8791a1;
+  --ah-danger-600: #c8372f;
+  --ah-danger-50: #fdecea;
+
+  --ah-font-display: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --ah-font-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --ah-font-mono: 'IBM Plex Mono', 'Cascadia Code', ui-monospace, monospace;
+
+  --ah-radius: 6px;
+  --ah-shadow-card: 0 1px 2px rgba(10, 24, 48, 0.06), 0 8px 24px rgba(10, 24, 48, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--ah-font-body);
+  color: var(--ah-ink-900);
+  background: var(--ah-paper-50);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--ah-font-display);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

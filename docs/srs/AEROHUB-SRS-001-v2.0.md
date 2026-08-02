@@ -251,6 +251,24 @@ Prioridad según MoSCoW (M = Must, S = Should, C = Could). Cada requisito traza 
 
 > **Nota de trazabilidad (AEROHUB-ADR-INTERNO-001):** RF-O19 adopta en este documento la definición de gobernanza de ejecuciones ETL, por estar sustentada de forma cruzada en el catálogo de casos de uso y en la batería de pruebas negativas de la fuente. La capacidad de captura automática de NPS/CSAT de operadores externos se preserva bajo el identificador provisional **RF-O19-bis** (Apéndice A) hasta el cierre formal de la errata solicitada.
 
+### 4.3.1 Identidad y acceso (Sprint S1.10) — identificadores editoriales
+
+Acuñados por Ingeniería de Requisitos para dar cobertura a CU-IA01..CU-IA08 (`specs/012-identidad-y-acceso/spec.md`); no existen
+como identificadores en el documento fuente. **No se reutilizan RF-O20/RF-O21/RF-O22**: esos tres códigos ya están reservados en
+el Apéndice A para residencia de datos, retención/archivado y validación de rol contra catálogo respectivamente — ninguno de los
+tres es identidad de usuario, así que la familia nueva usa un prefijo propio (`RF-IA`) en vez de invadir esa numeración.
+
+| ID | Descripción | Prioridad | OKR relacionado | Criterio de aceptación |
+|:---|:---|:---|:---|:---|
+| RF-IA01 | Inicio de sesión con correo y contraseña propios, sin revelar si el correo existe ante una credencial inválida. | M | OP1 | Respuesta 401 idéntica entre correo inexistente y contraseña incorrecta (PN-16); JWT emitido usable de inmediato contra un endpoint de negocio. |
+| RF-IA02 | Bloqueo temporal de la cuenta tras 5 intentos fallidos consecutivos en 15 minutos. | M | OP1 | El intento inmediatamente posterior al quinto fallo es rechazado aunque la contraseña sea correcta; se libera automáticamente tras el vencimiento del bloqueo. |
+| RF-IA03 | Exposición del perfil de acceso (rol, scopes, módulos visibles como intersección rol × licencia vigente) para que el cliente construya su menú sin lógica de permisos propia. | M | OP1 | `GET /auth/yo` devuelve exactamente los módulos permitidos por el rol y licenciados para el tenant; retirar una licencia los retira del resultado sin cambio de rol. |
+| RF-IA04 | Revocación de sesión inmediata al cerrar sesión o al restablecer la contraseña, sin esperar al vencimiento natural del JWT. | M | OP1 | El JWT usado antes del cierre/restablecimiento es rechazado por cualquier endpoint autenticado inmediatamente después. |
+| RF-IA05 | Cambio de contraseña obligatorio en el primer acceso con contraseña temporal, bloqueando el resto de la aplicación hasta completarlo. | M | OP1 | Toda ruta autenticada distinta de `/auth/cambiar-password` responde 403 mientras la contraseña siga siendo temporal. |
+| RF-IA06 | Invitación de nuevas personas a un tenant por correo, con rol asignado desde la invitación, exclusiva de `role_tenant_admin`. | S | OP1 | Invitación con correo ya registrado responde 409; el correo enviado nunca se completa si el envío falla (la invitación no queda registrada). |
+| RF-IA07 | Verificación de titularidad del correo mediante enlace de un solo uso. | C | OE6 | Enlace reusado o vencido responde 410; verificación exitosa marca `email_verificado_en`. |
+| RF-IA08 | Recuperación autoservicio de contraseña con respuesta idéntica exista o no la cuenta, revocando todas las sesiones abiertas al completarse. | M | OP1 | `POST /auth/recuperar` responde 202 en el 100 % de los casos, exista o no la cuenta asociada; el restablecimiento invalida toda sesión previa. |
+
 ---
 
 # 5. Requisitos no funcionales (modelo de calidad ISO/IEC 25010)
@@ -264,6 +282,7 @@ Prioridad según MoSCoW (M = Must, S = Should, C = Could). Cada requisito traza 
 | RNF-S03 | Cifrado en tránsito TLS 1.2+ (objetivo 1.3) en todas las interfaces; cifrado en reposo en MonetDB y ClickHouse. | M | ISO/IEC 27002, 8.24 | Escaneo de configuración sin protocolos ni cifrados débiles; verificado como puerta de release (PN-10). |
 | RNF-S04 | Log de auditoría inmutable (append-only) para modificaciones de itinerarios, accesos y facturación. Al carecer MonetDB de triggers equivalentes a los de un motor con soporte nativo, la escritura es responsabilidad de la capa de repositorio, no del motor. | M | ISO/IEC 27002, 8.15 | Intento de UPDATE/DELETE sobre auditoría es rechazado y alertado (PN-04); toda operación mutante produce su registro correspondiente, verificado por muestreo en la suite de integración. |
 | RNF-S05 | Minimización de datos personales: FIDS y módulos operativos no almacenarán PII de pasajeros. La encuesta de eNPS no referencia al empleado individual (anonimidad estructural). | M | ISO/IEC 27701 | Revisión de modelo de datos sin campos de PII; verificación dinámica (PN-11). |
+| RNF-S06 | Credenciales (contraseñas, tokens de un solo uso) nunca se almacenan en claro; sesión revocable de inmediato, sin depender del vencimiento natural del JWT. *(Identificador editorial — Sprint S1.10, ADR-020.)* | M | ISO/IEC 27002, 8.24 | `tenants.usuario.hash_credencial`/`tenants.token_acceso.hash_token` son Argon2id (nunca claro); un JWT usado antes de un cierre de sesión o restablecimiento de contraseña es rechazado por el middleware de inmediato (research.md Decisión 5). |
 
 ## 5.2 Fiabilidad (Reliability)
 
@@ -310,7 +329,7 @@ Prioridad según MoSCoW (M = Must, S = Should, C = Could). Cada requisito traza 
 
 ## 5.7 Nota sobre numeración de identificadores no oficiales
 
-Los identificadores marcados como "editoriales" en esta sección (RNF-R02 a RNF-R04, RNF-P01 a RNF-P05, RNF-M01 a RNF-M03, RNF-C01 a RNF-C03, RNF-U02, RNF-PO01) fueron acuñados por el equipo de Ingeniería de Requisitos para dar cobertura completa a las ocho características de ISO/IEC 25010; **no existen como identificadores en el documento fuente**. Se conservan en una subsección propia dentro de cada característica para que una auditoría futura no los busque erróneamente en el Análisis Documental Estratégico.
+Los identificadores marcados como "editoriales" en esta sección (RNF-R02 a RNF-R04, RNF-P01 a RNF-P05, RNF-M01 a RNF-M03, RNF-C01 a RNF-C03, RNF-U02, RNF-PO01, RNF-S06) fueron acuñados por el equipo de Ingeniería de Requisitos para dar cobertura completa a las ocho características de ISO/IEC 25010; **no existen como identificadores en el documento fuente**. Se conservan en una subsección propia dentro de cada característica para que una auditoría futura no los busque erróneamente en el Análisis Documental Estratégico. La familia `RF-IA01..RF-IA08` (§4.3.1) sigue el mismo criterio para los requisitos funcionales de identidad y acceso del Sprint S1.10.
 
 ---
 

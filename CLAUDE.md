@@ -47,6 +47,30 @@ S4.2): el mecanismo ya opera y publica métricas
 `aerohub_prueba_restauracion_rto_segundos`/`_rpo_segundos`), pero su
 observación sostenida todavía no empezó.
 
+**S1.10 cerrado**: `/speckit-implement` corrió sobre
+`specs/012-identidad-y-acceso/` -- login real por correo/contraseña con
+bloqueo por fuerza bruta, verificación de sesión revocable en cada
+petición (`tenants.sesion`, JWT con `sesion_id`), cambio de contraseña
+obligatorio en el primer acceso, invitaciones/verificación de
+correo/recuperación de contraseña por SMTP real (`mailpit` en
+desarrollo, adaptador inyectado vía puerto `EnviarCorreo`), y el
+frontend completo de `apps/web` (login, shell con menú dinámico por
+rol × licencia, AuthService/interceptor/guard) -- la aplicación deja de
+pedir un JWT pegado a mano por primera vez desde S1.1. Documentado en
+ADR-020. **Hallazgo real de verificación empírica**: `iniciar_sesion`
+insertaba el intento de login fallido y lanzaba la excepción dentro del
+mismo `with sesion()`, así que el rollback de la transacción (P8)
+borraba el intento junto con la excepción -- el bloqueo por fuerza
+bruta y la auditoría de intentos fallidos nunca funcionaron hasta que
+un test de integración lo hizo evidente; corregido capturando la
+excepción dentro del bloque y relanzándola después de que cierra en
+commit. 33 tests nuevos (unitarios + integración contra MonetDB real +
+mailpit real, sin mocks de `smtplib`), 480 tests totales, todos en
+verde; ruff/mypy/bandit/import-linter en verde. DDL de identidad
+verificado contra los 3 motores (primario, `monetdb-standby`,
+`monetdb-restore-test`) -- las 75 tareas de `specs/012-identidad-y-acceso/tasks.md`
+cerradas.
+
 Hallazgos empíricos nuevos de S1.9 (detalle completo en
 `docs/runbooks/monetdb.md`): `sys.hot_snapshot()` exige que el volumen
 destino sea escribible por el uid del proceso MonetDB (no por defecto en
@@ -77,6 +101,7 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.7 | Licenciamiento por módulo (gateway) + M9 Compliance Hub (post-mortem, incidentes, reportes DGAC, SOC2) + rotación de API Keys | `c0ec739` |
 | S1.8 | Soporte D6 (tickets/SLA, KB, changelog) + observabilidad (uptime, error budget, bloqueo de despliegue) | `7f77acf` |
 | S1.9 | Continuidad operacional RTO/RPO (ADR-018): snapshot verificado, réplica caliente (shipper), conmutación guiada, prueba de restauración semanal -- RNF-R01 sigue como riesgo abierto (mecanismo + métrica, cierre formal en Fase 4/S4.2) | `0d8b766` |
+| S1.10 | Identidad y acceso (ADR-020): login real, sesión revocable, cambio de contraseña obligatorio, invitaciones/verificación/recuperación por correo, frontend completo de auth | *pendiente* |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de

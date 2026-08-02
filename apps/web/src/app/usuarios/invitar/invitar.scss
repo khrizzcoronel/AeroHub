@@ -1,0 +1,13 @@
+@use '../../auth/auth-form';
+
+.stage-simple {
+  min-height: auto;
+  padding: 0;
+  justify-content: flex-start;
+}
+
+.card {
+  max-width: 480px;
+  box-shadow: none;
+  border: 1px solid var(--ah-line-200);
+}

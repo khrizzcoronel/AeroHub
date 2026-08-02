@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: AeroHub API
-  description: 'API operacional de AeroHub: aprovisionamiento de tenants y seguimiento
-    de vuelos en tiempo real (RF-T02, OpenAPI 3.1).'
+  description: 'API operacional de AeroHub: aprovisionamiento de tenants, seguimiento
+    de vuelos y distribucion de FIDS en tiempo real (RF-T02, OpenAPI 3.1).'
   contact:
     name: AeroHub Platform Team
   version: 0.1.0
@@ -73,6 +73,279 @@ paths:
       responses:
         '204':
           description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api-keys/{api_key_id}/rotar:
+    post:
+      tags:
+      - tenants
+      summary: Rotar Api Key Endpoint
+      description: 'RF-O12 -- emite un secreto nuevo sin interrumpir el servicio:
+        la
+
+        key anterior queda revocada (con `rotada_en`), la nueva es la
+
+        credencial activa desde ahora. Evento auditado (SC-004).'
+      operationId: rotar_api_key_endpoint_api_keys__api_key_id__rotar_post
+      parameters:
+      - name: api_key_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Api Key Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyCrearResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /auth/login:
+    post:
+      tags:
+      - auth
+      summary: Login
+      description: 'FR-001..FR-004: nunca distingue en la respuesta si fallo el correo
+
+        o la contrasena -- un solo 401 para todos los casos de credencial
+
+        invalida, cuenta inactiva, bloqueada o sin rol vigente.'
+      operationId: login_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /auth/yo:
+    get:
+      tags:
+      - auth
+      summary: Obtener Mi Perfil
+      operationId: obtener_mi_perfil_auth_yo_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+  /auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Logout
+      operationId: logout_auth_logout_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Logout Auth Logout Post
+  /auth/cambiar-password:
+    post:
+      tags:
+      - auth
+      summary: Cambiar Mi Password
+      operationId: cambiar_mi_password_auth_cambiar_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CambiarPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Cambiar Mi Password Auth Cambiar Password Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /auth/recuperar:
+    post:
+      tags:
+      - auth
+      summary: Recuperar Password
+      description: 'FR-021: SIEMPRE 202, exista o no la cuenta -- no se puede usar
+
+        para descubrir que correos estan registrados.'
+      operationId: recuperar_password_auth_recuperar_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecuperarRequest'
+        required: true
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Recuperar Password Auth Recuperar Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /auth/restablecer:
+    post:
+      tags:
+      - auth
+      summary: Restablecer Mi Password
+      operationId: restablecer_mi_password_auth_restablecer_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestablecerRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Restablecer Mi Password Auth Restablecer Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /auth/verificar-correo:
+    post:
+      tags:
+      - auth
+      summary: Verificar Mi Correo
+      operationId: verificar_mi_correo_auth_verificar_correo_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificarCorreoRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Verificar Mi Correo Auth Verificar Correo Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /auth/solicitar-verificacion:
+    post:
+      tags:
+      - auth
+      summary: Pedir Verificacion De Correo
+      operationId: pedir_verificacion_de_correo_auth_solicitar_verificacion_post
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Pedir Verificacion De Correo Auth Solicitar Verificacion
+                  Post
+  /usuarios/invitaciones:
+    post:
+      tags:
+      - auth
+      summary: Invitar
+      operationId: invitar_usuarios_invitaciones_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitarRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitarResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /usuarios/aceptar-invitacion:
+    post:
+      tags:
+      - auth
+      summary: Aceptar
+      operationId: aceptar_usuarios_aceptar_invitacion_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AceptarInvitacionRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AceptarInvitacionResponse'
         '422':
           description: Validation Error
           content:
@@ -167,8 +440,1548 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /fids/plantillas:
+    post:
+      tags:
+      - fids
+      summary: Publicar Plantilla Endpoint
+      description: Publica una version nueva de plantilla FIDS (RF-T03).
+      operationId: publicar_plantilla_endpoint_fids_plantillas_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlantillaPublicarRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlantillaPublicarResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /fids/pantallas:
+    post:
+      tags:
+      - fids
+      summary: Registrar Pantalla Endpoint
+      description: Registra una pantalla fisica nueva (RF-O07).
+      operationId: registrar_pantalla_endpoint_fids_pantallas_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PantallaRegistrarRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PantallaRegistrarResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /fids/pantallas/{pantalla_id}/plantilla:
+    patch:
+      tags:
+      - fids
+      summary: Asignar Plantilla Endpoint
+      description: 'Cambia la plantilla vigente de una pantalla (RF-T03, RNF-P02:
+        <1s).'
+      operationId: asignar_plantilla_endpoint_fids_pantallas__pantalla_id__plantilla_patch
+      parameters:
+      - name: pantalla_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pantalla Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AsignarPlantillaRequest'
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /fids/pantallas/{pantalla_id}/heartbeat:
+    post:
+      tags:
+      - fids
+      summary: Heartbeat Endpoint
+      description: Telemetria periodica de la pantalla fisica (RF-O07, RNF-R04).
+      operationId: heartbeat_endpoint_fids_pantallas__pantalla_id__heartbeat_post
+      parameters:
+      - name: pantalla_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Pantalla Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /fids/pantallas/{codigo}:
+    get:
+      tags:
+      - fids
+      summary: Obtener Pantalla Endpoint
+      description: Consulta la pantalla y su plantilla vigente por codigo (arranque
+        del reproductor).
+      operationId: obtener_pantalla_endpoint_fids_pantallas__codigo__get
+      parameters:
+      - name: codigo
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Codigo
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PantallaConsultaResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /puertas/asignaciones:
+    post:
+      tags:
+      - puertas
+      summary: Asignar Puerta Endpoint
+      description: Asigna una puerta a un vuelo (RF-O02, PN-05).
+      operationId: asignar_puerta_endpoint_puertas_asignaciones_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AsignarPuertaRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsignarPuertaResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /puertas/asignaciones/{asignacion_id}/cancelar:
+    post:
+      tags:
+      - puertas
+      summary: Cancelar Asignacion Endpoint
+      description: 'Cancela una asignacion, liberando la puerta (baja logica, P5:
+        nunca
+
+        un DELETE de motor sobre la fila).'
+      operationId: cancelar_asignacion_endpoint_puertas_asignaciones__asignacion_id__cancelar_post
+      parameters:
+      - name: asignacion_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Asignacion Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /puertas/tablero:
+    get:
+      tags:
+      - puertas
+      summary: Tablero De Puertas Endpoint
+      description: 'Tablero de puertas: todas las puertas del tenant y sus asignaciones
+
+        vigentes (Plan §8.4).'
+      operationId: tablero_de_puertas_endpoint_puertas_tablero_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TableroResponse'
+  /puertas/asignaciones/automatica:
+    post:
+      tags:
+      - puertas
+      summary: Asignacion Automatica Endpoint
+      description: 'Ejecuta la asignacion automatica por programacion lineal sobre
+        los
+
+        vuelos del tenant que todavia no tienen puerta (Plan §8.4).'
+      operationId: asignacion_automatica_endpoint_puertas_asignaciones_automatica_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsignacionAutomaticaResponse'
+  /rampa/turnarounds:
+    get:
+      tags:
+      - rampa
+      summary: Listar Turnarounds Endpoint
+      operationId: listar_turnarounds_endpoint_rampa_turnarounds_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TurnaroundResponse'
+                type: array
+                title: Response Listar Turnarounds Endpoint Rampa Turnarounds Get
+    post:
+      tags:
+      - rampa
+      summary: Crear Turnaround Endpoint
+      description: 'Empareja un vuelo de llegada y uno de salida de la misma aeronave
+
+        en un turnaround (RF-O16, SDD-DATA-001 §8.3).'
+      operationId: crear_turnaround_endpoint_rampa_turnarounds_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearTurnaroundRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrearTurnaroundResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /rampa/turnarounds/{turnaround_id}/tareas:
+    post:
+      tags:
+      - rampa
+      summary: Iniciar Tarea Endpoint
+      description: El agente de rampa marca el inicio de una tarea (CU-O16, paso 2).
+      operationId: iniciar_tarea_endpoint_rampa_turnarounds__turnaround_id__tareas_post
+      parameters:
+      - name: turnaround_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Turnaround Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IniciarTareaRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IniciarTareaResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - rampa
+      summary: Listar Tareas Endpoint
+      description: 'Minimo privilegio (Plan §8.5): role_ramp_agent solo ve sus propias
+
+        tareas -- filtrado en la capa de aplicacion/infraestructura.'
+      operationId: listar_tareas_endpoint_rampa_turnarounds__turnaround_id__tareas_get
+      parameters:
+      - name: turnaround_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Turnaround Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TareaResponse'
+                title: Response Listar Tareas Endpoint Rampa Turnarounds  Turnaround
+                  Id  Tareas Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /rampa/tareas/{tarea_id}/finalizar:
+    post:
+      tags:
+      - rampa
+      summary: Finalizar Tarea Endpoint
+      description: 'El agente de rampa marca el fin de una tarea; genera una incidencia
+
+        de rampa automaticamente si supera el estandar (CU-O16 pasos 3-4,
+
+        RF-O16). Minimo privilegio: 404 (no 403) si la tarea es de otro agente
+
+        y el rol activo es role_ramp_agent -- ver aerohub_ramp.application.
+
+        finalizar_tarea (PN-01).'
+      operationId: finalizar_tarea_endpoint_rampa_tareas__tarea_id__finalizar_post
+      parameters:
+      - name: tarea_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Tarea Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalizarTareaRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinalizarTareaResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /rampa/incidencias:
+    get:
+      tags:
+      - rampa
+      summary: Listar Incidencias Endpoint
+      operationId: listar_incidencias_endpoint_rampa_incidencias_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/IncidenciaResponse'
+                type: array
+                title: Response Listar Incidencias Endpoint Rampa Incidencias Get
+  /billing/tarifarios:
+    post:
+      tags:
+      - facturacion
+      summary: Crear Tarifario Endpoint
+      operationId: crear_tarifario_endpoint_billing_tarifarios_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearTarifarioRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrearTarifarioResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/tarifarios/{tarifario_id}/conceptos:
+    post:
+      tags:
+      - facturacion
+      summary: Agregar Concepto Endpoint
+      operationId: agregar_concepto_endpoint_billing_tarifarios__tarifario_id__conceptos_post
+      parameters:
+      - name: tarifario_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Tarifario Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgregarConceptoRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgregarConceptoResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/tarifarios/{tarifario_id}/activar:
+    post:
+      tags:
+      - facturacion
+      summary: Activar Tarifario Endpoint
+      operationId: activar_tarifario_endpoint_billing_tarifarios__tarifario_id__activar_post
+      parameters:
+      - name: tarifario_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Tarifario Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/facturacion/calcular:
+    post:
+      tags:
+      - facturacion
+      summary: Calcular Facturacion Endpoint
+      description: 'Motor de facturacion (CU-O17) -- consolida los hechos facturables
+
+        del periodo con el tarifario vigente. Todo o nada: 409 si algun vuelo
+
+        del periodo no tiene tarifario que lo cubra.'
+      operationId: calcular_facturacion_endpoint_billing_facturacion_calcular_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalcularFacturacionRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalcularFacturacionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/facturas:
+    get:
+      tags:
+      - facturacion
+      summary: Listar Facturas Endpoint
+      operationId: listar_facturas_endpoint_billing_facturas_get
+      parameters:
+      - name: aerolinea_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Aerolinea Id
+      - name: estado
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Estado
+      - name: periodo_inicio
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Periodo Fin
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FacturaResponse'
+                title: Response Listar Facturas Endpoint Billing Facturas Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/facturas/{factura_id}:
+    get:
+      tags:
+      - facturacion
+      summary: Obtener Factura Endpoint
+      operationId: obtener_factura_endpoint_billing_facturas__factura_id__get
+      parameters:
+      - name: factura_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Factura Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FacturaDetalleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/facturas/{factura_id}/emitir:
+    post:
+      tags:
+      - facturacion
+      summary: Emitir Factura Endpoint
+      operationId: emitir_factura_endpoint_billing_facturas__factura_id__emitir_post
+      parameters:
+      - name: factura_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Factura Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/facturas/{factura_id}/disputar:
+    post:
+      tags:
+      - facturacion
+      summary: Disputar Factura Endpoint
+      description: 'Unico metodo de mutacion disponible para role_billing_officer
+        sobre
+
+        una factura ya emitida (matriz: "Up (disputas)") -- nunca altera un
+
+        monto_calculado (FR-007).'
+      operationId: disputar_factura_endpoint_billing_facturas__factura_id__disputar_post
+      parameters:
+      - name: factura_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Factura Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisputarFacturaRequest'
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/conciliaciones:
+    post:
+      tags:
+      - facturacion
+      summary: Registrar Conciliacion Endpoint
+      operationId: registrar_conciliacion_endpoint_billing_conciliaciones_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarConciliacionRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrarConciliacionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/conciliaciones/{conciliacion_id}:
+    get:
+      tags:
+      - facturacion
+      summary: Obtener Conciliacion Endpoint
+      operationId: obtener_conciliacion_endpoint_billing_conciliaciones__conciliacion_id__get
+      parameters:
+      - name: conciliacion_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Conciliacion Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConciliacionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/conciliaciones/{conciliacion_id}/conciliar:
+    post:
+      tags:
+      - facturacion
+      summary: Conciliar Endpoint
+      description: 'Solo permitido si diferencia == 0 -- compuerta de pruebas
+
+        obligatoria del sprint (FR-006).'
+      operationId: conciliar_endpoint_billing_conciliaciones__conciliacion_id__conciliar_post
+      parameters:
+      - name: conciliacion_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Conciliacion Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /passenger/tiempos-espera/recalcular:
+    post:
+      tags:
+      - experiencia-pasajero
+      summary: Recalcular Endpoint
+      description: 'CU-O19 -- agrega ops.asignacion_puerta + rampa.turnaround en
+
+        billing.tiempo_espera_agregado. Una franja se descarta (no se
+
+        escribe fila) si muestra_n == 0 -- nunca se publica un estimado sin
+
+        soporte estadistico.'
+      operationId: recalcular_endpoint_passenger_tiempos_espera_recalcular_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecalcularTiemposEsperaRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecalcularTiemposEsperaResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /passenger/tiempos-espera:
+    get:
+      tags:
+      - experiencia-pasajero
+      summary: Obtener Tiempos Espera Endpoint
+      description: 'Lectura sin PII (PN-11) -- el modelo de respuesta solo expone
+        las
+
+        columnas de billing.tiempo_espera_agregado, nunca un dato de pasajero,
+
+        vuelo o agente individual.'
+      operationId: obtener_tiempos_espera_endpoint_passenger_tiempos_espera_get
+      parameters:
+      - name: terminal_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Terminal Id
+      - name: fecha
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Fecha
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TiemposEsperaResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/incidentes:
+    get:
+      tags:
+      - compliance
+      summary: Listar Incidentes Endpoint
+      operationId: listar_incidentes_endpoint_compliance_incidentes_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/IncidenteResponse'
+                type: array
+                title: Response Listar Incidentes Endpoint Compliance Incidentes Get
+    post:
+      tags:
+      - compliance
+      summary: Crear Incidente Endpoint
+      operationId: crear_incidente_endpoint_compliance_incidentes_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearIncidenteRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrearIncidenteResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/post-mortems:
+    post:
+      tags:
+      - compliance
+      summary: Crear Post Mortem Endpoint
+      description: CU-O13 -- exclusivo role_sre (ADR-009).
+      operationId: crear_post_mortem_endpoint_compliance_post_mortems_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearPostMortemRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrearPostMortemResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/post-mortems/{post_mortem_id}:
+    patch:
+      tags:
+      - compliance
+      summary: Editar Causa Raiz Endpoint
+      operationId: editar_causa_raiz_endpoint_compliance_post_mortems__post_mortem_id__patch
+      parameters:
+      - name: post_mortem_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Post Mortem Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditarCausaRaizRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: boolean
+                title: Response Editar Causa Raiz Endpoint Compliance Post Mortems  Post
+                  Mortem Id  Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - compliance
+      summary: Obtener Post Mortem Endpoint
+      operationId: obtener_post_mortem_endpoint_compliance_post_mortems__post_mortem_id__get
+      parameters:
+      - name: post_mortem_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Post Mortem Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostMortemDetalleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/post-mortems/{post_mortem_id}/acciones:
+    post:
+      tags:
+      - compliance
+      summary: Agregar Accion Endpoint
+      operationId: agregar_accion_endpoint_compliance_post_mortems__post_mortem_id__acciones_post
+      parameters:
+      - name: post_mortem_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Post Mortem Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgregarAccionRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgregarAccionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/post-mortems/{post_mortem_id}/acciones/{accion_id}/completar:
+    post:
+      tags:
+      - compliance
+      summary: Completar Accion Endpoint
+      operationId: completar_accion_endpoint_compliance_post_mortems__post_mortem_id__acciones__accion_id__completar_post
+      parameters:
+      - name: post_mortem_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Post Mortem Id
+      - name: accion_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Accion Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: boolean
+                title: Response Completar Accion Endpoint Compliance Post Mortems  Post
+                  Mortem Id  Acciones  Accion Id  Completar Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/post-mortems/{post_mortem_id}/publicar:
+    post:
+      tags:
+      - compliance
+      summary: Publicar Post Mortem Endpoint
+      description: 'FR-005: 409 si alguna accion de remediacion no esta completada.'
+      operationId: publicar_post_mortem_endpoint_compliance_post_mortems__post_mortem_id__publicar_post
+      parameters:
+      - name: post_mortem_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Post Mortem Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: boolean
+                title: Response Publicar Post Mortem Endpoint Compliance Post Mortems  Post
+                  Mortem Id  Publicar Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/reportes-dgac:
+    post:
+      tags:
+      - compliance
+      summary: Registrar Reporte Endpoint
+      operationId: registrar_reporte_endpoint_compliance_reportes_dgac_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarReporteRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrarReporteResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/accesos-auditor:
+    post:
+      tags:
+      - compliance
+      summary: Otorgar Acceso Auditor Endpoint
+      operationId: otorgar_acceso_auditor_endpoint_compliance_accesos_auditor_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtorgarAccesoAuditorRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OtorgarAccesoAuditorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/evidencia-soc2:
+    post:
+      tags:
+      - compliance
+      summary: Registrar Evidencia Endpoint
+      operationId: registrar_evidencia_endpoint_compliance_evidencia_soc2_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarEvidenciaRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrarEvidenciaResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /support/tickets:
+    post:
+      tags:
+      - soporte
+      summary: Crear Ticket Endpoint
+      operationId: crear_ticket_endpoint_support_tickets_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearTicketRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrearTicketResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - soporte
+      summary: Listar Tickets Endpoint
+      operationId: listar_tickets_endpoint_support_tickets_get
+      parameters:
+      - name: estado
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Estado
+      - name: severidad
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Severidad
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketResponse'
+                title: Response Listar Tickets Endpoint Support Tickets Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /support/tickets/{ticket_id}:
+    get:
+      tags:
+      - soporte
+      summary: Obtener Ticket Endpoint
+      operationId: obtener_ticket_endpoint_support_tickets__ticket_id__get
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Ticket Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketDetalleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /support/tickets/{ticket_id}/mensajes:
+    post:
+      tags:
+      - soporte
+      summary: Responder Ticket Endpoint
+      operationId: responder_ticket_endpoint_support_tickets__ticket_id__mensajes_post
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Ticket Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResponderTicketRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponderTicketResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /support/tickets/{ticket_id}/estado:
+    patch:
+      tags:
+      - soporte
+      summary: Cambiar Estado Ticket Endpoint
+      operationId: cambiar_estado_ticket_endpoint_support_tickets__ticket_id__estado_patch
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Ticket Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CambiarEstadoTicketRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: boolean
+                title: Response Cambiar Estado Ticket Endpoint Support Tickets  Ticket
+                  Id  Estado Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /support/kb/articulos:
+    post:
+      tags:
+      - soporte
+      summary: Publicar Articulo Endpoint
+      operationId: publicar_articulo_endpoint_support_kb_articulos_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicarArticuloRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicarArticuloResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - soporte
+      summary: Buscar Articulos Endpoint
+      operationId: buscar_articulos_endpoint_support_kb_articulos_get
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Q
+      - name: etiqueta
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Etiqueta
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArticuloResponse'
+                title: Response Buscar Articulos Endpoint Support Kb Articulos Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /support/kb/articulos/{articulo_id}:
+    get:
+      tags:
+      - soporte
+      summary: Obtener Articulo Endpoint
+      operationId: obtener_articulo_endpoint_support_kb_articulos__articulo_id__get
+      parameters:
+      - name: articulo_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Articulo Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticuloResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /support/changelog:
+    get:
+      tags:
+      - soporte
+      summary: Listar Changelog Endpoint
+      operationId: listar_changelog_endpoint_support_changelog_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ChangelogResponse'
+                type: array
+                title: Response Listar Changelog Endpoint Support Changelog Get
+    post:
+      tags:
+      - soporte
+      summary: Publicar Changelog Endpoint
+      operationId: publicar_changelog_endpoint_support_changelog_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicarChangelogRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicarChangelogResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /support/observabilidad/uptime:
+    get:
+      tags:
+      - soporte
+      summary: Obtener Uptime Endpoint
+      operationId: obtener_uptime_endpoint_support_observabilidad_uptime_get
+      parameters:
+      - name: servicio
+        in: query
+        required: true
+        schema:
+          enum:
+          - aodb
+          - fids
+          type: string
+          title: Servicio
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObservabilidadUptimeResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
+    AccionResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        descripcion:
+          type: string
+          title: Descripcion
+        responsable_usuario_id:
+          type: string
+          title: Responsable Usuario Id
+        estado:
+          type: string
+          title: Estado
+        vence_en:
+          type: string
+          format: date-time
+          title: Vence En
+        ticket_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ticket Ref
+        completada_en:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completada En
+      type: object
+      required:
+      - id
+      - descripcion
+      - responsable_usuario_id
+      - estado
+      - vence_en
+      - ticket_ref
+      - completada_en
+      title: AccionResponse
+    AceptarInvitacionRequest:
+      properties:
+        token:
+          type: string
+          title: Token
+        nombre:
+          type: string
+          title: Nombre
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - token
+      - nombre
+      - password
+      title: AceptarInvitacionRequest
+    AceptarInvitacionResponse:
+      properties:
+        usuario_id:
+          type: string
+          title: Usuario Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+      type: object
+      required:
+      - usuario_id
+      - tenant_id
+      title: AceptarInvitacionResponse
+    AgregarAccionRequest:
+      properties:
+        descripcion:
+          type: string
+          title: Descripcion
+        responsable_usuario_id:
+          type: string
+          title: Responsable Usuario Id
+        vence_en:
+          type: string
+          format: date-time
+          title: Vence En
+        ticket_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ticket Ref
+      type: object
+      required:
+      - descripcion
+      - responsable_usuario_id
+      - vence_en
+      title: AgregarAccionRequest
+    AgregarAccionResponse:
+      properties:
+        accion_id:
+          type: string
+          title: Accion Id
+      type: object
+      required:
+      - accion_id
+      title: AgregarAccionResponse
+    AgregarConceptoRequest:
+      properties:
+        concepto_cargo_id:
+          type: string
+          title: Concepto Cargo Id
+        tarifa_unitaria:
+          anyOf:
+          - type: number
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Tarifa Unitaria
+        monto_minimo:
+          anyOf:
+          - type: number
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Monto Minimo
+        monto_maximo:
+          anyOf:
+          - type: number
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Monto Maximo
+      type: object
+      required:
+      - concepto_cargo_id
+      - tarifa_unitaria
+      title: AgregarConceptoRequest
+    AgregarConceptoResponse:
+      properties:
+        tarifario_concepto_id:
+          type: string
+          title: Tarifario Concepto Id
+      type: object
+      required:
+      - tarifario_concepto_id
+      title: AgregarConceptoResponse
     ApiKeyCrearResponse:
       properties:
         api_key_id:
@@ -182,6 +1995,204 @@ components:
       - api_key_id
       - api_key_en_claro
       title: ApiKeyCrearResponse
+    ArticuloResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        titulo:
+          type: string
+          title: Titulo
+        cuerpo:
+          type: string
+          title: Cuerpo
+        version:
+          type: integer
+          title: Version
+        publicado_en:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Publicado En
+        etiquetas:
+          items:
+            type: string
+          type: array
+          title: Etiquetas
+      type: object
+      required:
+      - id
+      - titulo
+      - cuerpo
+      - version
+      - publicado_en
+      - etiquetas
+      title: ArticuloResponse
+    AsignacionAutomaticaResponse:
+      properties:
+        asignados:
+          items:
+            type: string
+          type: array
+          title: Asignados
+        sin_asignar:
+          items:
+            type: string
+          type: array
+          title: Sin Asignar
+          description: 'vuelo_id de los vuelos que no pudieron asignarse: sin puerta
+            compatible en envergadura, o sin ventana libre sin solapar.'
+      type: object
+      required:
+      - asignados
+      - sin_asignar
+      title: AsignacionAutomaticaResponse
+    AsignacionTableroResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        puerta_id:
+          type: string
+          title: Puerta Id
+        puerta_codigo:
+          type: string
+          title: Puerta Codigo
+        vuelo_id:
+          type: string
+          title: Vuelo Id
+        numero_vuelo:
+          type: string
+          title: Numero Vuelo
+        inicio_previsto:
+          type: string
+          format: date-time
+          title: Inicio Previsto
+        fin_previsto:
+          type: string
+          format: date-time
+          title: Fin Previsto
+        estado:
+          type: string
+          title: Estado
+      type: object
+      required:
+      - id
+      - puerta_id
+      - puerta_codigo
+      - vuelo_id
+      - numero_vuelo
+      - inicio_previsto
+      - fin_previsto
+      - estado
+      title: AsignacionTableroResponse
+    AsignarPlantillaRequest:
+      properties:
+        plantilla_id:
+          type: integer
+          title: Plantilla Id
+      type: object
+      required:
+      - plantilla_id
+      title: AsignarPlantillaRequest
+    AsignarPuertaRequest:
+      properties:
+        vuelo_id:
+          type: integer
+          title: Vuelo Id
+        puerta_id:
+          type: integer
+          title: Puerta Id
+        inicio_previsto:
+          type: string
+          format: date-time
+          title: Inicio Previsto
+        fin_previsto:
+          type: string
+          format: date-time
+          title: Fin Previsto
+      type: object
+      required:
+      - vuelo_id
+      - puerta_id
+      - inicio_previsto
+      - fin_previsto
+      title: AsignarPuertaRequest
+    AsignarPuertaResponse:
+      properties:
+        asignacion_id:
+          type: string
+          title: Asignacion Id
+      type: object
+      required:
+      - asignacion_id
+      title: AsignarPuertaResponse
+    CalcularFacturacionRequest:
+      properties:
+        aerolinea_id:
+          type: string
+          title: Aerolinea Id
+        periodo_inicio:
+          type: string
+          format: date
+          title: Periodo Inicio
+        periodo_fin:
+          type: string
+          format: date
+          title: Periodo Fin
+      type: object
+      required:
+      - aerolinea_id
+      - periodo_inicio
+      - periodo_fin
+      title: CalcularFacturacionRequest
+    CalcularFacturacionResponse:
+      properties:
+        factura_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Factura Id
+        cargos_calculados:
+          type: integer
+          title: Cargos Calculados
+        cargos_ya_existentes:
+          type: integer
+          title: Cargos Ya Existentes
+      type: object
+      required:
+      - factura_id
+      - cargos_calculados
+      - cargos_ya_existentes
+      title: CalcularFacturacionResponse
+    CambiarEstadoTicketRequest:
+      properties:
+        estado:
+          type: string
+          enum:
+          - en_progreso
+          - esperando_cliente
+          - resuelto
+          - cerrado
+          title: Estado
+      type: object
+      required:
+      - estado
+      title: CambiarEstadoTicketRequest
+    CambiarPasswordRequest:
+      properties:
+        password_actual:
+          type: string
+          title: Password Actual
+        password_nueva:
+          type: string
+          title: Password Nueva
+      type: object
+      required:
+      - password_actual
+      - password_nueva
+      title: CambiarPasswordRequest
     CambioEstadoRequest:
       properties:
         codigo_estado_nuevo:
@@ -205,6 +2216,406 @@ components:
       required:
       - vuelo_estado_id
       title: CambioEstadoResponse
+    ChangelogResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        version_producto:
+          type: string
+          title: Version Producto
+        resumen:
+          type: string
+          title: Resumen
+        publicado_en:
+          type: string
+          format: date-time
+          title: Publicado En
+        items:
+          items:
+            $ref: '#/components/schemas/ItemChangelogResponse'
+          type: array
+          title: Items
+      type: object
+      required:
+      - id
+      - version_producto
+      - resumen
+      - publicado_en
+      - items
+      title: ChangelogResponse
+    ConciliacionResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        vuelo_id:
+          type: string
+          title: Vuelo Id
+        periodo:
+          type: string
+          title: Periodo
+        pax_reportado_aerolinea:
+          type: integer
+          title: Pax Reportado Aerolinea
+        pax_registrado_sistema:
+          type: integer
+          title: Pax Registrado Sistema
+        diferencia:
+          type: integer
+          title: Diferencia
+        fuente_reporte:
+          type: string
+          title: Fuente Reporte
+        conciliado_en:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Conciliado En
+      type: object
+      required:
+      - id
+      - vuelo_id
+      - periodo
+      - pax_reportado_aerolinea
+      - pax_registrado_sistema
+      - diferencia
+      - fuente_reporte
+      - conciliado_en
+      title: ConciliacionResponse
+    CrearIncidenteRequest:
+      properties:
+        tipo_incidente_id:
+          type: string
+          title: Tipo Incidente Id
+        descripcion:
+          type: string
+          title: Descripcion
+        severidad:
+          type: string
+          title: Severidad
+        detectado_en:
+          type: string
+          format: date-time
+          title: Detectado En
+      type: object
+      required:
+      - tipo_incidente_id
+      - descripcion
+      - severidad
+      - detectado_en
+      title: CrearIncidenteRequest
+    CrearIncidenteResponse:
+      properties:
+        incidente_id:
+          type: string
+          title: Incidente Id
+      type: object
+      required:
+      - incidente_id
+      title: CrearIncidenteResponse
+    CrearPostMortemRequest:
+      properties:
+        incidente_ref:
+          type: string
+          title: Incidente Ref
+        severidad:
+          type: string
+          title: Severidad
+        iniciado_en:
+          type: string
+          format: date-time
+          title: Iniciado En
+      type: object
+      required:
+      - incidente_ref
+      - severidad
+      - iniciado_en
+      title: CrearPostMortemRequest
+    CrearPostMortemResponse:
+      properties:
+        post_mortem_id:
+          type: string
+          title: Post Mortem Id
+      type: object
+      required:
+      - post_mortem_id
+      title: CrearPostMortemResponse
+    CrearTarifarioRequest:
+      properties:
+        nombre:
+          type: string
+          title: Nombre
+        moneda:
+          type: string
+          title: Moneda
+        vigente_desde:
+          type: string
+          format: date
+          title: Vigente Desde
+        vigente_hasta:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Vigente Hasta
+      type: object
+      required:
+      - nombre
+      - moneda
+      - vigente_desde
+      title: CrearTarifarioRequest
+    CrearTarifarioResponse:
+      properties:
+        tarifario_id:
+          type: string
+          title: Tarifario Id
+      type: object
+      required:
+      - tarifario_id
+      title: CrearTarifarioResponse
+    CrearTicketRequest:
+      properties:
+        categoria_id:
+          type: string
+          title: Categoria Id
+        severidad:
+          type: string
+          enum:
+          - baja
+          - media
+          - alta
+          - critica
+          title: Severidad
+        asunto:
+          type: string
+          title: Asunto
+        cuerpo_inicial:
+          type: string
+          title: Cuerpo Inicial
+      type: object
+      required:
+      - categoria_id
+      - severidad
+      - asunto
+      - cuerpo_inicial
+      title: CrearTicketRequest
+    CrearTicketResponse:
+      properties:
+        ticket_id:
+          type: string
+          title: Ticket Id
+        sla_objetivo_min:
+          type: integer
+          title: Sla Objetivo Min
+      type: object
+      required:
+      - ticket_id
+      - sla_objetivo_min
+      title: CrearTicketResponse
+    CrearTurnaroundRequest:
+      properties:
+        vuelo_llegada_id:
+          type: integer
+          title: Vuelo Llegada Id
+        vuelo_salida_id:
+          type: integer
+          title: Vuelo Salida Id
+        inicio_previsto:
+          type: string
+          format: date-time
+          title: Inicio Previsto
+        fin_previsto:
+          type: string
+          format: date-time
+          title: Fin Previsto
+      type: object
+      required:
+      - vuelo_llegada_id
+      - vuelo_salida_id
+      - inicio_previsto
+      - fin_previsto
+      title: CrearTurnaroundRequest
+    CrearTurnaroundResponse:
+      properties:
+        turnaround_id:
+          type: string
+          title: Turnaround Id
+      type: object
+      required:
+      - turnaround_id
+      title: CrearTurnaroundResponse
+    DisputarFacturaRequest:
+      properties:
+        motivo:
+          type: string
+          title: Motivo
+      type: object
+      required:
+      - motivo
+      title: DisputarFacturaRequest
+    EditarCausaRaizRequest:
+      properties:
+        causa_raiz:
+          type: string
+          title: Causa Raiz
+      type: object
+      required:
+      - causa_raiz
+      title: EditarCausaRaizRequest
+    FacturaDetalleResponse:
+      properties:
+        factura:
+          $ref: '#/components/schemas/FacturaResponse'
+        lineas:
+          items:
+            $ref: '#/components/schemas/FacturaLineaResponse'
+          type: array
+          title: Lineas
+      type: object
+      required:
+      - factura
+      - lineas
+      title: FacturaDetalleResponse
+    FacturaLineaResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        cargo_aeronautico_id:
+          type: string
+          title: Cargo Aeronautico Id
+        descripcion:
+          type: string
+          title: Descripcion
+        cantidad:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Cantidad
+        precio_unitario:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Precio Unitario
+        monto:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Monto
+      type: object
+      required:
+      - id
+      - cargo_aeronautico_id
+      - descripcion
+      - cantidad
+      - precio_unitario
+      - monto
+      title: FacturaLineaResponse
+    FacturaResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        aerolinea_id:
+          type: string
+          title: Aerolinea Id
+        periodo_inicio:
+          type: string
+          format: date
+          title: Periodo Inicio
+        periodo_fin:
+          type: string
+          format: date
+          title: Periodo Fin
+        moneda:
+          type: string
+          title: Moneda
+        estado:
+          type: string
+          title: Estado
+        total:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Total
+        emitida_en:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Emitida En
+        vence_en:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Vence En
+      type: object
+      required:
+      - id
+      - aerolinea_id
+      - periodo_inicio
+      - periodo_fin
+      - moneda
+      - estado
+      - total
+      - emitida_en
+      - vence_en
+      title: FacturaResponse
+    FinalizarTareaRequest:
+      properties:
+        fin_real:
+          type: string
+          format: date-time
+          title: Fin Real
+      type: object
+      required:
+      - fin_real
+      title: FinalizarTareaRequest
+    FinalizarTareaResponse:
+      properties:
+        tarea_id:
+          type: string
+          title: Tarea Id
+        duracion_minutos:
+          type: number
+          title: Duracion Minutos
+        incidencia_generada:
+          type: boolean
+          title: Incidencia Generada
+      type: object
+      required:
+      - tarea_id
+      - duracion_minutos
+      - incidencia_generada
+      title: FinalizarTareaResponse
+    FranjaTiempoEsperaResponse:
+      properties:
+        franja_inicio:
+          type: string
+          format: time
+          title: Franja Inicio
+        franja_fin:
+          type: string
+          format: time
+          title: Franja Fin
+        minutos_estimados:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Minutos Estimados
+        muestra_n:
+          type: integer
+          title: Muestra N
+        calculado_en:
+          type: string
+          format: date-time
+          title: Calculado En
+      type: object
+      required:
+      - franja_inicio
+      - franja_fin
+      - minutos_estimados
+      - muestra_n
+      - calculado_en
+      title: FranjaTiempoEsperaResponse
     HTTPValidationError:
       properties:
         detail:
@@ -214,6 +2625,836 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    HeartbeatRequest:
+      properties:
+        version_firmware:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Firmware
+      type: object
+      title: HeartbeatRequest
+    IncidenciaResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tarea_turnaround_id:
+          type: string
+          title: Tarea Turnaround Id
+        tipo_incidencia_codigo:
+          type: string
+          title: Tipo Incidencia Codigo
+        descripcion:
+          type: string
+          title: Descripcion
+        severidad:
+          type: string
+          title: Severidad
+        detectada_en:
+          type: string
+          format: date-time
+          title: Detectada En
+      type: object
+      required:
+      - id
+      - tarea_turnaround_id
+      - tipo_incidencia_codigo
+      - descripcion
+      - severidad
+      - detectada_en
+      title: IncidenciaResponse
+    IncidenteResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tipo_incidente_id:
+          type: string
+          title: Tipo Incidente Id
+        descripcion:
+          type: string
+          title: Descripcion
+        severidad:
+          type: string
+          title: Severidad
+        detectado_en:
+          type: string
+          format: date-time
+          title: Detectado En
+        estado:
+          type: string
+          title: Estado
+      type: object
+      required:
+      - id
+      - tipo_incidente_id
+      - descripcion
+      - severidad
+      - detectado_en
+      - estado
+      title: IncidenteResponse
+    IniciarTareaRequest:
+      properties:
+        tipo_tarea_id:
+          type: integer
+          title: Tipo Tarea Id
+      type: object
+      required:
+      - tipo_tarea_id
+      title: IniciarTareaRequest
+    IniciarTareaResponse:
+      properties:
+        tarea_id:
+          type: string
+          title: Tarea Id
+      type: object
+      required:
+      - tarea_id
+      title: IniciarTareaResponse
+    InvitarRequest:
+      properties:
+        email:
+          type: string
+          title: Email
+        rol_codigo:
+          type: string
+          title: Rol Codigo
+      type: object
+      required:
+      - email
+      - rol_codigo
+      title: InvitarRequest
+    InvitarResponse:
+      properties:
+        invitacion_id:
+          type: string
+          title: Invitacion Id
+        expira_en:
+          type: string
+          title: Expira En
+      type: object
+      required:
+      - invitacion_id
+      - expira_en
+      title: InvitarResponse
+    ItemChangelogRequest:
+      properties:
+        modulo_codigo:
+          type: string
+          title: Modulo Codigo
+        tipo_cambio:
+          type: string
+          enum:
+          - nuevo
+          - mejora
+          - correccion
+          - obsolescencia
+          title: Tipo Cambio
+        descripcion:
+          type: string
+          title: Descripcion
+      type: object
+      required:
+      - modulo_codigo
+      - tipo_cambio
+      - descripcion
+      title: ItemChangelogRequest
+    ItemChangelogResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        modulo_id:
+          type: string
+          title: Modulo Id
+        tipo_cambio:
+          type: string
+          title: Tipo Cambio
+        descripcion:
+          type: string
+          title: Descripcion
+      type: object
+      required:
+      - id
+      - modulo_id
+      - tipo_cambio
+      - descripcion
+      title: ItemChangelogResponse
+    LoginRequest:
+      properties:
+        email:
+          type: string
+          title: Email
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - email
+      - password
+      title: LoginRequest
+    LoginResponse:
+      properties:
+        token:
+          type: string
+          title: Token
+        expira_en_minutos:
+          type: integer
+          title: Expira En Minutos
+        perfil:
+          $ref: '#/components/schemas/PerfilResponse'
+      type: object
+      required:
+      - token
+      - expira_en_minutos
+      - perfil
+      title: LoginResponse
+    MensajeResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        autor_usuario_id:
+          type: string
+          title: Autor Usuario Id
+        cuerpo:
+          type: string
+          title: Cuerpo
+        enviado_en:
+          type: string
+          format: date-time
+          title: Enviado En
+        es_interno:
+          type: boolean
+          title: Es Interno
+      type: object
+      required:
+      - id
+      - autor_usuario_id
+      - cuerpo
+      - enviado_en
+      - es_interno
+      title: MensajeResponse
+    ModuloVisibleResponse:
+      properties:
+        codigo:
+          type: string
+          title: Codigo
+        nombre:
+          type: string
+          title: Nombre
+        ruta:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ruta
+      type: object
+      required:
+      - codigo
+      - nombre
+      - ruta
+      title: ModuloVisibleResponse
+    ObservabilidadUptimeResponse:
+      properties:
+        servicio:
+          type: string
+          title: Servicio
+        uptime_pct:
+          type: number
+          title: Uptime Pct
+        error_budget_consumido_pct:
+          type: number
+          title: Error Budget Consumido Pct
+      type: object
+      required:
+      - servicio
+      - uptime_pct
+      - error_budget_consumido_pct
+      title: ObservabilidadUptimeResponse
+    OtorgarAccesoAuditorRequest:
+      properties:
+        auditor_usuario_id:
+          type: string
+          title: Auditor Usuario Id
+        inicio:
+          type: string
+          format: date-time
+          title: Inicio
+        fin:
+          type: string
+          format: date-time
+          title: Fin
+        alcance_json:
+          additionalProperties: true
+          type: object
+          title: Alcance Json
+        motivo:
+          type: string
+          title: Motivo
+      type: object
+      required:
+      - auditor_usuario_id
+      - inicio
+      - fin
+      - alcance_json
+      - motivo
+      title: OtorgarAccesoAuditorRequest
+    OtorgarAccesoAuditorResponse:
+      properties:
+        acceso_id:
+          type: string
+          title: Acceso Id
+      type: object
+      required:
+      - acceso_id
+      title: OtorgarAccesoAuditorResponse
+    PantallaConsultaResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        plantilla_id:
+          type: string
+          title: Plantilla Id
+        definicion_json:
+          additionalProperties: true
+          type: object
+          title: Definicion Json
+        estado:
+          type: string
+          title: Estado
+      type: object
+      required:
+      - id
+      - codigo
+      - plantilla_id
+      - definicion_json
+      - estado
+      title: PantallaConsultaResponse
+    PantallaRegistrarRequest:
+      properties:
+        terminal_id:
+          type: integer
+          title: Terminal Id
+        codigo:
+          type: string
+          maxLength: 20
+          minLength: 1
+          title: Codigo
+        plantilla_id:
+          type: integer
+          title: Plantilla Id
+        ubicacion_descripcion:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ubicacion Descripcion
+        version_firmware:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Firmware
+      type: object
+      required:
+      - terminal_id
+      - codigo
+      - plantilla_id
+      title: PantallaRegistrarRequest
+    PantallaRegistrarResponse:
+      properties:
+        pantalla_id:
+          type: string
+          title: Pantalla Id
+      type: object
+      required:
+      - pantalla_id
+      title: PantallaRegistrarResponse
+    PerfilResponse:
+      properties:
+        usuario_id:
+          type: string
+          title: Usuario Id
+        email:
+          type: string
+          title: Email
+        nombre:
+          type: string
+          title: Nombre
+        email_verificado:
+          type: boolean
+          title: Email Verificado
+        debe_cambiar_password:
+          type: boolean
+          title: Debe Cambiar Password
+        tenant_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
+        tenant_codigo:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Codigo
+        tenant_razon_social:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Razon Social
+        rol_codigo:
+          type: string
+          title: Rol Codigo
+        rol_nombre:
+          type: string
+          title: Rol Nombre
+        scopes:
+          items:
+            type: string
+          type: array
+          title: Scopes
+        modulos_visibles:
+          items:
+            $ref: '#/components/schemas/ModuloVisibleResponse'
+          type: array
+          title: Modulos Visibles
+      type: object
+      required:
+      - usuario_id
+      - email
+      - nombre
+      - email_verificado
+      - debe_cambiar_password
+      - tenant_id
+      - tenant_codigo
+      - tenant_razon_social
+      - rol_codigo
+      - rol_nombre
+      - scopes
+      - modulos_visibles
+      title: PerfilResponse
+    PlantillaPublicarRequest:
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Nombre
+        definicion_json:
+          additionalProperties: true
+          type: object
+          title: Definicion Json
+      type: object
+      required:
+      - nombre
+      - definicion_json
+      title: PlantillaPublicarRequest
+    PlantillaPublicarResponse:
+      properties:
+        plantilla_id:
+          type: string
+          title: Plantilla Id
+        version:
+          type: integer
+          title: Version
+      type: object
+      required:
+      - plantilla_id
+      - version
+      title: PlantillaPublicarResponse
+    PostMortemDetalleResponse:
+      properties:
+        post_mortem:
+          $ref: '#/components/schemas/PostMortemResponse'
+        acciones:
+          items:
+            $ref: '#/components/schemas/AccionResponse'
+          type: array
+          title: Acciones
+      type: object
+      required:
+      - post_mortem
+      - acciones
+      title: PostMortemDetalleResponse
+    PostMortemResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        incidente_ref:
+          type: string
+          title: Incidente Ref
+        severidad:
+          type: string
+          title: Severidad
+        estado:
+          type: string
+          title: Estado
+        iniciado_en:
+          type: string
+          format: date-time
+          title: Iniciado En
+        causa_raiz:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Causa Raiz
+        publicado_en:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Publicado En
+        tiempo_resolucion_min:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Tiempo Resolucion Min
+      type: object
+      required:
+      - id
+      - incidente_ref
+      - severidad
+      - estado
+      - iniciado_en
+      - causa_raiz
+      - publicado_en
+      - tiempo_resolucion_min
+      title: PostMortemResponse
+    PublicarArticuloRequest:
+      properties:
+        titulo:
+          type: string
+          title: Titulo
+        cuerpo:
+          type: string
+          title: Cuerpo
+        etiquetas:
+          items:
+            type: string
+          type: array
+          title: Etiquetas
+          default: []
+      type: object
+      required:
+      - titulo
+      - cuerpo
+      title: PublicarArticuloRequest
+    PublicarArticuloResponse:
+      properties:
+        articulo_id:
+          type: string
+          title: Articulo Id
+        version:
+          type: integer
+          title: Version
+      type: object
+      required:
+      - articulo_id
+      - version
+      title: PublicarArticuloResponse
+    PublicarChangelogRequest:
+      properties:
+        version_producto:
+          type: string
+          title: Version Producto
+        resumen:
+          type: string
+          title: Resumen
+        items:
+          items:
+            $ref: '#/components/schemas/ItemChangelogRequest'
+          type: array
+          title: Items
+      type: object
+      required:
+      - version_producto
+      - resumen
+      - items
+      title: PublicarChangelogRequest
+    PublicarChangelogResponse:
+      properties:
+        changelog_id:
+          type: string
+          title: Changelog Id
+      type: object
+      required:
+      - changelog_id
+      title: PublicarChangelogResponse
+    PuertaTableroResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        terminal_id:
+          type: string
+          title: Terminal Id
+        codigo:
+          type: string
+          title: Codigo
+        tipo:
+          type: string
+          title: Tipo
+        envergadura_max_m:
+          type: number
+          title: Envergadura Max M
+      type: object
+      required:
+      - id
+      - terminal_id
+      - codigo
+      - tipo
+      - envergadura_max_m
+      title: PuertaTableroResponse
+    RecalcularTiemposEsperaRequest:
+      properties:
+        terminal_id:
+          type: string
+          title: Terminal Id
+        fecha:
+          type: string
+          format: date
+          title: Fecha
+        franja_minutos:
+          type: integer
+          title: Franja Minutos
+          default: 30
+      type: object
+      required:
+      - terminal_id
+      - fecha
+      title: RecalcularTiemposEsperaRequest
+    RecalcularTiemposEsperaResponse:
+      properties:
+        franjas_actualizadas:
+          type: integer
+          title: Franjas Actualizadas
+        franjas_descartadas_por_muestra_insuficiente:
+          type: integer
+          title: Franjas Descartadas Por Muestra Insuficiente
+      type: object
+      required:
+      - franjas_actualizadas
+      - franjas_descartadas_por_muestra_insuficiente
+      title: RecalcularTiemposEsperaResponse
+    RecuperarRequest:
+      properties:
+        email:
+          type: string
+          title: Email
+      type: object
+      required:
+      - email
+      title: RecuperarRequest
+    RegistrarConciliacionRequest:
+      properties:
+        vuelo_id:
+          type: string
+          title: Vuelo Id
+        periodo:
+          type: string
+          title: Periodo
+        pax_reportado_aerolinea:
+          type: integer
+          title: Pax Reportado Aerolinea
+        pax_registrado_sistema:
+          type: integer
+          title: Pax Registrado Sistema
+        fuente_reporte:
+          type: string
+          title: Fuente Reporte
+      type: object
+      required:
+      - vuelo_id
+      - periodo
+      - pax_reportado_aerolinea
+      - pax_registrado_sistema
+      - fuente_reporte
+      title: RegistrarConciliacionRequest
+    RegistrarConciliacionResponse:
+      properties:
+        conciliacion_id:
+          type: string
+          title: Conciliacion Id
+        diferencia:
+          type: integer
+          title: Diferencia
+      type: object
+      required:
+      - conciliacion_id
+      - diferencia
+      title: RegistrarConciliacionResponse
+    RegistrarEvidenciaRequest:
+      properties:
+        control_soc2_id:
+          type: string
+          title: Control Soc2 Id
+        periodo_inicio:
+          type: string
+          format: date
+          title: Periodo Inicio
+        periodo_fin:
+          type: string
+          format: date
+          title: Periodo Fin
+        ruta_artefacto:
+          type: string
+          title: Ruta Artefacto
+        hash_artefacto:
+          type: string
+          title: Hash Artefacto
+        referencia_log_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Referencia Log Id
+      type: object
+      required:
+      - control_soc2_id
+      - periodo_inicio
+      - periodo_fin
+      - ruta_artefacto
+      - hash_artefacto
+      title: RegistrarEvidenciaRequest
+    RegistrarEvidenciaResponse:
+      properties:
+        evidencia_id:
+          type: string
+          title: Evidencia Id
+      type: object
+      required:
+      - evidencia_id
+      title: RegistrarEvidenciaResponse
+    RegistrarReporteRequest:
+      properties:
+        tipo_reporte_id:
+          type: string
+          title: Tipo Reporte Id
+        periodo_inicio:
+          type: string
+          format: date
+          title: Periodo Inicio
+        periodo_fin:
+          type: string
+          format: date
+          title: Periodo Fin
+        contenido_ref:
+          type: string
+          title: Contenido Ref
+        hash_contenido:
+          type: string
+          title: Hash Contenido
+      type: object
+      required:
+      - tipo_reporte_id
+      - periodo_inicio
+      - periodo_fin
+      - contenido_ref
+      - hash_contenido
+      title: RegistrarReporteRequest
+    RegistrarReporteResponse:
+      properties:
+        reporte_id:
+          type: string
+          title: Reporte Id
+      type: object
+      required:
+      - reporte_id
+      title: RegistrarReporteResponse
+    ResponderTicketRequest:
+      properties:
+        cuerpo:
+          type: string
+          title: Cuerpo
+        es_interno:
+          type: boolean
+          title: Es Interno
+          default: false
+      type: object
+      required:
+      - cuerpo
+      title: ResponderTicketRequest
+    ResponderTicketResponse:
+      properties:
+        mensaje_id:
+          type: string
+          title: Mensaje Id
+      type: object
+      required:
+      - mensaje_id
+      title: ResponderTicketResponse
+    RestablecerRequest:
+      properties:
+        token:
+          type: string
+          title: Token
+        password_nueva:
+          type: string
+          title: Password Nueva
+      type: object
+      required:
+      - token
+      - password_nueva
+      title: RestablecerRequest
+    TableroResponse:
+      properties:
+        puertas:
+          items:
+            $ref: '#/components/schemas/PuertaTableroResponse'
+          type: array
+          title: Puertas
+        asignaciones:
+          items:
+            $ref: '#/components/schemas/AsignacionTableroResponse'
+          type: array
+          title: Asignaciones
+      type: object
+      required:
+      - puertas
+      - asignaciones
+      title: TableroResponse
+    TareaResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        turnaround_id:
+          type: string
+          title: Turnaround Id
+        tipo_tarea_id:
+          type: string
+          title: Tipo Tarea Id
+        agente_usuario_id:
+          type: string
+          title: Agente Usuario Id
+        inicio_real:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Inicio Real
+        fin_real:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Fin Real
+        estado:
+          type: string
+          title: Estado
+      type: object
+      required:
+      - id
+      - turnaround_id
+      - tipo_tarea_id
+      - agente_usuario_id
+      - inicio_real
+      - fin_real
+      - estado
+      title: TareaResponse
     TenantCrearRequest:
       properties:
         codigo:
@@ -270,6 +3511,145 @@ components:
       - usuario_admin_id
       - password_temporal
       title: TenantCrearResponse
+    TicketDetalleResponse:
+      properties:
+        ticket:
+          $ref: '#/components/schemas/TicketResponse'
+        mensajes:
+          items:
+            $ref: '#/components/schemas/MensajeResponse'
+          type: array
+          title: Mensajes
+      type: object
+      required:
+      - ticket
+      - mensajes
+      title: TicketDetalleResponse
+    TicketResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tenant_id:
+          type: string
+          title: Tenant Id
+        categoria_id:
+          type: string
+          title: Categoria Id
+        creado_por_usuario_id:
+          type: string
+          title: Creado Por Usuario Id
+        asignado_a_usuario_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asignado A Usuario Id
+        severidad:
+          type: string
+          title: Severidad
+        estado:
+          type: string
+          title: Estado
+        asunto:
+          type: string
+          title: Asunto
+        creado_en:
+          type: string
+          format: date-time
+          title: Creado En
+        primera_respuesta_en:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Primera Respuesta En
+        resuelto_en:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Resuelto En
+        sla_objetivo_min:
+          type: integer
+          title: Sla Objetivo Min
+      type: object
+      required:
+      - id
+      - tenant_id
+      - categoria_id
+      - creado_por_usuario_id
+      - asignado_a_usuario_id
+      - severidad
+      - estado
+      - asunto
+      - creado_en
+      - primera_respuesta_en
+      - resuelto_en
+      - sla_objetivo_min
+      title: TicketResponse
+    TiemposEsperaResponse:
+      properties:
+        terminal_id:
+          type: string
+          title: Terminal Id
+        fecha:
+          type: string
+          format: date
+          title: Fecha
+        franjas:
+          items:
+            $ref: '#/components/schemas/FranjaTiempoEsperaResponse'
+          type: array
+          title: Franjas
+      type: object
+      required:
+      - terminal_id
+      - fecha
+      - franjas
+      title: TiemposEsperaResponse
+    TurnaroundResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        vuelo_llegada_id:
+          type: string
+          title: Vuelo Llegada Id
+        numero_vuelo_llegada:
+          type: string
+          title: Numero Vuelo Llegada
+        vuelo_salida_id:
+          type: string
+          title: Vuelo Salida Id
+        numero_vuelo_salida:
+          type: string
+          title: Numero Vuelo Salida
+        aeronave_id:
+          type: string
+          title: Aeronave Id
+        inicio_previsto:
+          type: string
+          format: date-time
+          title: Inicio Previsto
+        fin_previsto:
+          type: string
+          format: date-time
+          title: Fin Previsto
+        estado:
+          type: string
+          title: Estado
+      type: object
+      required:
+      - id
+      - vuelo_llegada_id
+      - numero_vuelo_llegada
+      - vuelo_salida_id
+      - numero_vuelo_salida
+      - aeronave_id
+      - inicio_previsto
+      - fin_previsto
+      - estado
+      title: TurnaroundResponse
     ValidationError:
       properties:
         loc:
@@ -296,6 +3676,15 @@ components:
       - msg
       - type
       title: ValidationError
+    VerificarCorreoRequest:
+      properties:
+        token:
+          type: string
+          title: Token
+      type: object
+      required:
+      - token
+      title: VerificarCorreoRequest
     VueloConsultaResponse:
       properties:
         id:
@@ -424,7 +3813,25 @@ components:
       - vuelo_id
       title: VueloCrearResponse
 tags:
+- name: auth
+  description: Login, sesion, perfil de acceso, invitaciones y ciclo de vida de la
+    credencial.
 - name: tenants
   description: Aprovisionamiento de tenants y gestion de API Keys.
 - name: vuelos
   description: Alta, consulta y cambio de estado de vuelos (AODB).
+- name: fids
+  description: Plantillas y pantallas FIDS, publicacion en tiempo real.
+- name: puertas
+  description: Asignacion de puertas, manual y automatica (PuLP).
+- name: rampa
+  description: Turnaround, tareas de rampa e incidencias por desviacion.
+- name: facturacion
+  description: Tarifarios, motor de facturacion, facturas y conciliacion de pasajeros.
+- name: experiencia-pasajero
+  description: Estimacion agregada de tiempos de espera por terminal, sin PII.
+- name: compliance
+  description: Incidentes de seguridad, post-mortems, reportes regulatorios y evidencia
+    SOC 2.
+- name: soporte
+  description: Tickets con SLA, base de conocimientos, changelog y uptime/error budget.

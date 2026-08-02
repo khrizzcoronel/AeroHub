@@ -10,6 +10,9 @@ estructural -- una utilidad que TODO modulo de negocio necesita y que
 ninguno puede importar de otro modulo sin romper la independencia.
 """
 
+from .correo import EnviarCorreo, EnvioDeCorreoFallo, Mensaje
+from .jwt_sesion import emitir_jwt_sesion, sesion_id_de_jwt
+from .roles_modulos import MODULOS, Modulo, modulos_del_rol, scopes_del_rol
 from .scopes import requiere_scope
 from .ws_auth import IdentidadWebSocket, TokenWebSocketInvalido, autenticar_websocket
 
@@ -18,4 +21,13 @@ __all__ = [
     "autenticar_websocket",
     "IdentidadWebSocket",
     "TokenWebSocketInvalido",
+    "EnviarCorreo",
+    "EnvioDeCorreoFallo",
+    "Mensaje",
+    "MODULOS",
+    "Modulo",
+    "modulos_del_rol",
+    "scopes_del_rol",
+    "emitir_jwt_sesion",
+    "sesion_id_de_jwt",
 ]

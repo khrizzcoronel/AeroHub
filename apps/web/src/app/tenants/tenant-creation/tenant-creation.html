@@ -2,18 +2,6 @@
 
 <form (ngSubmit)="enviar()">
   <div>
-    <label for="tokenJwt">Token JWT (role_platform_admin)</label>
-    <textarea
-      id="tokenJwt"
-      rows="3"
-      required
-      [ngModel]="tokenJwt()"
-      (ngModelChange)="tokenJwt.set($event)"
-      name="tokenJwt"
-    ></textarea>
-  </div>
-
-  <div>
     <label for="codigo">Codigo</label>
     <input
       id="codigo"

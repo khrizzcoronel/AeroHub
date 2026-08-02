@@ -37,6 +37,10 @@ class Identidad:
     rol: str
     usuario_id: int | None
     scopes: frozenset[str] = field(default_factory=frozenset)
+    sesion_id: int | None = None
+    """`None` para identidades de API Key (S1.2) -- no tienen sesion
+    revocable, la vigencia de la clave ya se verifico en
+    `verificar_api_key`. Solo un JWT de login (S1.10) trae sesion_id."""
 
     def __post_init__(self) -> None:
         if not self.rol:

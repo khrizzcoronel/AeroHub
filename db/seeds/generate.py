@@ -519,8 +519,9 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
                 usuario_id = generar_id()
                 cur.execute(
                     "INSERT INTO tenants.usuario "
-                    "(id, tenant_id, email, hash_credencial, nombre, estado) "
-                    "VALUES (%s, %s, %s, %s, %s, 'activo')",
+                    "(id, tenant_id, email, hash_credencial, nombre, estado, "
+                    "debe_cambiar_password, email_verificado_en) "
+                    "VALUES (%s, %s, %s, %s, %s, 'activo', FALSE, NOW())",
                     (
                         usuario_id,
                         tenant_id,
@@ -528,6 +529,17 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
                         hash_credencial("canario-dev-password"),
                         f"Usuario Canario {spec['codigo']}",
                     ),
+                )
+                # S1.10: sin un rol vigente el canario no puede loguearse
+                # (iniciar_sesion.py exige uno) -- suite de integracion y
+                # cross_tenant necesitan poder loguearse con este usuario.
+                cur.execute("SELECT id FROM tenants.rol WHERE codigo = 'role_tenant_admin'")
+                rol_admin_id = cur.fetchone()[0]
+                cur.execute(
+                    "INSERT INTO tenants.usuario_rol "
+                    "(usuario_id, rol_id, otorgado_por, otorgado_en) "
+                    "VALUES (%s, %s, %s, NOW())",
+                    (usuario_id, rol_admin_id, usuario_id),
                 )
                 print(f"  usuario canario {email_canario} creado (id={usuario_id})")
 

@@ -34,6 +34,26 @@ scrapea sin credenciales de aplicacion (en produccion, ese endpoint se
 protege por red/mTLS, no por el mismo JWT que el resto de la API). Ninguna
 otra ruta se agrega a esta lista sin una razon documentada igual de
 explicita: es la excepcion, no el patron.
+
+S1.10 agrega las rutas PUBLICAS de `/auth/*` (login, recuperacion,
+verificacion, aceptacion de invitacion) -- por definicion, ninguna de
+ellas puede exigir un JWT previo (FR-026): son las que EMITEN uno o
+resuelven una accion de un solo uso antes de que exista sesion. El resto
+de `/auth/*` (`/auth/yo`, `/auth/logout`, `/auth/cambiar-password`,
+`/auth/solicitar-verificacion`) SI exige JWT y no esta en esta lista.
+
+Verificacion de sesion (S1.10, FR-022/FR-023, research.md Decision 5):
+se aplica INMEDIATAMENTE despues de autenticar, ANTES del rate limiting
+-- una sesion revocada (logout, restablecimiento de password) no debe
+consumir cupo de tasa ni llegar a `contexto_autenticado`. No hace nada
+si la identidad no trae `sesion_id` (autenticacion por API Key, S1.2).
+
+Contrasena temporal (S1.10, US3, FR-012): la misma consulta que verifica
+la sesion devuelve `debe_cambiar_password` (sin round-trip extra). Si es
+`True`, toda ruta autenticada distinta de `/auth/cambiar-password`
+responde 403 -- contracts/auth-api.md es literal: "unico endpoint
+permitido mientras dure la contrasena temporal", ni siquiera
+`/auth/logout` es excepcion.
 """
 
 from __future__ import annotations
@@ -44,17 +64,30 @@ from starlette.responses import JSONResponse, Response
 
 from ..application import (
     LicenciaNoVigente,
+    SesionRevocada,
     autenticar_con_api_key,
     autenticar_peticion,
     contexto_autenticado,
     peticion_permitida,
     verificar_licencia,
+    verificar_sesion,
 )
 from ..domain import Identidad, IdentidadInvalida, TokenInvalido
 
 __all__ = ["AutenticacionJWTMiddleware"]
 
-RUTAS_EXENTAS = frozenset({"/metrics"})
+RUTAS_EXENTAS = frozenset(
+    {
+        "/metrics",
+        "/auth/login",
+        "/auth/recuperar",
+        "/auth/restablecer",
+        "/auth/verificar-correo",
+        "/usuarios/aceptar-invitacion",
+    }
+)
+
+_RUTA_CAMBIAR_PASSWORD = "/auth/cambiar-password"
 
 
 class AutenticacionJWTMiddleware(BaseHTTPMiddleware):
@@ -65,6 +98,17 @@ class AutenticacionJWTMiddleware(BaseHTTPMiddleware):
             identidad = self._autenticar(request)
         except (TokenInvalido, IdentidadInvalida) as exc:
             return JSONResponse({"detail": str(exc)}, status_code=401)
+
+        try:
+            debe_cambiar_password = verificar_sesion(sesion_id=identidad.sesion_id)
+        except SesionRevocada as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=401)
+
+        if debe_cambiar_password and request.url.path != _RUTA_CAMBIAR_PASSWORD:
+            return JSONResponse(
+                {"detail": "debes cambiar tu contrasena temporal antes de continuar"},
+                status_code=403,
+            )
 
         if not peticion_permitida(identidad):
             return JSONResponse({"detail": "limite de tasa excedido"}, status_code=429)

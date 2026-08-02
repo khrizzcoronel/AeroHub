@@ -1,0 +1,29 @@
+<div class="shell">
+  <nav class="side">
+    <div class="side__mark">AeroHub</div>
+
+    <ul class="side__nav">
+      @for (modulo of modulosConVista(); track modulo.codigo) {
+        <li>
+          <a [routerLink]="modulo.ruta" routerLinkActive="side__link--activo" class="side__link">
+            {{ modulo.nombre }}
+          </a>
+        </li>
+      }
+    </ul>
+
+    <div class="side__usuario">
+      @if (perfil(); as p) {
+        <div class="side__quien">
+          <span class="side__nombre">{{ p.nombre }}</span>
+          <span class="side__rol">{{ p.rol_nombre }}</span>
+        </div>
+      }
+      <button type="button" class="side__salir" (click)="cerrarSesion()">Cerrar sesion</button>
+    </div>
+  </nav>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

@@ -15,10 +15,18 @@ from __future__ import annotations
 
 from aerohub_repository.guard import registrar_alcance
 
-_ALCANCE_TENANT = ("licencia", "usuario", "api_key")
+_ALCANCE_TENANT = ("licencia", "usuario", "api_key", "invitacion")
 for _tabla in _ALCANCE_TENANT:
     registrar_alcance("tenants", _tabla, "tenant")
 
+# sesion/token_acceso/intento_acceso son 'interno' (Sprint S1.10,
+# research.md Decision 9): se consultan ANTES de saber a que tenant
+# pertenece quien hace la peticion (login, canje de token, registro de un
+# intento fallido de un correo que quiza ni existe) -- declararlas
+# 'tenant' obligaria a envolver cada peticion autenticada del sistema en
+# alcance_global(), y un usuario de plataforma (tenant_id NULL) ni podria
+# filtrar por tenant_id. `invitacion` si es 'tenant': siempre la crea un
+# admin ya autenticado dentro de su propio tenant.
 _ALCANCE_INTERNO = (
     "plan",
     "plan_modulo",
@@ -27,6 +35,9 @@ _ALCANCE_INTERNO = (
     "usuario_rol",
     "okr",
     "okr_resultado_clave",
+    "sesion",
+    "token_acceso",
+    "intento_acceso",
 )
 for _tabla in _ALCANCE_INTERNO:
     registrar_alcance("tenants", _tabla, "interno")

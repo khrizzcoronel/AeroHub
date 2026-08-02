@@ -27,11 +27,13 @@ def autenticar_peticion(token: str) -> Identidad:
     scopes = claims.get("scopes") or []
     if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
         raise TokenInvalido("claim 'scopes' con formato invalido en el token")
+    sesion_id = claims.get("sesion_id")
     return Identidad(
         tenant_id=claims.get("tenant_id"),
         rol=rol,
         usuario_id=claims.get("usuario_id"),
         scopes=frozenset(scopes),
+        sesion_id=int(sesion_id) if sesion_id is not None else None,
     )
 
 

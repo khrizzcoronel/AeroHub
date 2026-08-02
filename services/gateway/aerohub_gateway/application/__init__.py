@@ -1,6 +1,7 @@
 from .autenticar_peticion import autenticar_con_api_key, autenticar_peticion, contexto_autenticado
 from .limitar_tasa import peticion_permitida
 from .verificar_licencia import LicenciaNoVigente, verificar_licencia
+from .verificar_sesion import SesionRevocada, verificar_sesion
 
 __all__ = [
     "autenticar_peticion",
@@ -9,4 +10,6 @@ __all__ = [
     "peticion_permitida",
     "verificar_licencia",
     "LicenciaNoVigente",
+    "verificar_sesion",
+    "SesionRevocada",
 ]

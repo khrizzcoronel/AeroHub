@@ -1,0 +1,40 @@
+<div class="stage-simple">
+  <form class="card" (ngSubmit)="enviar()">
+    <h1>Unite a tu organizacion</h1>
+    <p class="card__sub">Elegi tu nombre y una contrasena para activar tu cuenta.</p>
+
+    <label class="field">
+      <span class="field__label">Nombre</span>
+      <input
+        type="text"
+        required
+        [ngModel]="nombre()"
+        (ngModelChange)="nombre.set($event)"
+        name="nombre"
+      />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Contrasena</span>
+      <input
+        type="password"
+        required
+        autocomplete="new-password"
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+        name="password"
+      />
+      <span class="field__hint">Al menos 10 caracteres, con letras y numeros.</span>
+    </label>
+
+    @if (error()) {
+      <p class="alert" role="alert">{{ error() }}</p>
+    }
+
+    <button type="submit" class="btn" [disabled]="enviando()">
+      {{ enviando() ? 'Creando cuenta...' : 'Aceptar invitacion' }}
+    </button>
+
+    <a class="card__link" routerLink="/login">Ya tengo cuenta</a>
+  </form>
+</div>

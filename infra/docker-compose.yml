@@ -192,6 +192,19 @@ services:
   # (compone routers de varios paquetes del workspace uv) como los
   # frontends (monorepo Nx) necesitan archivos de la raiz del repo, no
   # solo su propia carpeta.
+  # SMTP de prueba (Sprint S1.10, research.md Decision 7): bandeja web en
+  # :8025, protocolo SMTP real en :1025 que NO entrega hacia afuera --
+  # permite verificar el envio de correo contra un servidor real en Docker
+  # (Principio III) sin gastar el cupo de Gmail ni depender de
+  # conectividad externa en CI. Gmail se usa solo fuera de Docker Compose,
+  # via las variables AEROHUB_SMTP_* del servicio gateway.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: aerohub-mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
   gateway:
     build:
       context: ..
@@ -204,11 +217,24 @@ services:
       # correcto para cuando el gateway corre suelto en el host.
       AEROHUB_DB_DSN: "monetdb://aerohub_app:aerohub_app_dev_password@monetdb:50000/aerohub"
       AEROHUB_JWT_SECRET: "aerohub-dev-secret-nunca-usar-en-produccion"
+      # SMTP de desarrollo contra mailpit, sin TLS ni credenciales -- para
+      # usar Gmail real, sobrescribir estas 6 variables en el entorno de
+      # despliegue (docs/runbooks/correo-smtp.md), NUNCA commitear la
+      # contrasena de aplicacion aqui.
+      AEROHUB_SMTP_HOST: "mailpit"
+      AEROHUB_SMTP_PORT: "1025"
+      AEROHUB_SMTP_USUARIO: ""
+      AEROHUB_SMTP_PASSWORD: ""
+      AEROHUB_SMTP_TLS: "false"
+      AEROHUB_SMTP_REMITENTE: "no-responder@aerohub.test"
+      AEROHUB_URL_BASE_APP: "http://localhost:4200"
     ports:
       - "8000:8000"
     depends_on:
       monetdb:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   web:
     build:

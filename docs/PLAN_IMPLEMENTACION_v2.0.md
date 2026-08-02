@@ -616,6 +616,31 @@ Adicional a la DoD específica de cada sprint:
 
 ---
 
+### 8.10 Sprint S1.10 — Identidad y acceso (ADR-020)
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Cerrar "todavía no hay login real" (deuda documentada desde S1.1): autenticación por credenciales propias, sesión revocable, invitaciones, verificación de correo y recuperación de contraseña. |
+| **Acciones fuente** | Deuda de arquitectura acumulada, sin acción numerada propia — cierra la precondición de UX que todo sprint anterior asumió resuelta ("mintar un JWT de prueba a mano"). |
+| **Requisitos** | RF-IA01..RF-IA08, RNF-S06 · ADR-020 |
+
+**Entregables:** `tenants.sesion`, `token_acceso`, `invitacion`, `intento_acceso` + 3 columnas nuevas en `tenants.usuario`
+(`email_verificado_en`, `debe_cambiar_password`, `bloqueado_hasta`); migración de `uq_usuario_tenant_email` a `uq_usuario_email`
+(correo único global); login con bloqueo por fuerza bruta; verificación de sesión vigente en cada petición autenticada
+(revocación real, no solo `exp`); cambio de contraseña obligatorio en el primer acceso; invitaciones/verificación/recuperación
+por correo (adaptador SMTP, `mailpit` en desarrollo); frontend completo de `apps/web` (`auth.service`, interceptor, guard, shell
+con menú dinámico por rol × licencia) — la aplicación deja de pedir un JWT pegado a mano.
+
+**Compuerta de pruebas:** PN-16 (login no revela existencia de cuenta); ciclo completo de login/logout/cambio/recuperación contra
+MonetDB real; invitación y verificación de correo contra `mailpit` real (SMTP real, sin mock de `smtplib`); regresión completa de
+PN-01 a PN-16 con sesión obtenida por login real, no por token fabricado; RNF-P01 re-medido con el costo de la verificación de
+sesión por petición.
+
+**DoD:** un tenant nuevo puede operar con más de un usuario humano por primera vez desde S0.1, sin que nadie pegue un token a
+mano en ningún formulario.
+
+---
+
 ## 9. FASE 2 — Capa táctica (RF-T\*)
 
 **Semanas 23–34 · 6 sprints · D4 · Medallion (Parquet) + ClickHouse `ah_tactico`**

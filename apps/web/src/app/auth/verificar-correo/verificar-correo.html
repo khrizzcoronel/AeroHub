@@ -1,0 +1,18 @@
+<div class="stage-simple">
+  <div class="card">
+    @switch (estado()) {
+      @case ('verificando') {
+        <h1>Verificando tu correo...</h1>
+      }
+      @case ('exito') {
+        <h1>Correo verificado</h1>
+        <p class="notice">Tu direccion de correo ya quedo confirmada.</p>
+      }
+      @case ('error') {
+        <h1>No pudimos verificar tu correo</h1>
+        <p class="alert" role="alert">{{ mensaje() }}</p>
+      }
+    }
+    <a class="card__link" routerLink="/login">Volver a iniciar sesion</a>
+  </div>
+</div>

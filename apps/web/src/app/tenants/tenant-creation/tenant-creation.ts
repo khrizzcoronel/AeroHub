@@ -3,19 +3,16 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CrearTenantResponse, TenantService } from '../tenant.service';
 
-// Sprint S1.1 no incluye el CU de emision de credenciales de sesion (queda
-// para el sprint del login real) -- por eso este formulario pide el JWT de
-// role_platform_admin como texto en vez de autenticar al usuario. No es un
-// atajo de seguridad: es exactamente el mismo middleware de
-// services/gateway validando el mismo token que cualquier otro cliente
-// HTTP tendria que enviar.
+// Sprint S1.10: el token ya no se pega a mano -- sale del interceptor de
+// AuthService a partir de la sesion real de quien esta autenticado
+// (FR-029). Antes de S1.10 este formulario pedia el JWT como texto; ver
+// historial de este archivo para ese estado transitorio de S1.1.
 @Component({
   selector: 'app-tenant-creation',
   imports: [FormsModule],
   templateUrl: './tenant-creation.html',
 })
 export class TenantCreation {
-  protected readonly tokenJwt = signal('');
   protected readonly codigo = signal('');
   protected readonly razonSocial = signal('');
   // string, no number -- ver el comentario en tenant.service.ts sobre
@@ -45,17 +42,14 @@ export class TenantCreation {
     this.resultado.set(null);
 
     this.tenantService
-      .crearTenant(
-        {
-          codigo: this.codigo(),
-          razon_social: this.razonSocial(),
-          aeropuerto_id: aeropuertoId,
-          plan_id: planId,
-          email_admin: this.emailAdmin(),
-          nombre_admin: this.nombreAdmin(),
-        },
-        this.tokenJwt(),
-      )
+      .crearTenant({
+        codigo: this.codigo(),
+        razon_social: this.razonSocial(),
+        aeropuerto_id: aeropuertoId,
+        plan_id: planId,
+        email_admin: this.emailAdmin(),
+        nombre_admin: this.nombreAdmin(),
+      })
       .subscribe({
         next: (respuesta) => {
           this.resultado.set(respuesta);

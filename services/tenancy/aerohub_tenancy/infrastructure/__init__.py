@@ -4,11 +4,49 @@ from aerohub_repository import (
     reintentar_en_conflicto,
     sesion,
 )
-from aerohub_repository.contexto import alcance_global, contexto_tenant_id, contexto_usuario_id
+from aerohub_repository.contexto import (
+    ContextoTenantAusente,
+    alcance_global,
+    contexto_rol_actor,
+    contexto_tenant_id,
+    contexto_usuario_id,
+)
 
 from . import alcances as _alcances  # noqa: F401 -- side effect: registra G1 de tenants.*
 from .comandos_api_key import actualizar_estado_api_key, insertar_api_key, marcar_api_key_rotada
+from .comandos_identidad import (
+    actualizar_ultimo_acceso,
+    consumir_token,
+    fijar_bloqueo,
+    insertar_intento_acceso,
+    insertar_invitacion,
+    insertar_sesion,
+    insertar_token_acceso,
+    insertar_usuario_invitado,
+    insertar_usuario_rol,
+    invalidar_tokens,
+    marcar_correo_verificado,
+    marcar_invitacion_aceptada,
+    marcar_password_cambiada,
+    revocar_sesion,
+    revocar_sesiones_del_usuario,
+)
 from .consultas import obtener_api_key_por_id, obtener_usuario_por_id
+from .consultas_identidad import (
+    contar_intentos_fallidos_recientes,
+    listar_roles_vigentes_del_usuario,
+    listar_tokens_previos_no_consumidos,
+    obtener_invitacion_por_token_id,
+    obtener_rol_por_codigo,
+    obtener_sesion_por_id,
+    obtener_tenant_por_id_global,
+    obtener_token_vigente_por_id,
+    obtener_usuario_por_email,
+    obtener_usuario_por_id_global,
+)
+from .correo_registro import configurar_adaptador_correo, enviar_correo
+from .correo_smtp import crear_adaptador_smtp_desde_entorno
+from .licencia import existe_licencia_vigente
 from .provisionamiento import insertar_tenant, insertar_usuario_admin
 
 # Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
@@ -29,5 +67,36 @@ __all__ = [
     "alcance_global",
     "contexto_tenant_id",
     "contexto_usuario_id",
+    "contexto_rol_actor",
+    "ContextoTenantAusente",
     "reintentar_en_conflicto",
+    "obtener_usuario_por_email",
+    "obtener_usuario_por_id_global",
+    "listar_roles_vigentes_del_usuario",
+    "contar_intentos_fallidos_recientes",
+    "obtener_sesion_por_id",
+    "obtener_token_vigente_por_id",
+    "listar_tokens_previos_no_consumidos",
+    "obtener_invitacion_por_token_id",
+    "obtener_tenant_por_id_global",
+    "obtener_rol_por_codigo",
+    "insertar_intento_acceso",
+    "insertar_sesion",
+    "revocar_sesion",
+    "revocar_sesiones_del_usuario",
+    "actualizar_ultimo_acceso",
+    "fijar_bloqueo",
+    "marcar_password_cambiada",
+    "marcar_correo_verificado",
+    "insertar_token_acceso",
+    "consumir_token",
+    "invalidar_tokens",
+    "insertar_invitacion",
+    "marcar_invitacion_aceptada",
+    "insertar_usuario_invitado",
+    "insertar_usuario_rol",
+    "existe_licencia_vigente",
+    "enviar_correo",
+    "configurar_adaptador_correo",
+    "crear_adaptador_smtp_desde_entorno",
 ]

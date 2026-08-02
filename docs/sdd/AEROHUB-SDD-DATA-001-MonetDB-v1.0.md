@@ -310,6 +310,56 @@ N:M sin atributos propios (2NF trivialmente satisfecha).
 
 **Corrige 1NF respecto a v5.1**: un OKR posee múltiples resultados clave, antes no representables.
 
+## 6.1 Identidad y acceso (Sprint S1.10, ADR-020)
+
+Tres columnas nuevas en `tenants.usuario` (`ALTER TABLE ADD COLUMN`, `db/ddl/monetdb/16_identidad.sql`):
+
+| Tabla | Columna | Tipo | Nulo | Restricción |
+|:---|:---|:---|:---|:---|
+| `usuario` | email_verificado_en | TIMESTAMPTZ | SÍ | NULL = correo no verificado |
+| `usuario` | debe_cambiar_password | BOOLEAN | NO | DEFAULT TRUE — un usuario recién aprovisionado siempre empieza en TRUE |
+| `usuario` | bloqueado_hasta | TIMESTAMPTZ | SÍ | NULL = sin bloqueo por fuerza bruta vigente |
+
+Migración de la restricción de unicidad del correo (`db/ddl/monetdb/17_migracion_email_unico.sql`, research.md Decisión 2 de
+`specs/012-identidad-y-acceso/`): `uq_usuario_tenant_email UNIQUE(tenant_id, email)` pasa a `uq_usuario_email UNIQUE(email)` — el
+login resuelve un usuario por correo antes de conocer su tenant, así que el correo debe ser único en todo el sistema, no solo
+dentro de un tenant. La migración detecta colisiones y aborta con un informe legible si encuentra alguna antes de aplicar el
+cambio de restricción.
+
+| Tabla | Columna | Tipo | Nulo | Restricción |
+|:---|:---|:---|:---|:---|
+| `sesion` | id | BIGINT | NO | PK — viaja en el JWT como identificador de sesión |
+| `sesion` | usuario_id | BIGINT | NO | FK → `usuario.id` |
+| `sesion` | emitida_en | TIMESTAMPTZ | NO | DEFAULT now() |
+| `sesion` | expira_en | TIMESTAMPTZ | NO | coincide con el `exp` del JWT emitido |
+| `sesion` | revocada_en | TIMESTAMPTZ | SÍ | NULL = vigente |
+| `sesion` | motivo_revocacion | VARCHAR(30) | SÍ | CHK IN ('cierre_sesion','restablecer_password','revocacion_admin') |
+| `sesion` | ip_origen | VARCHAR(45) | SÍ | |
+| `token_acceso` | id | BIGINT | NO | PK |
+| `token_acceso` | usuario_id | BIGINT | SÍ | FK → `usuario.id`; NULL para una invitación a un correo sin cuenta todavía |
+| `token_acceso` | tipo | VARCHAR(20) | NO | CHK IN ('verificacion','invitacion','recuperacion') |
+| `token_acceso` | hash_token | VARCHAR(200) | NO | Argon2id del token en claro — nunca se persiste en claro (research.md Decisión 8) |
+| `token_acceso` | expira_en | TIMESTAMPTZ | NO | 24h (verificación), 7 días (invitación), 1h (recuperación) |
+| `token_acceso` | consumido_en | TIMESTAMPTZ | SÍ | NULL = todavía canjeable |
+| `invitacion` | id | BIGINT | NO | PK |
+| `invitacion` | tenant_id | BIGINT | NO | FK → `tenant.id` |
+| `invitacion` | email | VARCHAR(254) | NO | |
+| `invitacion` | rol_id | BIGINT | NO | FK → `rol.id` |
+| `invitacion` | invitado_por_usuario_id | BIGINT | NO | FK → `usuario.id` |
+| `invitacion` | token_acceso_id | BIGINT | NO | FK → `token_acceso.id` |
+| `invitacion` | estado | VARCHAR(20) | NO | CHK IN ('pendiente','aceptada') |
+| `invitacion` | aceptada_en | TIMESTAMPTZ | SÍ | |
+| `intento_acceso` | id | BIGINT | NO | PK |
+| `intento_acceso` | email_intentado | VARCHAR(254) | NO | correo tal como se recibió, exista o no la cuenta |
+| `intento_acceso` | usuario_id | BIGINT | SÍ | FK → `usuario.id`; NULL si el correo no corresponde a ninguna cuenta |
+| `intento_acceso` | resultado | VARCHAR(20) | NO | CHK IN ('exitoso','credencial_invalida','cuenta_bloqueada','cuenta_inactiva','sin_rol_vigente') |
+| `intento_acceso` | ocurrido_en | TIMESTAMPTZ | NO | DEFAULT now() |
+| `intento_acceso` | ip_origen | VARCHAR(45) | SÍ | |
+
+`sesion`/`token_acceso`/`intento_acceso` son alcance G1 `'interno'` (se consultan antes de conocer el tenant de quien llama —
+login, canje de token); `invitacion` es alcance `'tenant'` (siempre la crea un `role_tenant_admin` ya autenticado dentro de su
+propio tenant). Ningún rol recibe DELETE sobre estas cuatro tablas — P5, sin mecanismo de purga física en este sprint.
+
 ```mermaid
 erDiagram
     PLAN ||--o{ TENANT : suscribe
@@ -323,6 +373,10 @@ erDiagram
     ROL ||--o{ USUARIO_ROL : asignado
     DEPARTAMENTO ||--o{ OKR : define
     OKR ||--o{ OKR_RESULTADO_CLAVE : contiene
+    USUARIO ||--o{ SESION : abre
+    USUARIO ||--o{ TOKEN_ACCESO : canjea
+    TENANT ||--o{ INVITACION : emite
+    TOKEN_ACCESO ||--o| INVITACION : respalda
 ```
 
 ---

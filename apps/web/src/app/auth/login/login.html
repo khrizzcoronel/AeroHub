@@ -1,0 +1,61 @@
+<div class="stage">
+  <aside class="rail" aria-hidden="true">
+    <div class="rail__mark">
+      <span class="rail__wordmark">AeroHub</span>
+      <span class="rail__tagline">Torre de control operacional</span>
+    </div>
+
+    <div class="strips">
+      <div class="strips__track">
+        @for (tira of tiras; track $index) {
+          <div class="strip" [class.strip--activa]="tira.activa">
+            <span class="strip__vuelo">{{ tira.vuelo }}</span>
+            <span class="strip__ruta">{{ tira.ruta }}</span>
+            <span class="strip__estado">{{ tira.estado }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </aside>
+
+  <main class="panel">
+    <form class="card" (ngSubmit)="enviar()">
+      <h1>Iniciar sesion</h1>
+      <p class="card__sub">Ingresa con tu correo y contrasena de AeroHub.</p>
+
+      <label class="field">
+        <span class="field__label">Correo</span>
+        <input
+          type="email"
+          required
+          autocomplete="email"
+          [ngModel]="email()"
+          (ngModelChange)="email.set($event)"
+          name="email"
+        />
+      </label>
+
+      <label class="field">
+        <span class="field__label">Contrasena</span>
+        <input
+          type="password"
+          required
+          autocomplete="current-password"
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event)"
+          name="password"
+        />
+      </label>
+
+      @if (error()) {
+        <p class="alert" role="alert">{{ error() }}</p>
+      }
+
+      <button type="submit" class="btn" [disabled]="enviando()">
+        {{ enviando() ? 'Verificando...' : 'Entrar' }}
+      </button>
+
+      <a class="card__link" routerLink="/recuperar">Olvide mi contrasena</a>
+    </form>
+  </main>
+</div>
