@@ -27,6 +27,7 @@ root_packages =
     aerohub_repository
     aerohub_contracts
     aerohub_kernel
+    aerohub_continuidad
     aerohub_pipelines
     aerohub_ml
 
@@ -174,6 +175,25 @@ forbidden_modules =
     fastapi
     sqlalchemy
     airflow
+    aerohub_repository
+
+; aerohub_continuidad NO es un modulo de negocio (Plan de S1.9, Complexity
+; Tracking): no sigue las 4 capas api/application/domain de ADR-017 --
+; domain/ sigue siendo puro (sin pymonetdb/boto3/prometheus_client), pero
+; operaciones/ SI puede importar aerohub_repository (lee el journal del
+; primario de forma guardada, research.md Decision 3 de S1.9) y pymonetdb
+; directo (escribe en el standby, excepcion documentada de tooling DBA de
+; plataforma) -- por eso tiene su propio contrato, mas simple que
+; "capas-*" y "solo-infrastructure-toca-repository".
+[importlinter:contract:domain-continuidad-independiente]
+name = domain/ de aerohub_continuidad no depende de pymonetdb, boto3 ni prometheus_client
+type = forbidden
+source_modules =
+    aerohub_continuidad.domain
+forbidden_modules =
+    pymonetdb
+    boto3
+    prometheus_client
     aerohub_repository
 
 ; --- Regla 4: solo infrastructure/ de cada modulo importa aerohub_repository ---

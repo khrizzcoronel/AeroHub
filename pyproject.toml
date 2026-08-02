@@ -10,6 +10,7 @@ members = [
     "packages/kernel",
     "packages/contracts",
     "packages/repository",
+    "packages/continuidad",
     "services/gateway",
     "services/aodb",
     "services/fids",

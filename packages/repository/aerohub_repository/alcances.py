@@ -36,3 +36,11 @@ for _tabla in _CATALOGO:
 # guardian no puede exigir un filtro que la propia tabla no siempre porta.
 registrar_alcance("compliance", "log_auditoria", "interno")
 registrar_alcance("continuidad", "journal_mutacion", "interno")
+
+# Ampliacion de continuidad (Sprint S1.9, ADR-018 C2/C3/C4) -- catalogo de
+# snapshots, checkpoint del shipper y evidencia de la prueba de
+# restauracion: infraestructura de plataforma sin tenant_id, mismo
+# tratamiento que journal_mutacion.
+registrar_alcance("continuidad", "snapshot_base", "interno")
+registrar_alcance("continuidad", "shipper_checkpoint", "interno")
+registrar_alcance("continuidad", "prueba_restauracion", "interno")

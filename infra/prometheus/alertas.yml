@@ -44,3 +44,21 @@ groups:
             El target aerohub_gateway lleva caido al menos 5 minutos --
             incidente critico de disponibilidad, abrir post-mortem
             (compliance.post_mortem, S1.7).
+
+  # Continuidad operacional (Sprint S1.9, ADR-018 C3). Umbral = la mitad
+  # del presupuesto de RPO (120s), para que la degradacion sea visible
+  # antes del incumplimiento (contracts/shipper-metrica.md de
+  # specs/011-continuidad-rto-rpo/).
+  - name: aerohub_continuidad
+    rules:
+      - alert: AeroHubStandbyAtrasado
+        expr: aerohub_standby_lag_seconds > 120
+        for: 30s
+        labels:
+          severidad: sev2
+        annotations:
+          summary: "Replica de respaldo (standby) atrasada mas de 120s"
+          descripcion: >-
+            El shipper de continuidad lleva mas de 120s sin drenar el
+            journal de mutaciones -- riesgo de incumplir el RPO (<= 5 min,
+            ADR-018) si el primario fallara ahora mismo.

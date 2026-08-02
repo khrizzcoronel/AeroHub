@@ -24,6 +24,11 @@ services:
       - "50000:50000"
     volumes:
       - monetdata:/var/monetdb5/dbfarm
+      # sys.hot_snapshot() (ADR-018 C2) escribe DENTRO del contenedor -- sin
+      # este volumen compartido con continuidad-agente, el archivo resultante
+      # seria inalcanzable para cualquier proceso fuera de este contenedor
+      # (specs/011-continuidad-rto-rpo/research.md Decision 6).
+      - snapshotstage:/snapshotstage
     healthcheck:
       test: ["CMD-SHELL", "monetdb status || exit 1"]
       interval: 10s
@@ -41,6 +46,30 @@ services:
       - "50001:50000"
     volumes:
       - monetdata-standby:/var/monetdb5/dbfarm
+    healthcheck:
+      test: ["CMD-SHELL", "monetdb status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # Dedicado EXCLUSIVAMENTE a la prueba de restauracion semanal (ADR-018 C4;
+  # specs/011-continuidad-rto-rpo/research.md Decision 5) -- separado del
+  # standby real para no mezclar el proposito de C3 (replica que debe
+  # reflejar el estado real para un failover real) con el de C4 (recuperacion
+  # desde cero sobre datos sinteticos). Estatico, igual que monetdb-standby,
+  # en vez de un contenedor efimero via socket de Docker (menor superficie
+  # de privilegio).
+  monetdb-restore-test:
+    image: monetdb/monetdb:latest
+    container_name: aerohub-monetdb-restore-test
+    environment:
+      MDB_CREATE_DBS: aerohub
+      MDB_DB_ADMIN_PASS: aerohub
+      MDB_DAEMON_PASS: aerohub
+    ports:
+      - "50002:50000"
+    volumes:
+      - monetdata-restore-test:/var/monetdb5/dbfarm
     healthcheck:
       test: ["CMD-SHELL", "monetdb status || exit 1"]
       interval: 10s
@@ -201,9 +230,58 @@ services:
     depends_on:
       - gateway
 
+  # Proceso continuo de continuidad operacional (Sprint S1.9, ADR-018):
+  # snapshot programado (C2), shipper (C3) y prueba de restauracion semanal
+  # (C4) como tareas asincronas concurrentes -- mismo patron que la tarea de
+  # fondo del monitor de senal FIDS en services/gateway/main.py, no DAGs de
+  # Airflow (specs/011-continuidad-rto-rpo/research.md Decision 4).
+  continuidad-agente:
+    build:
+      context: ..
+      dockerfile: packages/continuidad/Dockerfile
+    container_name: aerohub-continuidad-agente
+    environment:
+      AEROHUB_DB_DSN: "monetdb://aerohub_app:aerohub_app_dev_password@monetdb:50000/aerohub"
+      AEROHUB_STANDBY_HOST: monetdb-standby
+      AEROHUB_STANDBY_PORT: "50000"
+      AEROHUB_STANDBY_DATABASE: aerohub
+      AEROHUB_STANDBY_USERNAME: monetdb
+      AEROHUB_STANDBY_PASSWORD: aerohub
+      AEROHUB_RESTORE_TEST_HOST: monetdb-restore-test
+      AEROHUB_RESTORE_TEST_PORT: "50000"
+      AEROHUB_RESTORE_TEST_DATABASE: aerohub
+      AEROHUB_RESTORE_TEST_USERNAME: monetdb
+      AEROHUB_RESTORE_TEST_PASSWORD: aerohub
+      AEROHUB_PRIMARY_HOST: monetdb
+      AEROHUB_PRIMARY_PORT: "50000"
+      AEROHUB_PRIMARY_DATABASE: aerohub
+      AEROHUB_PRIMARY_USERNAME: monetdb
+      AEROHUB_PRIMARY_PASSWORD: aerohub
+      AEROHUB_SNAPSHOT_PATH: /snapshotstage
+      AEROHUB_MINIO_ENDPOINT: "http://minio:9000"
+      AEROHUB_MINIO_ACCESS_KEY: aerohub
+      AEROHUB_MINIO_SECRET_KEY: aerohub123
+      AEROHUB_MINIO_BUCKET: aerohub-continuidad
+      AEROHUB_METRICS_PORT: "9101"
+    ports:
+      - "9101:9101"
+    volumes:
+      - snapshotstage:/snapshotstage
+    depends_on:
+      monetdb:
+        condition: service_healthy
+      monetdb-standby:
+        condition: service_healthy
+      monetdb-restore-test:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
 volumes:
   monetdata:
   monetdata-standby:
+  monetdata-restore-test:
   chdata:
   miniodata:
   airflowdata:
+  snapshotstage:

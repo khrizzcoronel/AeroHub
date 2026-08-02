@@ -27,12 +27,34 @@ la sección correspondiente de `docs/PLAN_IMPLEMENTACION_v2.0.md` §8) →
 regla de trabajo tan firme como "verificar contra MonetDB real" o "todo
 servicio en Docker" -- no es opcional ni se retoma "cuando convenga".
 
-**S1.8 cerrado**: `/speckit-implement` corrió sobre
-`specs/010-support-observability/` -- `aerohub_support` completo (domain/
-application/infrastructure/api) y `tools/verificar_error_budget.py`,
-verificados empíricamente contra MonetDB + Prometheus reales en Docker
-(256 unit + 68 negative/cross_tenant + 17 integración nuevos, todos en
-verde; ruff/mypy/bandit/import-linter en verde).
+**S1.9 cerrado**: `/speckit-implement` corrió sobre
+`specs/011-continuidad-rto-rpo/` -- los 4 componentes de ADR-018
+(C1 ya existía desde S0.2, este sprint le agregó retención/purga; C2
+snapshot programado + volcado lógico diario catalogados y verificados;
+C3 *shipper* idempotente con métrica de atraso; C4 conmutación guiada +
+prueba de restauración semanal automatizada), en un paquete nuevo
+`packages/continuidad/aerohub_continuidad` (deliberadamente fuera de
+`services/`, no es un módulo de negocio) + `tools/continuidad_agente.py`
++ `tools/continuidad_conmutar.py` + 2 contenedores Docker nuevos
+(`monetdb-restore-test`, `continuidad-agente`), verificados
+empíricamente contra los 3 motores MonetDB reales + MinIO en Docker (23
+tests nuevos, 333 unit/negative/cross_tenant totales, todos en verde;
+ruff/mypy/bandit/import-linter en verde). **RNF-R01 sigue como riesgo
+abierto** (no se cierra en este sprint, por diseño de ADR-018/SRS §2.7 --
+requiere 4 semanas consecutivas en verde + 1 *game day* en la Fase 4,
+S4.2): el mecanismo ya opera y publica métricas
+(`aerohub_standby_lag_seconds`, `aerohub_snapshot_edad_segundos`,
+`aerohub_prueba_restauracion_rto_segundos`/`_rpo_segundos`), pero su
+observación sostenida todavía no empezó.
+
+Hallazgos empíricos nuevos de S1.9 (detalle completo en
+`docs/runbooks/monetdb.md`): `sys.hot_snapshot()` exige que el volumen
+destino sea escribible por el uid del proceso MonetDB (no por defecto en
+un volumen Docker nuevo); `sqlalchemy-monetdb` ya deserializa columnas
+JSON a `dict`/`list` en la lectura (no volver a declarar `Column(...,
+JSON)` del lado de lectura); un standby/réplica nueva necesita el
+checkpoint del *shipper* inicializado al `lsn` máximo actual, no en `0`,
+si se siembra por separado en vez de restaurarse desde un snapshot real.
 
 La constitución del proyecto vive en `.specify/memory/constitution.md`
 (v1.0.0, ratificada 2026-08-01) y formaliza principios ya vigentes desde
@@ -54,6 +76,7 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.6 | M5 Billing (motor de facturación, tarifarios, conciliación) + M6 Passenger Experience (tiempos de espera sin PII) | `b4c619f` |
 | S1.7 | Licenciamiento por módulo (gateway) + M9 Compliance Hub (post-mortem, incidentes, reportes DGAC, SOC2) + rotación de API Keys | `c0ec739` |
 | S1.8 | Soporte D6 (tickets/SLA, KB, changelog) + observabilidad (uptime, error budget, bloqueo de despliegue) | `7f77acf` |
+| S1.9 | Continuidad operacional RTO/RPO (ADR-018): snapshot verificado, réplica caliente (shipper), conmutación guiada, prueba de restauración semanal -- RNF-R01 sigue como riesgo abierto (mecanismo + métrica, cierre formal en Fase 4/S4.2) | `pendiente` |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de

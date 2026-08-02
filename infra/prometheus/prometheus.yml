@@ -12,3 +12,7 @@ scrape_configs:
   - job_name: aerohub_gateway
     static_configs:
       - targets: ["gateway:8000"]
+
+  - job_name: aerohub_continuidad_agente
+    static_configs:
+      - targets: ["continuidad-agente:9101"]
