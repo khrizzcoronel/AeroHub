@@ -23,10 +23,17 @@ cada sprint -- S0.1 a S1.5 se documentaron RETROACTIVAMENTE
 **A partir de S1.6, todo sprint nuevo sigue el flujo Spec Kit ANTES/DURANTE
 la implementación, nunca después**: `/speckit-specify` (spec.md a partir de
 la sección correspondiente de `docs/PLAN_IMPLEMENTACION_v2.0.md` §8) →
-`/speckit-plan` → `/speckit-tasks` → `/speckit-implement`. El siguiente
-directorio a crear es `specs/008-<slug>/` para S1.6. Esto es una regla de
-trabajo tan firme como "verificar contra MonetDB real" o "todo servicio en
-Docker" -- no es opcional ni se retoma "cuando convenga".
+`/speckit-plan` → `/speckit-tasks` → `/speckit-implement`. Esto es una
+regla de trabajo tan firme como "verificar contra MonetDB real" o "todo
+servicio en Docker" -- no es opcional ni se retoma "cuando convenga".
+
+**S1.8 quedó a mitad de camino**: `specs/010-support-observability/`
+tiene spec.md/plan.md/tasks.md completos (46 tareas, 5 historias de
+usuario) pero `/speckit-implement` todavía NO corrió -- nada de
+`services/support/aerohub_support/` ni `tools/verificar_error_budget.py`
+existe todavía, es puro scaffold vacío. Al retomar, el siguiente paso es
+`/speckit-implement` directo (specify/plan/tasks ya están hechos, no
+repetirlos).
 
 La constitución del proyecto vive en `.specify/memory/constitution.md`
 (v1.0.0, ratificada 2026-08-01) y formaliza principios ya vigentes desde
@@ -47,7 +54,7 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.5 | M4 Ground Operations (turnaround) + dockerización del stack | `0d95b2e` |
 | S1.6 | M5 Billing (motor de facturación, tarifarios, conciliación) + M6 Passenger Experience (tiempos de espera sin PII) | `b4c619f` |
 | S1.7 | Licenciamiento por módulo (gateway) + M9 Compliance Hub (post-mortem, incidentes, reportes DGAC, SOC2) + rotación de API Keys | `c0ec739` |
-| **S1.8** | **Siguiente sprint** | **siguiente** |
+| **S1.8** | **Soporte D6 (tickets/SLA, KB, changelog) + observabilidad (uptime, error budget, bloqueo de despliegue) — spec/plan/tasks listos (`specs/010-support-observability/`), `/speckit-implement` PENDIENTE** | **pendiente** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
