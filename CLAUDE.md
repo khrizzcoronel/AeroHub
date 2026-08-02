@@ -45,7 +45,7 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.3 | M2 FIDS: plantillas/pantallas en tiempo real, sin-señal | `55a9e95` |
 | S1.4 | M3 Gate Manager: asignación de puertas, PuLP, tablero Angular | `dbe3b23` |
 | S1.5 | M4 Ground Operations (turnaround) + dockerización del stack | `0d95b2e` |
-| S1.6 | M5 Billing (motor de facturación, tarifarios, conciliación) + M6 Passenger Experience (tiempos de espera sin PII) | *(este commit)* |
+| S1.6 | M5 Billing (motor de facturación, tarifarios, conciliación) + M6 Passenger Experience (tiempos de espera sin PII) | `b4c619f` |
 | **S1.7** | **Siguiente sprint** | **siguiente** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
