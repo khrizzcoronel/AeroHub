@@ -48,3 +48,17 @@ def actualizar_estado_api_key(conn: Connection, *, id: int, tenant_id: int, esta
         .where(api_key.c.id == id, api_key.c.tenant_id == tenant_id)
         .values(estado=estado)
     )
+
+
+def marcar_api_key_rotada(
+    conn: Connection, *, id: int, tenant_id: int, rotada_en: datetime
+) -> None:
+    """Sprint S1.7, RF-O12 -- la fila anterior NUNCA se borra ni se
+    sobrescribe su hash_secreto (P5, sin DELETE fisico): queda
+    'revocada' con `rotada_en` poblado, auditable, mientras una fila
+    NUEVA (insertar_api_key) es la credencial activa desde ahora."""
+    conn.execute(
+        update(api_key)
+        .where(api_key.c.id == id, api_key.c.tenant_id == tenant_id)
+        .values(estado="revocada", rotada_en=rotada_en)
+    )

@@ -19,6 +19,16 @@ Rate limiting: se aplica DESPUES de autenticar (necesita saber tenant_id/rol
 para elegir el cupo correcto), ANTES de reenviar la peticion al router --
 una peticion que agota su cupo nunca llega a application/ ni al motor.
 
+Verificacion de licencia (S1.7, RF-O18/CU-O20): se aplica DENTRO de
+`contexto_autenticado`, DESPUES del rate limiting -- necesita
+`contexto_tenant_id()`/`contexto_rol_actor()` ya poblados porque
+`verificar_licencia` abre su propia `sesion()` (SET ROLE) para consultar
+`tenants.licencia` y, si deniega, auditar el intento en la MISMA
+transaccion. Una peticion rechazada por licencia ya paso el rate limit --
+aceptable: RF-O18 no exige que la verificacion de licencia sea mas barata
+que la de tasa, y el orden inverso forzaria abrir una sesion() de DB
+ANTES de saber si la peticion sostiene su propio costo de cupo.
+
 `RUTAS_EXENTAS` (S1.3): `/metrics` no pasa por este middleware -- Prometheus
 scrapea sin credenciales de aplicacion (en produccion, ese endpoint se
 protege por red/mTLS, no por el mismo JWT que el resto de la API). Ninguna
@@ -33,10 +43,12 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from ..application import (
+    LicenciaNoVigente,
     autenticar_con_api_key,
     autenticar_peticion,
     contexto_autenticado,
     peticion_permitida,
+    verificar_licencia,
 )
 from ..domain import Identidad, IdentidadInvalida, TokenInvalido
 
@@ -59,6 +71,10 @@ class AutenticacionJWTMiddleware(BaseHTTPMiddleware):
 
         request.state.scopes = identidad.scopes
         with contexto_autenticado(identidad):
+            try:
+                verificar_licencia(path=request.url.path, tenant_id=identidad.tenant_id)
+            except LicenciaNoVigente as exc:
+                return JSONResponse({"detail": str(exc)}, status_code=403)
             return await call_next(request)
 
     def _autenticar(self, request: Request) -> Identidad:

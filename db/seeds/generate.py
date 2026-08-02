@@ -184,6 +184,21 @@ CONCEPTOS_CARGO = [
     ("tasa_pasajero", "Tasa por pasajero embarcado", "pax", "pax"),
 ]
 
+# Catalogos del Compliance Hub (Sprint S1.7). catalogo.modulo NO se
+# siembra aqui -- ya viene poblado ('M1'..'M9') desde el propio DDL
+# fundacional (01_catalogo.sql, INSERT de S0.1).
+TIPOS_INCIDENTE = [
+    ("acceso_no_autorizado", "Intento de acceso sin autorizacion valida", "seguridad_acceso"),
+]
+
+TIPOS_REPORTE_REGULATORIO = [
+    ("informe_mensual_operaciones", "Informe mensual de operaciones", "mensual", "DGAC"),
+]
+
+CONTROLES_SOC2 = [
+    ("CC6.1", "Controles de acceso logico", "seguridad"),
+]
+
 
 def _obtener_o_crear_tipo_tarea(
     cur, codigo: str, nombre: str, duracion_estandar_min: int, es_ruta_critica: bool
@@ -228,6 +243,52 @@ def _obtener_o_crear_concepto_cargo(
         "(id, codigo, nombre, unidad_medida, base_calculo) "
         "VALUES (%s, %s, %s, %s, %s)",
         (id_, codigo, nombre, unidad_medida, base_calculo),
+    )
+    return id_
+
+
+def _obtener_o_crear_tipo_incidente(cur, codigo: str, descripcion: str, categoria: str) -> int:
+    cur.execute("SELECT id FROM compliance.tipo_incidente WHERE codigo = %s", (codigo,))
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO compliance.tipo_incidente (id, codigo, descripcion, categoria) "
+        "VALUES (%s, %s, %s, %s)",
+        (id_, codigo, descripcion, categoria),
+    )
+    return id_
+
+
+def _obtener_o_crear_tipo_reporte_regulatorio(
+    cur, codigo: str, nombre: str, periodicidad: str, autoridad: str
+) -> int:
+    cur.execute("SELECT id FROM compliance.tipo_reporte_regulatorio WHERE codigo = %s", (codigo,))
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO compliance.tipo_reporte_regulatorio "
+        "(id, codigo, nombre, periodicidad, autoridad) VALUES (%s, %s, %s, %s, %s)",
+        (id_, codigo, nombre, periodicidad, autoridad),
+    )
+    return id_
+
+
+def _obtener_o_crear_control_soc2(cur, codigo_control: str, nombre: str, categoria: str) -> int:
+    cur.execute(
+        "SELECT id FROM compliance.control_soc2 WHERE codigo_control = %s", (codigo_control,)
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO compliance.control_soc2 (id, codigo_control, nombre, categoria) "
+        "VALUES (%s, %s, %s, %s)",
+        (id_, codigo_control, nombre, categoria),
     )
     return id_
 
@@ -327,6 +388,37 @@ def _obtener_o_crear_estado_vuelo_actual(
     return id_
 
 
+def _obtener_o_crear_licencia(cur, *, tenant_id: int, modulo_codigo: str) -> int:
+    """RF-O18/CU-O20 (Sprint S1.7): licencia vigente e indefinida
+    (`activa_hasta` NULL) para el modulo -- sin esto, el middleware de
+    licenciamiento del Gateway rechazaria con 403 CUALQUIER endpoint de
+    los tenants canario, rompiendo toda la suite de integracion de
+    sprints anteriores (S1.1-S1.6) que no conocia el concepto de
+    licencia. `catalogo.modulo` YA esta sembrado desde el DDL (M1..M9,
+    01_catalogo.sql) -- solo se resuelve su id aqui."""
+    cur.execute("SELECT id FROM catalogo.modulo WHERE codigo = %s", (modulo_codigo,))
+    modulo_id = cur.fetchone()[0]
+    cur.execute(
+        "SELECT id FROM tenants.licencia WHERE tenant_id = %s AND modulo_id = %s",
+        (tenant_id, modulo_id),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO tenants.licencia (id, tenant_id, modulo_id, activa_desde, activa_hasta) "
+        "VALUES (%s, %s, %s, %s, NULL)",
+        (id_, tenant_id, modulo_id, datetime(2020, 1, 1, tzinfo=UTC)),
+    )
+    return id_
+
+
+# Modulos con endpoint HTTP licenciable en este sprint (research.md
+# Decision 2 de specs/009-.../ ) -- M7-M9 no tienen ruta propia todavia.
+MODULOS_LICENCIABLES = ("M1", "M2", "M3", "M4", "M5", "M6")
+
+
 def sembrar(*, hostname: str, port: int, database: str, username: str, password: str) -> None:
     conn = pymonetdb.connect(
         hostname=hostname, port=port, database=database, username=username, password=password
@@ -348,6 +440,12 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
             _obtener_o_crear_tipo_incidencia_rampa(cur, codigo, descripcion)
         for codigo, nombre, unidad_medida, base_calculo in CONCEPTOS_CARGO:
             _obtener_o_crear_concepto_cargo(cur, codigo, nombre, unidad_medida, base_calculo)
+        for codigo, descripcion, categoria in TIPOS_INCIDENTE:
+            _obtener_o_crear_tipo_incidente(cur, codigo, descripcion, categoria)
+        for codigo, nombre, periodicidad, autoridad in TIPOS_REPORTE_REGULATORIO:
+            _obtener_o_crear_tipo_reporte_regulatorio(cur, codigo, nombre, periodicidad, autoridad)
+        for codigo_control, nombre, categoria in CONTROLES_SOC2:
+            _obtener_o_crear_control_soc2(cur, codigo_control, nombre, categoria)
 
         aerolinea_id = _obtener_o_crear_aerolinea(cur, "XX", pais_id)
         modelo_aeronave_id = _obtener_o_crear_modelo_aeronave(cur, "B738")
@@ -379,6 +477,9 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
                 )
                 print(f"tenant {spec['codigo']} creado (id={tenant_id})")
             info_tenants[spec["codigo"]] = {"tenant_id": tenant_id, "aeropuerto_id": aeropuerto_id}
+
+            for modulo_codigo in MODULOS_LICENCIABLES:
+                _obtener_o_crear_licencia(cur, tenant_id=tenant_id, modulo_codigo=modulo_codigo)
 
             email_canario = f"canario@{spec['codigo'].lower()}.aerohub.test"
             cur.execute(

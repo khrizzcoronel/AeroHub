@@ -20,6 +20,7 @@ from ..infrastructure import (
     contexto_tenant_id,
     escribir_journal,
     insertar_api_key,
+    marcar_api_key_rotada,
     obtener_api_key_por_id,
     registrar_auditoria,
     sesion,
@@ -110,3 +111,73 @@ def revocar_api_key(*, api_key_id: int) -> None:
             operacion="UPDATE",
             valores_nuevos={"estado": "revocada"},
         )
+
+
+@dataclass(frozen=True, slots=True)
+class ResultadoRotarApiKey:
+    api_key_id: int
+    api_key_en_claro: str  # "{prefijo}.{secreto}" -- se muestra UNA sola vez
+
+
+def rotar_api_key(*, api_key_id: int) -> ResultadoRotarApiKey:
+    """RF-O12 -- Sprint S1.7: emite un secreto nuevo sin dejar al tenant
+    sin ninguna credencial valida (research.md Decision 5, S1.7): la fila
+    anterior NUNCA se borra ni se sobrescribe, solo transiciona a
+    'revocada' con `rotada_en` poblado -- misma transaccion que el INSERT
+    de la fila nueva.
+    """
+    tenant_id = contexto_tenant_id()
+
+    with sesion() as conn:
+        if obtener_api_key_por_id(conn, api_key_id) is None:
+            raise ApiKeyNoEncontrada(f"api_key {api_key_id} no encontrada")
+
+        nueva_id = generar_id()
+        prefijo = secrets.token_hex(6)
+        secreto = secrets.token_urlsafe(32)
+        hash_secreto = hash_credencial(secreto)
+        ahora = ahora_utc()
+
+        ApiKey(
+            id=nueva_id,
+            tenant_id=tenant_id,
+            prefijo=prefijo,
+            hash_secreto=hash_secreto,
+            creada_en=ahora,
+            estado="activa",
+        )
+
+        insertar_api_key(
+            conn,
+            id=nueva_id,
+            tenant_id=tenant_id,
+            prefijo=prefijo,
+            hash_secreto=hash_secreto,
+            creada_en=ahora,
+        )
+        marcar_api_key_rotada(conn, id=api_key_id, tenant_id=tenant_id, rotada_en=ahora)
+
+        escribir_journal(
+            conn,
+            esquema="tenants",
+            tabla="api_key",
+            operacion="UPDATE",
+            clave_primaria={"id": api_key_id},
+            payload={"id": api_key_id, "estado": "revocada", "rotada_por": nueva_id},
+        )
+        # RF-O12: "evento registrado en auditoria" -- explicito ademas del
+        # ya cubierto por registrar_auditoria generico de journal.
+        registrar_auditoria(
+            conn,
+            esquema="tenants",
+            tabla="api_key",
+            registro_id=api_key_id,
+            operacion="UPDATE",
+            valores_nuevos={
+                "estado": "revocada",
+                "rotada_en": ahora.isoformat(),
+                "rotada_por": nueva_id,
+            },
+        )
+
+    return ResultadoRotarApiKey(api_key_id=nueva_id, api_key_en_claro=f"{prefijo}.{secreto}")

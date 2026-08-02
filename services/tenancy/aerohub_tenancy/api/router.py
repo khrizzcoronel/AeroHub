@@ -16,7 +16,13 @@ from aerohub_contracts import requiere_scope
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from ..application import ApiKeyNoEncontrada, aprovisionar_tenant, crear_api_key, revocar_api_key
+from ..application import (
+    ApiKeyNoEncontrada,
+    aprovisionar_tenant,
+    crear_api_key,
+    revocar_api_key,
+    rotar_api_key,
+)
 from ..domain import TenantInvalido
 
 router = APIRouter(tags=["tenants"])
@@ -112,3 +118,23 @@ def revocar_api_key_endpoint(api_key_id: int) -> None:
         # PN-01: 404, nunca 403 -- no confirmar la existencia de una
         # api_key ajena.
         raise HTTPException(status_code=404, detail="api_key no encontrada") from exc
+
+
+@router.post(
+    "/api-keys/{api_key_id}/rotar",
+    response_model=ApiKeyCrearResponse,
+    status_code=201,
+    dependencies=[Depends(requiere_scope("api-keys:administrar"))],
+)
+def rotar_api_key_endpoint(api_key_id: int) -> ApiKeyCrearResponse:
+    """RF-O12 -- emite un secreto nuevo sin interrumpir el servicio: la
+    key anterior queda revocada (con `rotada_en`), la nueva es la
+    credencial activa desde ahora. Evento auditado (SC-004)."""
+    try:
+        resultado = rotar_api_key(api_key_id=api_key_id)
+    except ApiKeyNoEncontrada as exc:
+        raise HTTPException(status_code=404, detail="api_key no encontrada") from exc
+    return ApiKeyCrearResponse(
+        api_key_id=str(resultado.api_key_id),
+        api_key_en_claro=resultado.api_key_en_claro,
+    )

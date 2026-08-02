@@ -25,6 +25,7 @@ from contextlib import asynccontextmanager
 
 from aerohub_aodb.api import router as router_aodb
 from aerohub_billing.api import router as router_billing
+from aerohub_compliance.api import router as router_compliance
 from aerohub_fids.api import router as router_fids
 from aerohub_fids.application import ejecutar_ciclo_monitoreo
 from aerohub_fids.metricas import contar_pantalla_sin_senal
@@ -64,6 +65,12 @@ _TAGS = [
     {
         "name": "experiencia-pasajero",
         "description": "Estimacion agregada de tiempos de espera por terminal, sin PII.",
+    },
+    {
+        "name": "compliance",
+        "description": (
+            "Incidentes de seguridad, post-mortems, reportes regulatorios y evidencia SOC 2."
+        ),
     },
 ]
 
@@ -154,6 +161,7 @@ def crear_app() -> FastAPI:
     app.include_router(router_ramp)
     app.include_router(router_billing)
     app.include_router(router_passenger)
+    app.include_router(router_compliance)
     app.add_exception_handler(OperationalError, _manejador_acceso_denegado_motor)
 
     @app.get("/metrics", include_in_schema=False)

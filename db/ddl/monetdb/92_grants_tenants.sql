@@ -87,5 +87,20 @@ GRANT SELECT ON tenants.licencia TO role_tenant_admin;
 GRANT SELECT ON tenants.plan TO role_tenant_admin;
 
 -- role_operations_controller, role_airline_coordinator, role_ramp_agent,
--- role_billing_officer, role_tenant_analyst, role_regulatory_auditor,
--- role_people_viewer: sin acceso a tenants (matriz 4.3.1: '-' en esta columna).
+-- role_billing_officer: la matriz 4.3.1 los marca sin acceso a `tenants`
+-- ('-'), pero la verificacion de licencia (RF-O18/CU-O20, Sprint S1.7) la
+-- ejecuta el Gateway CON EL ROL DEL PROPIO LLAMADOR (SET ROLE por
+-- sesion) -- sin poder leer tenants.licencia, ninguno de estos roles
+-- podria acceder a su propio modulo licenciado. Se otorga SELECT
+-- unicamente sobre tenants.licencia (nunca el resto de `tenants`) --
+-- misma deviacion documentada de la matriz literal que
+-- role_billing_officer sobre ops.vuelo en S1.6 (96_grants_ops.sql).
+GRANT SELECT ON tenants.licencia TO role_operations_controller;
+GRANT SELECT ON tenants.licencia TO role_airline_coordinator;
+GRANT SELECT ON tenants.licencia TO role_ramp_agent;
+GRANT SELECT ON tenants.licencia TO role_billing_officer;
+
+-- role_tenant_analyst, role_regulatory_auditor, role_people_viewer: sin
+-- acceso a tenants (matriz 4.3.1: '-' en esta columna) -- estos tres no
+-- llaman a ningun modulo licenciable via API (analisis/auditoria/lectura
+-- de personas, no operacion), asi que no necesitan la excepcion anterior.
