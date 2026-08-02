@@ -199,6 +199,18 @@ CONTROLES_SOC2 = [
     ("CC6.1", "Controles de acceso logico", "seguridad"),
 ]
 
+# Catalogo de categorias de ticket de soporte (D6, Sprint S1.8) -- un
+# codigo por modulo/categoria de ejemplo (spec.md, Escenario 1 de
+# quickstart.md usa "AODB").
+CATEGORIAS_TICKET = [
+    ("AODB", "Seguimiento de vuelos (AODB)"),
+    ("FIDS", "Pantallas y plantillas FIDS"),
+    ("GATES", "Asignacion de puertas"),
+    ("RAMPA", "Operaciones de rampa (turnaround)"),
+    ("BILLING", "Facturacion y conciliacion"),
+    ("CUENTA", "Gestion de cuenta y acceso"),
+]
+
 
 def _obtener_o_crear_tipo_tarea(
     cur, codigo: str, nombre: str, duracion_estandar_min: int, es_ruta_critica: bool
@@ -289,6 +301,19 @@ def _obtener_o_crear_control_soc2(cur, codigo_control: str, nombre: str, categor
         "INSERT INTO compliance.control_soc2 (id, codigo_control, nombre, categoria) "
         "VALUES (%s, %s, %s, %s)",
         (id_, codigo_control, nombre, categoria),
+    )
+    return id_
+
+
+def _obtener_o_crear_categoria_ticket(cur, codigo: str, nombre: str) -> int:
+    cur.execute("SELECT id FROM support.categoria_ticket WHERE codigo = %s", (codigo,))
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO support.categoria_ticket (id, codigo, nombre) VALUES (%s, %s, %s)",
+        (id_, codigo, nombre),
     )
     return id_
 
@@ -446,6 +471,8 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
             _obtener_o_crear_tipo_reporte_regulatorio(cur, codigo, nombre, periodicidad, autoridad)
         for codigo_control, nombre, categoria in CONTROLES_SOC2:
             _obtener_o_crear_control_soc2(cur, codigo_control, nombre, categoria)
+        for codigo, nombre in CATEGORIAS_TICKET:
+            _obtener_o_crear_categoria_ticket(cur, codigo, nombre)
 
         aerolinea_id = _obtener_o_crear_aerolinea(cur, "XX", pais_id)
         modelo_aeronave_id = _obtener_o_crear_modelo_aeronave(cur, "B738")

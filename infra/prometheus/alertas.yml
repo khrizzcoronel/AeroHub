@@ -1,0 +1,46 @@
+# Reglas de alerta Sev1-Sev3 sobre disponibilidad de AODB/FIDS (Sprint
+# S1.8, Plan Sec8.8, RF-O10/RNF-R03; research.md Decision 3 de
+# specs/010-support-observability/). AODB y FIDS se sirven HOY desde el
+# MISMO proceso/target `aerohub_gateway` (un solo job de scrape,
+# prometheus.yml) -- la metrica `up`, generada automaticamente por
+# Prometheus para ese target, es la senal de disponibilidad comun a ambos.
+# Los umbrales de severidad y el proceso de post-mortem posterior ya se
+# definieron en S1.7 (compliance.post_mortem) -- este archivo solo genera
+# la senal que puede disparar esa incidencia.
+
+groups:
+  - name: aerohub_disponibilidad
+    rules:
+      - alert: AeroHubGatewayIndisponibleSev3
+        expr: up{job="aerohub_gateway"} == 0
+        for: 30s
+        labels:
+          severidad: sev3
+        annotations:
+          summary: "Gateway de AeroHub (AODB/FIDS) sin responder"
+          descripcion: >-
+            El target aerohub_gateway no responde al scrape de Prometheus
+            desde hace al menos 30s. Afecta AODB y FIDS (mismo proceso).
+
+      - alert: AeroHubGatewayIndisponibleSev2
+        expr: up{job="aerohub_gateway"} == 0
+        for: 2m
+        labels:
+          severidad: sev2
+        annotations:
+          summary: "Gateway de AeroHub (AODB/FIDS) caido por mas de 2 minutos"
+          descripcion: >-
+            El target aerohub_gateway lleva caido al menos 2 minutos --
+            indisponibilidad sostenida de AODB/FIDS.
+
+      - alert: AeroHubGatewayIndisponibleSev1
+        expr: up{job="aerohub_gateway"} == 0
+        for: 5m
+        labels:
+          severidad: sev1
+        annotations:
+          summary: "Gateway de AeroHub (AODB/FIDS) caido por mas de 5 minutos"
+          descripcion: >-
+            El target aerohub_gateway lleva caido al menos 5 minutos --
+            incidente critico de disponibilidad, abrir post-mortem
+            (compliance.post_mortem, S1.7).

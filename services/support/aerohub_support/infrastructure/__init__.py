@@ -1,0 +1,85 @@
+from aerohub_repository import (
+    alcance_global,
+    escribir_journal,
+    registrar_auditoria,
+    reintentar_en_conflicto,
+    sesion,
+)
+from aerohub_repository.contexto import contexto_rol_actor, contexto_tenant_id, contexto_usuario_id
+
+from . import alcances as _alcances  # noqa: F401 -- side effect: registra G1
+from .comandos import (
+    actualizar_estado_ticket,
+    asociar_etiqueta_articulo,
+    fijar_primera_respuesta,
+    insertar_articulo_kb,
+    insertar_changelog,
+    insertar_changelog_item,
+    insertar_etiqueta,
+    insertar_ticket,
+    insertar_ticket_mensaje,
+    publicar_articulo_kb,
+)
+from .consultas import (
+    buscar_articulos_kb,
+    listar_changelog,
+    listar_etiquetas_de_articulo,
+    listar_items_de_changelog,
+    listar_mensajes_de_ticket,
+    listar_tickets_de_tenant,
+    listar_tickets_global,
+    obtener_articulo_kb_por_id,
+    obtener_categoria_ticket_por_id,
+    obtener_etiqueta_por_nombre,
+    obtener_modulo_por_codigo,
+    obtener_ticket_por_id_de_tenant,
+    obtener_ticket_por_id_global,
+    obtener_version_maxima_articulo,
+)
+from .prometheus import (
+    SERVICIOS_VALIDOS,
+    PrometheusInalcanzable,
+    ServicioInvalido,
+    consultar_uptime_mensual,
+)
+
+# Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
+# solo infrastructure/ importa aerohub_repository.
+__all__ = [
+    "obtener_categoria_ticket_por_id",
+    "obtener_ticket_por_id_de_tenant",
+    "obtener_ticket_por_id_global",
+    "listar_tickets_de_tenant",
+    "listar_tickets_global",
+    "listar_mensajes_de_ticket",
+    "obtener_version_maxima_articulo",
+    "obtener_articulo_kb_por_id",
+    "obtener_etiqueta_por_nombre",
+    "listar_etiquetas_de_articulo",
+    "buscar_articulos_kb",
+    "obtener_modulo_por_codigo",
+    "listar_changelog",
+    "listar_items_de_changelog",
+    "insertar_ticket",
+    "actualizar_estado_ticket",
+    "fijar_primera_respuesta",
+    "insertar_ticket_mensaje",
+    "insertar_articulo_kb",
+    "publicar_articulo_kb",
+    "insertar_etiqueta",
+    "asociar_etiqueta_articulo",
+    "insertar_changelog",
+    "insertar_changelog_item",
+    "consultar_uptime_mensual",
+    "ServicioInvalido",
+    "PrometheusInalcanzable",
+    "SERVICIOS_VALIDOS",
+    "sesion",
+    "escribir_journal",
+    "registrar_auditoria",
+    "reintentar_en_conflicto",
+    "alcance_global",
+    "contexto_tenant_id",
+    "contexto_usuario_id",
+    "contexto_rol_actor",
+]

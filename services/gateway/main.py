@@ -33,6 +33,7 @@ from aerohub_gates.api import router as router_gates
 from aerohub_gateway.api import AutenticacionJWTMiddleware
 from aerohub_passenger.api import router as router_passenger
 from aerohub_ramp.api import router as router_ramp
+from aerohub_support.api import router as router_support
 from aerohub_tenancy.api import router as router_tenancy
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -70,6 +71,12 @@ _TAGS = [
         "name": "compliance",
         "description": (
             "Incidentes de seguridad, post-mortems, reportes regulatorios y evidencia SOC 2."
+        ),
+    },
+    {
+        "name": "soporte",
+        "description": (
+            "Tickets con SLA, base de conocimientos, changelog y uptime/error budget."
         ),
     },
 ]
@@ -162,6 +169,7 @@ def crear_app() -> FastAPI:
     app.include_router(router_billing)
     app.include_router(router_passenger)
     app.include_router(router_compliance)
+    app.include_router(router_support)
     app.add_exception_handler(OperationalError, _manejador_acceso_denegado_motor)
 
     @app.get("/metrics", include_in_schema=False)

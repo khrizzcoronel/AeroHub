@@ -27,13 +27,14 @@ la sección correspondiente de `docs/PLAN_IMPLEMENTACION_v2.0.md` §8) →
 regla de trabajo tan firme como "verificar contra MonetDB real" o "todo
 servicio en Docker" -- no es opcional ni se retoma "cuando convenga".
 
-**S1.8 quedó a mitad de camino**: `specs/010-support-observability/`
-tiene spec.md/plan.md/tasks.md completos (46 tareas, 5 historias de
-usuario) pero `/speckit-implement` todavía NO corrió -- nada de
-`services/support/aerohub_support/` ni `tools/verificar_error_budget.py`
-existe todavía, es puro scaffold vacío. Al retomar, el siguiente paso es
-`/speckit-implement` directo (specify/plan/tasks ya están hechos, no
-repetirlos).
+**S1.8 cerrado**: `/speckit-implement` corrió sobre
+`specs/010-support-observability/` -- `aerohub_support` completo (domain/
+application/infrastructure/api) y `tools/verificar_error_budget.py`,
+verificados empíricamente contra MonetDB + Prometheus reales en Docker
+(256 unit + 68 negative/cross_tenant + 17 integración nuevos, todos en
+verde; ruff/mypy/bandit/import-linter en verde). El hash de este commit
+se registra abajo en la tabla (falta el commit de seguimiento que lo
+reemplace por el hash real, mismo patrón que S1.7).
 
 La constitución del proyecto vive en `.specify/memory/constitution.md`
 (v1.0.0, ratificada 2026-08-01) y formaliza principios ya vigentes desde
@@ -54,7 +55,7 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.5 | M4 Ground Operations (turnaround) + dockerización del stack | `0d95b2e` |
 | S1.6 | M5 Billing (motor de facturación, tarifarios, conciliación) + M6 Passenger Experience (tiempos de espera sin PII) | `b4c619f` |
 | S1.7 | Licenciamiento por módulo (gateway) + M9 Compliance Hub (post-mortem, incidentes, reportes DGAC, SOC2) + rotación de API Keys | `c0ec739` |
-| **S1.8** | **Soporte D6 (tickets/SLA, KB, changelog) + observabilidad (uptime, error budget, bloqueo de despliegue) — spec/plan/tasks listos (`specs/010-support-observability/`), `/speckit-implement` PENDIENTE** | **pendiente** |
+| **S1.8** | **Soporte D6 (tickets/SLA, KB, changelog) + observabilidad (uptime, error budget, bloqueo de despliegue) — implementado y verificado, commit PENDIENTE de pedido explícito del usuario** | **pendiente** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de

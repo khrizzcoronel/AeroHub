@@ -132,3 +132,18 @@ jobs:
           name: evidencia-${{ github.sha }}
           path: docs/evidencia/
           if-no-files-found: ignore
+
+  # No existe todavia un job de DESPLIEGUE real en este pipeline (solo CI de
+  # integracion continua) -- Sprint S1.8 (Plan Sec8.8, research.md Decision 2
+  # de specs/010-support-observability/) agrega la compuerta de error budget
+  # como script reusable, `tools/verificar_error_budget.py`
+  # (contracts/error-budget-gate.md), para que un futuro job "despliegue"
+  # pueda invocarla SIN rediseno. El punto de enganche seria un step asi,
+  # ANTES de cualquier paso que publique una imagen/artefacto a produccion:
+  #
+  #   - name: Compuerta de error budget (RF-O10/RNF-R03)
+  #     run: uv run python tools/verificar_error_budget.py --servicio aodb
+  #
+  # Codigo de salida != 0 (consumo >= 80% sin --override auditado) debe
+  # abortar el job de despliegue -- ver contracts/error-budget-gate.md para
+  # el contrato completo de codigos de salida y el mecanismo de override.

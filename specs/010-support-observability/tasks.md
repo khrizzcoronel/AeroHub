@@ -10,13 +10,13 @@ orden de prioridad (P1, P1, P2, P3, P3).
 
 ## Phase 1: Setup
 
-- [ ] T001 Confirmar `services/support/pyproject.toml` (dependencias:
+- [X] T001 Confirmar `services/support/pyproject.toml` (dependencias:
       `fastapi`, `pydantic`, `aerohub-kernel`, `aerohub-contracts`,
       `aerohub-repository` -- mismo patrón que `aerohub_compliance`)
-- [ ] T002 [P] Confirmar `.importlinter` ya incluye `aerohub_support`
+- [X] T002 [P] Confirmar `.importlinter` ya incluye `aerohub_support`
       como root package y contrato de capas (si no, agregarlo -- mismo
       patrón que módulos anteriores)
-- [ ] T003 [P] Crear `tools/verificar_error_budget.py` como script
+- [X] T003 [P] Crear `tools/verificar_error_budget.py` como script
       standalone (sin dependencias del monorepo más allá de
       `aerohub-repository` para auditar y un cliente HTTP para
       Prometheus) -- estructura base, sin lógica todavía
@@ -33,27 +33,27 @@ tabla nueva) y pueden desarrollarse en paralelo.
 **⚠️ CRÍTICO**: ninguna tarea de US1/US4/US5 empieza antes de cerrar
 esta fase.
 
-- [ ] T004 `db/ddl/monetdb/14_support.sql`: las 8 tablas de
+- [X] T004 `db/ddl/monetdb/14_support.sql`: las 8 tablas de
       [data-model.md](./data-model.md) transcritas fielmente del SDD §11
       (`categoria_ticket`, `ticket`, `ticket_mensaje`, `articulo_kb`,
       `etiqueta`, `articulo_kb_etiqueta`, `changelog`, `changelog_item`),
       con todos los CHECK/FK especificados
-- [ ] T005 `db/ddl/monetdb/99_grants_support.sql`: grants por rol
+- [X] T005 `db/ddl/monetdb/99_grants_support.sql`: grants por rol
       (`role_support` con INSERT/UPDATE en `ticket`/`ticket_mensaje` +
       INSERT/UPDATE en `articulo_kb`/`etiqueta`/`articulo_kb_etiqueta`;
       `role_platform_admin` con INSERT en `changelog`/`changelog_item`;
       resto de roles de tenant con SELECT en las tablas propias de su
       tenant + SELECT global en KB/changelog; explícitamente SIN acceso
       a datos financieros vía este esquema)
-- [ ] T006 [P] `db/seeds/generate.py`: sembrar `support.categoria_ticket`
+- [X] T006 [P] `db/seeds/generate.py`: sembrar `support.categoria_ticket`
       (AODB, FIDS, Gates, Rampa, Billing, Cuenta -- un código por
       módulo/categoría de ejemplo)
-- [ ] T007 [P] `services/support/aerohub_support/infrastructure/tablas.py`:
+- [X] T007 [P] `services/support/aerohub_support/infrastructure/tablas.py`:
       `Table()` de las 8 tablas propias
-- [ ] T008 [P] `services/support/aerohub_support/infrastructure/alcances.py`:
+- [X] T008 [P] `services/support/aerohub_support/infrastructure/alcances.py`:
       registro G1 (`tenant`/`global`/`interno` según data-model.md --
       `ticket` tenant, `ticket_mensaje` interno, resto global)
-- [ ] T009 Verificación empírica: aplicar el DDL contra MonetDB real en
+- [X] T009 Verificación empírica: aplicar el DDL contra MonetDB real en
       Docker, confirmar las 8 tablas creadas con sus constraints
 
 **Checkpoint**: esquema `support` completo y verificado en MonetDB real
@@ -74,40 +74,40 @@ tenant recibe 404 -- Escenario 1 de `quickstart.md`.
 
 ### Tests para US1
 
-- [ ] T010 [P] [US1] Test de dominio: transición de estado de ticket
+- [X] T010 [P] [US1] Test de dominio: transición de estado de ticket
       (rechaza `abierto` -> `resuelto` directo), cálculo de
       `sla_objetivo_min` por módulo, en
       `tests/unit/support/test_ticket.py`
-- [ ] T011 [P] [US1] Test de integración: ciclo completo crear ->
+- [X] T011 [P] [US1] Test de integración: ciclo completo crear ->
       responder -> `primera_respuesta_en` estable ante mensajes
       posteriores -> cambiar estado; mensaje interno oculto al tenant,
       en `tests/integration/test_ticket_sla.py`
-- [ ] T012 [P] [US1] Test negativo (PN-01): ticket de un tenant no
+- [X] T012 [P] [US1] Test negativo (PN-01): ticket de un tenant no
       accesible por usuario de otro tenant (404, no 403), en
       `tests/negative/test_pn01_tickets_cross_tenant.py`
 
 ### Implementación de US1
 
-- [ ] T013 [P] [US1] `services/support/aerohub_support/domain/ticket.py`:
+- [X] T013 [P] [US1] `services/support/aerohub_support/domain/ticket.py`:
       `Ticket`, `TicketMensaje`, máquina de transición de estados,
       `calcular_sla_objetivo_min(modulo)`
-- [ ] T014 [US1] `services/support/aerohub_support/infrastructure/comandos.py`
+- [X] T014 [US1] `services/support/aerohub_support/infrastructure/comandos.py`
       (parcial): `insertar_ticket`, `insertar_ticket_mensaje`,
       `actualizar_estado_ticket`, `fijar_primera_respuesta` (solo si es
       NULL -- UPDATE condicional)
-- [ ] T015 [US1] `services/support/aerohub_support/infrastructure/consultas.py`
+- [X] T015 [US1] `services/support/aerohub_support/infrastructure/consultas.py`
       (parcial): `obtener_ticket_por_id`, `listar_tickets`,
       `listar_mensajes_de_ticket`
-- [ ] T016 [US1] `services/support/aerohub_support/application/gestionar_tickets.py`:
+- [X] T016 [US1] `services/support/aerohub_support/application/gestionar_tickets.py`:
       `crear_ticket`, `responder_ticket` (fija `primera_respuesta_en` la
       primera vez que el autor es `role_support`), `cambiar_estado_ticket`;
       consultas de `role_support` vía `alcance_global(motivo=..., rol="role_support")`
       (research.md Decisión 5) (depende de T013-T015)
-- [ ] T017 [US1] `services/support/aerohub_support/api/router.py`
+- [X] T017 [US1] `services/support/aerohub_support/api/router.py`
       (parcial): `POST /support/tickets`, `GET /support/tickets/{id}`,
       `GET /support/tickets`, `POST /support/tickets/{id}/mensajes`,
       `PATCH /support/tickets/{id}/estado`
-- [ ] T018 [US1] Montar `router_support` en `services/gateway/main.py`
+- [X] T018 [US1] Montar `router_support` en `services/gateway/main.py`
       (sin agregar el prefijo a `PREFIJO_A_CODIGO_MODULO` -- research.md
       Decisión 7)
 
@@ -128,34 +128,34 @@ Escenario 2 de `quickstart.md`. No depende de la Fase 2 (Foundational).
 
 ### Tests para US2
 
-- [ ] T019 [P] [US2] Test de dominio: cálculo puro de error budget
+- [X] T019 [P] [US2] Test de dominio: cálculo puro de error budget
       (uptime observado vs. objetivo de SLA -> porcentaje de budget
       consumido), casos borde 0 %/100 %/>100 %, en
       `tests/unit/support/test_error_budget.py`
-- [ ] T020 [P] [US2] Test de integración: `GET /support/observabilidad/uptime`
+- [X] T020 [P] [US2] Test de integración: `GET /support/observabilidad/uptime`
       con Prometheus real en Docker (métricas sintéticas vía
       `/metrics` del gateway) responde uptime y error budget del mes en
       curso, en `tests/integration/test_uptime_observabilidad.py`
 
 ### Implementación de US2
 
-- [ ] T021 [P] [US2] `services/support/aerohub_support/domain/error_budget.py`:
+- [X] T021 [P] [US2] `services/support/aerohub_support/domain/error_budget.py`:
       `calcular_consumo_error_budget(uptime_observado_pct, objetivo_slo_pct)`
       -- función pura, sin I/O
-- [ ] T022 [US2] `services/support/aerohub_support/infrastructure/prometheus.py`:
+- [X] T022 [US2] `services/support/aerohub_support/infrastructure/prometheus.py`:
       cliente HTTP mínimo contra `/api/v1/query` de Prometheus,
       `consultar_uptime_mensual(servicio)` (depende de T021 solo para
       el tipo de retorno)
-- [ ] T023 [US2] `services/support/aerohub_support/application/consultar_observabilidad.py`:
+- [X] T023 [US2] `services/support/aerohub_support/application/consultar_observabilidad.py`:
       orquesta infraestructura + dominio, expone
       `obtener_uptime_y_error_budget(servicio)` (depende de T021-T022)
-- [ ] T024 [US2] `services/support/aerohub_support/api/router.py`
+- [X] T024 [US2] `services/support/aerohub_support/api/router.py`
       (parcial): `GET /support/observabilidad/uptime`
-- [ ] T025 [P] [US2] `infra/prometheus/alertas.yml`: reglas Sev1-Sev3
+- [X] T025 [P] [US2] `infra/prometheus/alertas.yml`: reglas Sev1-Sev3
       sobre disponibilidad de AODB/FIDS
-- [ ] T026 [US2] `infra/prometheus/prometheus.yml`: agregar
+- [X] T026 [US2] `infra/prometheus/prometheus.yml`: agregar
       `rule_files: [alertas.yml]`
-- [ ] T027 [US2] Verificación empírica: dashboard de Grafana muestra
+- [X] T027 [US2] Verificación empírica: dashboard de Grafana muestra
       uptime/error budget leyendo Prometheus sin configuración manual
       adicional (data source ya provisto desde S0.1)
 
@@ -179,7 +179,7 @@ retorna 1; con `--override --motivo` -> retorna 0 y audita; con
 
 ### Tests para US3
 
-- [ ] T028 [US3] Test de integración: los 4 casos del script
+- [X] T028 [US3] Test de integración: los 4 casos del script
       (bloquea/override con motivo/override sin motivo/no bloquea) con
       Prometheus real y verificación de la fila en
       `compliance.log_auditoria`, en
@@ -187,14 +187,14 @@ retorna 1; con `--override --motivo` -> retorna 0 y audita; con
 
 ### Implementación de US3
 
-- [ ] T029 [US3] `tools/verificar_error_budget.py`: lógica completa --
+- [X] T029 [US3] `tools/verificar_error_budget.py`: lógica completa --
       parsea `--servicio`/`--override`/`--motivo`, reutiliza
       `aerohub_support.application.consultar_observabilidad`, decide
       código de salida según [contracts/error-budget-gate.md](./contracts/error-budget-gate.md),
       audita el override con `registrar_auditoria(esquema="observabilidad",
       tabla="bloqueo_despliegue", operacion="UPDATE", ...)` (depende de
       T023)
-- [ ] T030 [US3] Documentar en `.github/workflows/ci.yml` (comentario,
+- [X] T030 [US3] Documentar en `.github/workflows/ci.yml` (comentario,
       no wiring real -- no existe pipeline de CD todavía) el punto donde
       un futuro job de despliegue invocaría el script, referenciando
       [contracts/error-budget-gate.md](./contracts/error-budget-gate.md)
@@ -215,26 +215,26 @@ Escenario 4 (parte 1) de `quickstart.md`.
 
 ### Tests para US4
 
-- [ ] T031 [P] [US4] Test de dominio: invariantes de `articulo_kb`
+- [X] T031 [P] [US4] Test de dominio: invariantes de `articulo_kb`
       (transición borrador -> publicado -> archivado; UQ
       titulo+version), en `tests/unit/support/test_articulo_kb.py`
-- [ ] T032 [P] [US4] Test de integración: publicar, versionar, buscar
+- [X] T032 [P] [US4] Test de integración: publicar, versionar, buscar
       por texto y por etiqueta, artículo archivado no aparece en
       búsqueda, en `tests/integration/test_kb_changelog.py`
 
 ### Implementación de US4
 
-- [ ] T033 [P] [US4] `services/support/aerohub_support/domain/articulo_kb.py`:
+- [X] T033 [P] [US4] `services/support/aerohub_support/domain/articulo_kb.py`:
       `ArticuloKB`, invariantes de versión/estado
-- [ ] T034 [US4] `services/support/aerohub_support/infrastructure/comandos.py`
+- [X] T034 [US4] `services/support/aerohub_support/infrastructure/comandos.py`
       (resto): `insertar_articulo_kb`, `publicar_articulo_kb`,
       `insertar_etiqueta`, `asociar_etiqueta_articulo`
-- [ ] T035 [US4] `services/support/aerohub_support/infrastructure/consultas.py`
+- [X] T035 [US4] `services/support/aerohub_support/infrastructure/consultas.py`
       (resto): `buscar_articulos_kb(texto, etiqueta)` (`ILIKE` sobre
       `titulo`/`cuerpo`, join con `articulo_kb_etiqueta`)
-- [ ] T036 [US4] `services/support/aerohub_support/application/gestionar_kb.py`:
+- [X] T036 [US4] `services/support/aerohub_support/application/gestionar_kb.py`:
       `publicar_articulo`, `buscar_articulos` (depende de T033-T035)
-- [ ] T037 [US4] `services/support/aerohub_support/api/router.py`
+- [X] T037 [US4] `services/support/aerohub_support/api/router.py`
       (parcial): `POST /support/kb/articulos`,
       `GET /support/kb/articulos`, `GET /support/kb/articulos/{id}`
 
@@ -254,21 +254,21 @@ licenciado por un tenant -> el tenant lo ve igual -- Escenario 4 (parte
 
 ### Tests para US5
 
-- [ ] T038 [US5] Test de integración: publicar changelog con ítems,
+- [X] T038 [US5] Test de integración: publicar changelog con ítems,
       tenant sin licencia del módulo referenciado igual lo ve, en
       `tests/integration/test_kb_changelog.py` (mismo archivo que T032,
       casos adicionales)
 
 ### Implementación de US5
 
-- [ ] T039 [P] [US5] `services/support/aerohub_support/infrastructure/tablas.py`:
+- [X] T039 [P] [US5] `services/support/aerohub_support/infrastructure/tablas.py`:
       redeclaración local de `catalogo.modulo` (patrón ya usado 4 veces
       desde S1.4) -- si no está ya cubierto por T007
-- [ ] T040 [US5] `services/support/aerohub_support/infrastructure/comandos.py`
+- [X] T040 [US5] `services/support/aerohub_support/infrastructure/comandos.py`
       (resto): `insertar_changelog`, `insertar_changelog_item`
-- [ ] T041 [US5] `services/support/aerohub_support/application/gestionar_changelog.py`:
+- [X] T041 [US5] `services/support/aerohub_support/application/gestionar_changelog.py`:
       `publicar_changelog` (depende de T039-T040)
-- [ ] T042 [US5] `services/support/aerohub_support/api/router.py`
+- [X] T042 [US5] `services/support/aerohub_support/api/router.py`
       (resto): `POST /support/changelog`, `GET /support/changelog`
 
 **Checkpoint**: US5 funcional -- SC-006 verificado. Las 5 historias
@@ -278,14 +278,14 @@ completas e independientemente probadas.
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T043 Regresión completa de pruebas negativas PN-01 a PN-11,
+- [X] T043 Regresión completa de pruebas negativas PN-01 a PN-11,
       PN-04 reforzada y suite cruzada existentes -- confirmar que
       `aerohub_support` y `tools/verificar_error_budget.py` no rompen
       nada
-- [ ] T044 `ruff check .`, `mypy .`, `bandit -r services/support tools`,
+- [X] T044 `ruff check .`, `mypy .`, `bandit -r services/support tools`,
       `lint-imports` en verde, corriendo dentro del contenedor del
       gateway (Docker)
-- [ ] T045 Ejecutar los 4 escenarios de [quickstart.md](./quickstart.md)
+- [X] T045 Ejecutar los 4 escenarios de [quickstart.md](./quickstart.md)
       completos contra MonetDB real + Prometheus real en Docker
 - [ ] T046 Actualizar `CLAUDE.md`: fila S1.8 en "Estado del plan" con el
       hash del commit, una vez cerrado

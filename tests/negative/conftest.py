@@ -9,11 +9,28 @@ estas fixtures ni del fixture autouse de abajo).
 from __future__ import annotations
 
 import functools
+import importlib.util
 import os
 import socket
+import sys
+from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
+
+# Carga services/gateway/main.py por ruta de archivo, no por import normal --
+# mismo patron que tests/integration/conftest.py (ver su docstring: el
+# contrato de independencia de modulos de import-linter prohibe que un
+# paquete de negocio importe a otro, y la composicion de rutas de varios
+# modulos en un solo proceso HTTP vive fuera de esa malla).
+_RUTA_MAIN = Path(__file__).resolve().parents[2] / "services" / "gateway" / "main.py"
+_NOMBRE_MODULO = "_aerohub_gateway_main_bajo_prueba_negativa"
+_spec = importlib.util.spec_from_file_location(_NOMBRE_MODULO, _RUTA_MAIN)
+assert _spec is not None and _spec.loader is not None
+gateway_main = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = gateway_main
+_spec.loader.exec_module(gateway_main)
 
 # Ver tests/integration/conftest.py -- mismo AEROHUB_TEST_DB_HOST, para
 # poder correr esta suite dentro del contenedor del gateway.
@@ -95,3 +112,12 @@ def set_role():
         conn.exec_driver_sql(f'SET ROLE "{rol}"')
 
     return _set_role
+
+
+@pytest.fixture()
+def client():
+    """Para pruebas negativas que verifican un codigo de estado HTTP
+    especifico (p. ej. PN-01: 404, nunca 403, ante un recurso de otro
+    tenant) -- el resto de la bateria PN-* verifica el motor directamente
+    (app_engine/set_role) y no necesita esto."""
+    return TestClient(gateway_main.crear_app())
