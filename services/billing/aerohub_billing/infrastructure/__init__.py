@@ -1,0 +1,81 @@
+from aerohub_repository import (
+    escribir_journal,
+    registrar_auditoria,
+    reintentar_en_conflicto,
+    sesion,
+)
+from aerohub_repository.contexto import contexto_rol_actor, contexto_tenant_id, contexto_usuario_id
+
+from . import alcances as _alcances  # noqa: F401 -- side effect: registra G1
+from .comandos import (
+    actualizar_estado_factura,
+    insertar_cargo_aeronautico,
+    insertar_conciliacion_pax,
+    insertar_factura,
+    insertar_factura_linea,
+    insertar_o_actualizar_tarifario_concepto,
+    insertar_tarifario,
+    marcar_conciliacion_conciliada,
+    marcar_tarifario_vigente,
+)
+from .consultas import (
+    calcular_total_factura,
+    listar_cargos_no_facturados,
+    listar_conceptos_cargo,
+    listar_conceptos_de_tarifario,
+    listar_facturas,
+    listar_lineas_de_factura,
+    listar_tarifarios_vigentes,
+    listar_vuelos_de_aerolinea_en_periodo,
+    obtener_cargo_existente,
+    obtener_concepto_cargo_por_id,
+    obtener_concepto_de_tarifario,
+    obtener_conciliacion_por_id,
+    obtener_conciliacion_por_vuelo_periodo,
+    obtener_factura_por_id,
+    obtener_factura_por_tenant_aerolinea_periodo,
+    obtener_tarifario_por_id,
+    obtener_tarifario_vigente,
+    obtener_vuelo_por_id,
+)
+
+# Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
+# solo infrastructure/ importa aerohub_repository. application/ obtiene
+# sesion/journal/auditoria/contexto reexportados desde aqui, nunca del
+# paquete transversal directamente.
+__all__ = [
+    "obtener_vuelo_por_id",
+    "listar_vuelos_de_aerolinea_en_periodo",
+    "listar_conceptos_cargo",
+    "obtener_concepto_cargo_por_id",
+    "obtener_tarifario_por_id",
+    "obtener_tarifario_vigente",
+    "listar_tarifarios_vigentes",
+    "listar_conceptos_de_tarifario",
+    "obtener_concepto_de_tarifario",
+    "obtener_cargo_existente",
+    "listar_cargos_no_facturados",
+    "obtener_factura_por_tenant_aerolinea_periodo",
+    "obtener_factura_por_id",
+    "listar_facturas",
+    "listar_lineas_de_factura",
+    "calcular_total_factura",
+    "obtener_conciliacion_por_id",
+    "obtener_conciliacion_por_vuelo_periodo",
+    "insertar_tarifario",
+    "marcar_tarifario_vigente",
+    "insertar_o_actualizar_tarifario_concepto",
+    "insertar_cargo_aeronautico",
+    "insertar_factura",
+    "insertar_factura_linea",
+    "actualizar_estado_factura",
+    "insertar_conciliacion_pax",
+    "marcar_conciliacion_conciliada",
+    "sesion",
+    "escribir_journal",
+    "registrar_auditoria",
+    "reintentar_en_conflicto",
+    "contexto_tenant_id",
+    "contexto_usuario_id",
+    "contexto_rol_actor",
+]

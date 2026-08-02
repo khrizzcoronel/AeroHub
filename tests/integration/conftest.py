@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import functools
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
@@ -21,7 +22,15 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 
-DSN_ADMIN = "monetdb://monetdb:aerohub@localhost:50000/aerohub"
+# Host configurable via AEROHUB_TEST_DB_HOST (default 'localhost', para
+# ejecutar desde el host contra el puerto publicado 50000:50000) -- mismo
+# patron que AEROHUB_DB_DSN en packages/repository/base.py. Necesario para
+# correr la suite DENTRO del contenedor del gateway (Sprint S1.6, regla de
+# "todo servicio de verificacion en Docker"): ahi "localhost" resuelve al
+# propio contenedor, no a MonetDB -- se pasa AEROHUB_TEST_DB_HOST=monetdb.
+DSN_ADMIN = (
+    f"monetdb://monetdb:aerohub@{os.environ.get('AEROHUB_TEST_DB_HOST', 'localhost')}:50000/aerohub"
+)
 
 _RUTA_MAIN = Path(__file__).resolve().parents[2] / "services" / "gateway" / "main.py"
 _spec = importlib.util.spec_from_file_location("_aerohub_gateway_main_bajo_prueba", _RUTA_MAIN)

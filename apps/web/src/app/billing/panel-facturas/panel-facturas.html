@@ -1,0 +1,149 @@
+<h1>Panel de facturas (billing)</h1>
+
+<div>
+  <label for="tokenJwt">Token JWT (scopes billing:leer, billing:escribir)</label>
+  <textarea
+    id="tokenJwt"
+    rows="3"
+    [ngModel]="tokenJwt()"
+    (ngModelChange)="tokenJwt.set($event)"
+    name="tokenJwt"
+  ></textarea>
+</div>
+
+<button type="button" (click)="cargarFacturas()" [disabled]="!tokenJwt()">Cargar facturas</button>
+
+@if (error()) {
+  <p role="alert">Error: {{ error() }}</p>
+}
+
+<h2>Calcular facturacion del periodo</h2>
+<div>
+  <label for="aerolineaId">Aerolinea id</label>
+  <input
+    id="aerolineaId"
+    type="text"
+    [ngModel]="aerolineaId()"
+    (ngModelChange)="aerolineaId.set($event)"
+    name="aerolineaId"
+  />
+</div>
+<div>
+  <label for="periodoInicio">Periodo inicio</label>
+  <input
+    id="periodoInicio"
+    type="date"
+    [ngModel]="periodoInicio()"
+    (ngModelChange)="periodoInicio.set($event)"
+    name="periodoInicio"
+  />
+</div>
+<div>
+  <label for="periodoFin">Periodo fin</label>
+  <input
+    id="periodoFin"
+    type="date"
+    [ngModel]="periodoFin()"
+    (ngModelChange)="periodoFin.set($event)"
+    name="periodoFin"
+  />
+</div>
+<button
+  type="button"
+  (click)="calcularFacturacion()"
+  [disabled]="!tokenJwt() || cargando()"
+>
+  Calcular facturacion
+</button>
+@if (ultimoCalculo()) {
+  <p>{{ ultimoCalculo() }}</p>
+}
+
+<h2>Facturas</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Id</th>
+      <th>Aerolinea</th>
+      <th>Periodo</th>
+      <th>Estado</th>
+      <th class="columna-monto">Total</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (factura of facturas(); track factura.id) {
+      <tr>
+        <td>{{ factura.id }}</td>
+        <td>{{ factura.aerolinea_id }}</td>
+        <td>{{ factura.periodo_inicio }} &ndash; {{ factura.periodo_fin }}</td>
+        <td>{{ factura.estado }}</td>
+        <td class="columna-monto">{{ factura.moneda }} {{ factura.total }}</td>
+        <td>
+          <button type="button" (click)="verDetalle(factura.id)">Ver detalle</button>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+@if (detalle(); as d) {
+  <h2>Factura {{ d.factura.id }}</h2>
+  <p>
+    Aerolinea {{ d.factura.aerolinea_id }} &middot; periodo {{ d.factura.periodo_inicio }}
+    &ndash; {{ d.factura.periodo_fin }} &middot; estado {{ d.factura.estado }}
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        <th class="columna-monto">Cantidad</th>
+        <th class="columna-monto">Precio unitario</th>
+        <th class="columna-monto">Monto</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (linea of d.lineas; track linea.id) {
+        <tr>
+          <td>{{ linea.descripcion }}</td>
+          <td class="columna-monto">{{ linea.cantidad }}</td>
+          <td class="columna-monto">{{ linea.precio_unitario }}</td>
+          <td class="columna-monto">{{ linea.monto }}</td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3">Total</td>
+        <td class="columna-monto">{{ d.factura.moneda }} {{ d.factura.total }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  @if (d.factura.estado === 'borrador') {
+    <button type="button" (click)="emitirFactura(d.factura.id)" [disabled]="cargando()">
+      Emitir factura
+    </button>
+  }
+
+  @if (d.factura.estado === 'emitida') {
+    <div>
+      <label for="motivoDisputa">Motivo de la disputa</label>
+      <input
+        id="motivoDisputa"
+        type="text"
+        [ngModel]="motivoDisputa()"
+        (ngModelChange)="motivoDisputa.set($event)"
+        name="motivoDisputa"
+      />
+      <button
+        type="button"
+        (click)="disputarFactura(d.factura.id)"
+        [disabled]="cargando() || !motivoDisputa()"
+      >
+        Disputar factura
+      </button>
+    </div>
+  }
+}

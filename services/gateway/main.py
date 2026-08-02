@@ -24,17 +24,20 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from aerohub_aodb.api import router as router_aodb
+from aerohub_billing.api import router as router_billing
 from aerohub_fids.api import router as router_fids
 from aerohub_fids.application import ejecutar_ciclo_monitoreo
 from aerohub_fids.metricas import contar_pantalla_sin_senal
 from aerohub_gates.api import router as router_gates
 from aerohub_gateway.api import AutenticacionJWTMiddleware
+from aerohub_passenger.api import router as router_passenger
 from aerohub_ramp.api import router as router_ramp
 from aerohub_tenancy.api import router as router_tenancy
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from sqlalchemy.exc import OperationalError
 
 _registro = logging.getLogger("aerohub.gateway")
 
@@ -54,6 +57,14 @@ _TAGS = [
     {"name": "fids", "description": "Plantillas y pantallas FIDS, publicacion en tiempo real."},
     {"name": "puertas", "description": "Asignacion de puertas, manual y automatica (PuLP)."},
     {"name": "rampa", "description": "Turnaround, tareas de rampa e incidencias por desviacion."},
+    {
+        "name": "facturacion",
+        "description": "Tarifarios, motor de facturacion, facturas y conciliacion de pasajeros.",
+    },
+    {
+        "name": "experiencia-pasajero",
+        "description": "Estimacion agregada de tiempos de espera por terminal, sin PII.",
+    },
 ]
 
 
@@ -74,6 +85,33 @@ async def _ciclo_monitor_senal_fids() -> None:
             # en el siguiente ciclo.
             _registro.exception("fallo un ciclo del monitor de senal FIDS")
         await asyncio.sleep(_INTERVALO_MONITOR_SENAL_S)
+
+
+def _manejador_acceso_denegado_motor(request: Request, exc: Exception) -> JSONResponse:
+    """Sprint S1.6: primer caso de un rol con CERO grants sobre un esquema
+    completo (role_support sobre `billing`, matriz 4.3.1 celda '-',
+    98_grants_billing.sql). A diferencia del minimo privilegio DENTRO de
+    un mismo modulo (role_ramp_agent, S1.5 -- resuelto en
+    infrastructure/ con un 404 por fila ajena), esto es un rechazo del
+    motor mismo via `SET ROLE` + GRANT ausente (packages/repository/base.py):
+    "42000!... access denied for aerohub_app to table ...". Sin este
+    handler, MonetDB filtra un OperationalError de SQLAlchemy sin traducir
+    -- 500 generico, sin PN-07 (401/403 legible, sin fuga de informacion).
+    Se distingue por el mensaje ("access denied") para no enmascarar otros
+    OperationalError legitimos (p. ej. MonetDB caido) -- Starlette exige la
+    firma generica (request, Exception), el registro por tipo en
+    add_exception_handler ya garantiza que solo llega un OperationalError --
+    RuntimeError, no assert (bandit B101: un assert desaparece bajo
+    bytecode optimizado)."""
+    if not isinstance(exc, OperationalError):
+        raise RuntimeError(
+            f"_manejador_acceso_denegado_motor recibio {type(exc).__name__}, "
+            "esperaba OperationalError"
+        )
+    causa_raiz = str(exc.orig) if exc.orig is not None else str(exc)
+    if "access denied" not in causa_raiz:
+        raise exc
+    return JSONResponse(status_code=403, content={"detail": "acceso denegado"})
 
 
 @asynccontextmanager
@@ -114,6 +152,9 @@ def crear_app() -> FastAPI:
     app.include_router(router_fids)
     app.include_router(router_gates)
     app.include_router(router_ramp)
+    app.include_router(router_billing)
+    app.include_router(router_passenger)
+    app.add_exception_handler(OperationalError, _manejador_acceso_denegado_motor)
 
     @app.get("/metrics", include_in_schema=False)
     def metricas() -> Response:

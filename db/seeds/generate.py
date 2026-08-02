@@ -172,6 +172,18 @@ TIPOS_INCIDENCIA_RAMPA = [
     ("desviacion_estandar", "Tarea de rampa que supero la duracion estandar de su tipo"),
 ]
 
+# Catalogo global de conceptos facturables (M5, Sprint S1.6) -- estandar de
+# industria, no configuracion por tenant (SDD-DATA-001 Sec9.1). base_calculo
+# es informativo para este sprint: el motor de facturacion (CU-O17) usa
+# tarifa_unitaria x cantidad, sin variar la formula por base_calculo todavia
+# (fuera de alcance -- ver Assumptions de specs/008-.../spec.md).
+CONCEPTOS_CARGO = [
+    ("tasa_aterrizaje", "Tasa de aterrizaje", "ton", "peso_mtow"),
+    ("uso_manga", "Uso de manga de embarque", "hora", "tiempo_estacionamiento"),
+    ("estacionamiento", "Estacionamiento de aeronave", "hora", "tiempo_estacionamiento"),
+    ("tasa_pasajero", "Tasa por pasajero embarcado", "pax", "pax"),
+]
+
 
 def _obtener_o_crear_tipo_tarea(
     cur, codigo: str, nombre: str, duracion_estandar_min: int, es_ruta_critica: bool
@@ -199,6 +211,23 @@ def _obtener_o_crear_tipo_incidencia_rampa(cur, codigo: str, descripcion: str) -
     cur.execute(
         "INSERT INTO rampa.tipo_incidencia_rampa (id, codigo, descripcion) VALUES (%s, %s, %s)",
         (id_, codigo, descripcion),
+    )
+    return id_
+
+
+def _obtener_o_crear_concepto_cargo(
+    cur, codigo: str, nombre: str, unidad_medida: str, base_calculo: str
+) -> int:
+    cur.execute("SELECT id FROM billing.concepto_cargo WHERE codigo = %s", (codigo,))
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO billing.concepto_cargo "
+        "(id, codigo, nombre, unidad_medida, base_calculo) "
+        "VALUES (%s, %s, %s, %s, %s)",
+        (id_, codigo, nombre, unidad_medida, base_calculo),
     )
     return id_
 
@@ -317,6 +346,8 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
             _obtener_o_crear_tipo_tarea(cur, codigo, nombre, duracion_estandar_min, es_ruta_critica)
         for codigo, descripcion in TIPOS_INCIDENCIA_RAMPA:
             _obtener_o_crear_tipo_incidencia_rampa(cur, codigo, descripcion)
+        for codigo, nombre, unidad_medida, base_calculo in CONCEPTOS_CARGO:
+            _obtener_o_crear_concepto_cargo(cur, codigo, nombre, unidad_medida, base_calculo)
 
         aerolinea_id = _obtener_o_crear_aerolinea(cur, "XX", pais_id)
         modelo_aeronave_id = _obtener_o_crear_modelo_aeronave(cur, "B738")

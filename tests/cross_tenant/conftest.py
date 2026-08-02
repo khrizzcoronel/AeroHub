@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import functools
+import os
 import socket
 
 import pytest
 from sqlalchemy import create_engine, text
 
-DSN_ADMIN = "monetdb://monetdb:aerohub@localhost:50000/aerohub"
+# Ver tests/integration/conftest.py -- mismo AEROHUB_TEST_DB_HOST, para
+# poder correr esta suite dentro del contenedor del gateway.
+_DB_HOST = os.environ.get("AEROHUB_TEST_DB_HOST", "localhost")
+DSN_ADMIN = f"monetdb://monetdb:aerohub@{_DB_HOST}:50000/aerohub"
 
 
 def _puerto_abierto(host: str, port: int, timeout: float = 1.0) -> bool:
@@ -20,7 +24,7 @@ def _puerto_abierto(host: str, port: int, timeout: float = 1.0) -> bool:
 @functools.lru_cache(maxsize=1)
 def _hay_monetdb() -> bool:
     """Cacheado a nivel de proceso -- ver la nota en tests/negative/conftest.py."""
-    if not _puerto_abierto("localhost", 50000):
+    if not _puerto_abierto(_DB_HOST, 50000):
         return False
     try:
         engine = create_engine(DSN_ADMIN)
@@ -38,7 +42,7 @@ def _requiere_monetdb():
     propaga de forma fiable a los modulos hermanos.
     """
     if not _hay_monetdb():
-        pytest.skip("MonetDB no disponible en localhost:50000")
+        pytest.skip(f"MonetDB no disponible en {_DB_HOST}:50000")
 
 
 @pytest.fixture()

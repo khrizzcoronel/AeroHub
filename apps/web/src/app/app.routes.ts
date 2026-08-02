@@ -1,4 +1,5 @@
 import { Route } from '@angular/router';
+import { PanelFacturas } from './billing/panel-facturas/panel-facturas';
 import { TableroPuertas } from './puertas/tablero-puertas/tablero-puertas';
 import { PanelTurnaround } from './rampa/panel-turnaround/panel-turnaround';
 import { TenantCreation } from './tenants/tenant-creation/tenant-creation';
@@ -10,4 +11,5 @@ export const appRoutes: Route[] = [
   { path: 'vuelos/tiempo-real', component: EstadoTiempoReal },
   { path: 'puertas/tablero', component: TableroPuertas },
   { path: 'rampa/turnaround', component: PanelTurnaround },
+  { path: 'billing/facturas', component: PanelFacturas },
 ];

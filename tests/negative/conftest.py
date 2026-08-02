@@ -9,13 +9,17 @@ estas fixtures ni del fixture autouse de abajo).
 from __future__ import annotations
 
 import functools
+import os
 import socket
 
 import pytest
 from sqlalchemy import create_engine, text
 
-DSN_ADMIN = "monetdb://monetdb:aerohub@localhost:50000/aerohub"
-DSN_APP = "monetdb://aerohub_app:aerohub_app_dev_password@localhost:50000/aerohub"
+# Ver tests/integration/conftest.py -- mismo AEROHUB_TEST_DB_HOST, para
+# poder correr esta suite dentro del contenedor del gateway.
+_DB_HOST = os.environ.get("AEROHUB_TEST_DB_HOST", "localhost")
+DSN_ADMIN = f"monetdb://monetdb:aerohub@{_DB_HOST}:50000/aerohub"
+DSN_APP = f"monetdb://aerohub_app:aerohub_app_dev_password@{_DB_HOST}:50000/aerohub"
 
 
 def _puerto_abierto(host: str, port: int, timeout: float = 1.0) -> bool:
@@ -41,7 +45,7 @@ def _hay_monetdb() -> bool:
     suite; solo evita repetir el mismo chequeo decenas de veces en la misma
     ejecucion.
     """
-    if not _puerto_abierto("localhost", 50000):
+    if not _puerto_abierto(_DB_HOST, 50000):
         return False
     try:
         engine = create_engine(DSN_ADMIN)
@@ -68,7 +72,7 @@ def _requiere_monetdb(request):
     if request.node.get_closest_marker("sin_bd") is not None:
         return
     if not _hay_monetdb():
-        pytest.skip("MonetDB no disponible en localhost:50000")
+        pytest.skip(f"MonetDB no disponible en {_DB_HOST}:50000")
 
 
 @pytest.fixture()

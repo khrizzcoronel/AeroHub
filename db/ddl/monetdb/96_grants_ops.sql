@@ -23,9 +23,19 @@
 -- role_ramp_agent: U,S ('vuelos asignados' -- idem, por aplicacion).
 -- role_elt_reader: U,S (parte de 'toda la base operacional').
 --
--- role_sre, role_ml_engineer, role_business_viewer, role_billing_officer,
+-- role_sre, role_ml_engineer, role_business_viewer,
 -- role_tenant_analyst, role_regulatory_auditor, role_people_viewer:
 -- sin acceso a ops (matriz 4.3.1: '-').
+--
+-- role_billing_officer: la matriz 4.3.1 lo marca sin acceso a `ops`
+-- ('-'), pero el motor de facturacion (CU-O17, Sprint S1.6) consolida
+-- hechos facturables DESDE ops.vuelo (FR-003) -- sin poder leerlo, la
+-- responsabilidad que la propia matriz le asigna sobre `billing` seria
+-- inejercible. Se otorga SELECT unicamente sobre ops.vuelo (nunca
+-- INSERT/UPDATE: crear/editar vuelos sigue siendo de
+-- role_operations_controller/role_airline_coordinator) -- misma
+-- deviacion documentada de la matriz literal que role_ramp_agent en
+-- S1.5 (97_grants_rampa.sql).
 
 GRANT SELECT ON ops.terminal TO role_platform_admin;
 GRANT SELECT ON ops.puerta TO role_platform_admin;
@@ -92,6 +102,8 @@ GRANT SELECT ON ops.vuelo_estado TO role_ramp_agent;
 GRANT SELECT ON ops.vuelo_demora TO role_ramp_agent;
 GRANT SELECT ON ops.v_vuelo_estado_actual TO role_ramp_agent;
 GRANT SELECT ON ops.asignacion_puerta TO role_ramp_agent;
+
+GRANT SELECT ON ops.vuelo TO role_billing_officer;
 
 GRANT SELECT ON ops.terminal TO role_elt_reader;
 GRANT SELECT ON ops.puerta TO role_elt_reader;
