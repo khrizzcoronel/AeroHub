@@ -287,7 +287,7 @@ completas e independientemente probadas.
       gateway (Docker)
 - [X] T045 Ejecutar los 4 escenarios de [quickstart.md](./quickstart.md)
       completos contra MonetDB real + Prometheus real en Docker
-- [ ] T046 Actualizar `CLAUDE.md`: fila S1.8 en "Estado del plan" con el
+- [X] T046 Actualizar `CLAUDE.md`: fila S1.8 en "Estado del plan" con el
       hash del commit, una vez cerrado
 
 ---
