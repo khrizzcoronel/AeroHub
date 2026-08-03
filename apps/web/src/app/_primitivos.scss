@@ -104,10 +104,49 @@
   background: var(--ah-estado-critico);
 }
 
+// -- .ah-pill -- insignia de estado solida y redondeada, para columnas
+// de tabla donde el estado es el dato principal de la fila (a diferencia
+// de .ah-punto, que acompana un texto ya existente). Mismos 4 tonos de
+// semaforo que el resto del sistema, aplicados como fondo solido en vez
+// de punto -- mayor peso visual quando el estado es LA columna, no un
+// detalle secundario.
+.ah-pill {
+  display: inline-block;
+  padding: 0.22rem 0.75rem;
+  border-radius: 999px;
+  font-family: var(--ah-font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--ah-estado-neutro);
+  white-space: nowrap;
+}
+
+.ah-pill--ok {
+  background: var(--ah-estado-ok);
+}
+
+.ah-pill--atencion {
+  background: var(--ah-estado-atencion);
+}
+
+.ah-pill--critico {
+  background: var(--ah-estado-critico);
+}
+
 // -- .ah-tabla -- tabla densa: alto de fila 40px, numerales tabulares
 // (rejilla de 4px, DIRECCION_VISUAL.md §2.3).
 .ah-tabla {
   width: 100%;
+  // Distribucion automatica de columnas (patron reutilizable para el
+  // resto de tablas del sistema, no solo tenants): table-layout: auto es
+  // el default del navegador, pero se declara explicito para que quede
+  // documentada la intencion -- cada columna toma el ancho de su
+  // contenido mas largo y el espacio sobrante se reparte proporcional a
+  // eso, sin anchos fijos por columna que haya que mantener a mano.
+  table-layout: auto;
   border-collapse: collapse;
   font-family: var(--ah-font-mono);
   font-variant-numeric: tabular-nums;
@@ -152,7 +191,8 @@
 }
 
 .ah-campo input,
-.ah-campo textarea {
+.ah-campo textarea,
+.ah-campo select {
   padding: 0.65rem 0.75rem;
   border-radius: var(--ah-radius);
   border: 1px solid var(--ah-line-200);
@@ -163,7 +203,8 @@
 }
 
 .ah-campo input:focus-visible,
-.ah-campo textarea:focus-visible {
+.ah-campo textarea:focus-visible,
+.ah-campo select:focus-visible {
   outline: 2px solid var(--ah-blue-500);
   outline-offset: 1px;
 }
@@ -206,6 +247,16 @@
   background: var(--ah-paper-100);
 }
 
+// -- .ah-btn--sm -- variante compacta para acciones repetidas dentro de
+// una fila (tira/tabla) -- el boton de tamano completo (pensado para un
+// formulario, una sola accion por pantalla) se ve desproporcionado
+// cuando hay 2-3 por fila y decenas de filas visibles a la vez.
+.ah-btn--sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  border-radius: 4px;
+}
+
 // -- .ah-alerta -- error/aviso (reusa mensajeDeError existente).
 .ah-alerta {
   margin: 0;
@@ -221,10 +272,113 @@
   color: var(--ah-navy-800);
 }
 
+// -- .ah-panel -- card contenedora con titulo, para agrupar un bloque
+// (busqueda/filtros) separado visualmente de la tabla que filtra.
+.ah-panel {
+  background: #fff;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  padding: 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ah-panel__titulo {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.ah-panel__campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+// -- .ah-barra-acciones -- fila de botones tipo pildora (crear/recargar/
+// filtrar), variante mas redondeada que .ah-btn para diferenciar "accion
+// de barra de herramientas" de "accion de formulario".
+.ah-barra-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.ah-barra-acciones .ah-btn {
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+}
+
 // -- .ah-vacio -- estado vacio de una tabla/lista sin datos.
 .ah-vacio {
   padding: 2rem 1rem;
   text-align: center;
   color: var(--ah-ink-400);
   font-size: 0.9rem;
+}
+
+// -- .ah-modal -- dialogo superpuesto (crear/editar), primitivo global
+// para que cualquier vista use el mismo patron en vez de navegar a una
+// pantalla aparte o expandir contenido inline.
+.ah-modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 24, 48, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.ah-modal {
+  background: #fff;
+  border-radius: var(--ah-radius);
+  box-shadow: var(--ah-shadow-card);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ah-modal__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ah-modal__cerrar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--ah-ink-400);
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.ah-modal__cerrar:hover {
+  color: var(--ah-ink-900);
+}
+
+// -- .ah-paginacion -- controles de pagina, mismo criterio de densidad
+// que el resto del sistema (mono para el numero de pagina).
+.ah-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.ah-paginacion__estado {
+  font-family: var(--ah-font-mono);
+  font-size: 0.85rem;
+  color: var(--ah-ink-600);
 }

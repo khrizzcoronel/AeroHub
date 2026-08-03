@@ -106,3 +106,13 @@
   padding: 2rem;
   overflow-x: auto;
 }
+
+.content__ubicacion {
+  font-family: var(--ah-font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ah-ink-400);
+  margin-bottom: 1rem;
+}

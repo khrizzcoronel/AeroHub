@@ -1,5 +1,14 @@
-import { Component, computed, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  ActivatedRoute,
+  NavigationEnd,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 
 @Component({
@@ -11,6 +20,7 @@ import { AuthService } from '../auth/auth.service';
 export class Shell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly activatedRoute = inject(ActivatedRoute);
 
   protected readonly perfil = this.auth.perfil;
   // Solo modulos con vista propia en apps/web -- el resto (M2/M7/M8/M9)
@@ -19,6 +29,38 @@ export class Shell {
   protected readonly modulosConVista = computed(
     () => this.perfil()?.modulos_visibles.filter((m) => m.ruta !== null) ?? [],
   );
+
+  // Tenants no es un modulo M1-M9 (no aparece en modulos_visibles) --
+  // se muestra segun el scope real del rol, igual criterio que el resto
+  // del menu: si no puede crear ni administrar tenants, no ve el enlace.
+  protected readonly puedeVerTenants = computed(() => {
+    const scopes = this.perfil()?.scopes ?? [];
+    return scopes.includes('tenants:crear') || scopes.includes('tenants:administrar');
+  });
+
+  // Titulo de la vista actual (post S1.13): antes la barra lateral no
+  // indicaba en que pantalla estaba la persona -- notorio en roles como
+  // role_platform_admin, cuyo menu de modulos queda vacio (no opera
+  // ningun M1-M9) y no tenia ninguna otra senal de ubicacion. Se lee de
+  // `data.title` de la ruta activa (mas profunda), poblado en
+  // app.routes.ts -- no depende de modulos_visibles porque cubre tambien
+  // vistas de identidad/tenancy que no son un modulo M1-M9.
+  protected readonly tituloVistaActual = signal<string>('');
+
+  constructor() {
+    this.router.events
+      .pipe(
+        filter((evento): evento is NavigationEnd => evento instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        let ruta = this.activatedRoute;
+        while (ruta.firstChild) {
+          ruta = ruta.firstChild;
+        }
+        this.tituloVistaActual.set((ruta.snapshot.data['title'] as string) ?? '');
+      });
+  }
 
   protected cerrarSesion(): void {
     this.auth.logout();

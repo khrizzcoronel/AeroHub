@@ -182,6 +182,110 @@ nada. Con S1.11+S1.12+S1.13, las 5 áreas de negocio de `apps/web` y el
 formulario de tenant comparten un mismo sistema visual de punta a punta;
 queda pendiente solo `fids-player` (S1.14, otra aplicación).
 
+**Extensión post-S1.13 (pedido directo del usuario, fuera de ciclo Spec
+Kit -- revisión rol por rol de accesos/vistas)**: al revisar
+`role_platform_admin` se detectó que su único formulario
+(`tenants/nuevo`) pedía `aeropuerto_id`/`plan_id` de memoria y no existía
+ninguna forma de listar/editar/dar de baja un tenant -- CU-O18 (S1.1)
+solo cubría "crear". Se agregó el workpanel completo: `GET
+/catalogo/aeropuertos`, `GET /catalogo/planes` (para los `<select>` del
+formulario de creación, ya no texto libre), `GET /tenants` (lista, alcance
+'interno', sin filtro de tenant), `GET /tenants/{id}`, `PATCH
+/tenants/{id}` y `POST /tenants/{id}/estado` (usa por primera vez
+`domain/tenant.py::validar_transicion_estado`, existente desde S1.1 sin
+ningún llamador real hasta ahora). Nueva vista `apps/web` `tenants/tenant-
+list` (ruta `/tenants`, ahora el destino por defecto tras login) con
+`.ah-tira` por tenant (semáforo de `estado`) y edición/cambio de estado
+inline. El shell ahora muestra el nombre de la vista actual en la barra
+lateral (`data.title` de la ruta) -- notorio antes en roles con menú de
+módulos vacío, como `role_platform_admin`, que no tenía ninguna señal de
+ubicación. **Hallazgo empírico de MonetDB**: `.where(columna.is_(True))`
+genera `IS true`, que MonetDB rechaza (`42000!syntax error, esperando
+sqlNULL o DISTINCT o NOT` -- solo acepta `IS NULL`/`IS NOT NULL`, no `IS
+<booleano>`); corregido con `columna == True` (comparación de igualdad,
+no el operador `IS`). Sin spec.md/plan.md propio -- alcance acordado
+directamente con el usuario en la sesión, documentado aquí en vez de en
+`specs/`.
+
+**Iteración siguiente del workpanel** (mismo día, pedido directo):
+paginación de 20 en 20 sobre la lista ya cargada (presentación pura, sin
+paginación del lado del backend todavía -- si la cantidad real de
+tenants crece, esto se mueve a query params `page`/`page_size` en `GET
+/tenants`); crear y editar tenant dejan de navegar/expandir inline y
+pasan a un modal (`TenantCreation` se volvió un componente embebible con
+`@Output() cerrar`, ya no tiene ruta propia -- se eliminó
+`tenants/nuevo` de `app.routes.ts`). Primitivos nuevos en
+`_primitivos.scss`: `.ah-modal-fondo`/`.ah-modal` (diálogo superpuesto,
+reutilizable por cualquier vista futura) y `.ah-paginacion`. Verificado
+en navegador real: el modal abre y cierra sin cambiar la URL (sigue en
+`/tenants`), la paginación pasa de página 1 a 2 correctamente sobre
+datos reales, build de producción en verde.
+
+**Segunda iteración de estilo del workpanel** (mismo día, pedido
+directo): la lista de tenants pasa de `.ah-tira` a una tabla real
+(`.ah-tabla` con columnas Código/Razón social/Plan/Estado/Acciones),
+distribución pedida explícitamente por el usuario. Primitivo nuevo
+`.ah-pill` en `_primitivos.scss` — insignia de estado sólida y
+redondeada (mismos 4 tonos de semáforo), para cuando el estado ES la
+columna principal, distinto de `.ah-punto` (acompaña un texto ya
+existente) y de `.ah-tira__barra` (borde de una fila completa). Botones
+de acción de fila reducidos a `.ah-btn--sm` (10 en 10 por página, con
+2-3 botones cada una, el tamaño completo se veía desproporcionado).
+Paginación bajada de 20 a 10 registros por página (pedido directo).
+Verificado en navegador real: colores de pill correctos por estado
+(activo=verde, suspendido=ámbar, en_onboarding=gris), scroll horizontal
+contenido en `.tabla-envoltorio` (nunca en la página completa) en
+viewport móvil, build de producción en verde.
+
+**Tercera iteración: panel de búsqueda + barra de acciones** (mismo día,
+pedido directo con referencia visual externa). Antes de implementar se
+preguntó explícitamente y el usuario confirmó **mantener los botones de
+acción por fila** (no adoptar el patrón "seleccionar fila → botón de
+barra actúa sobre ella" de la referencia) — decisión documentada para no
+tener que re-derivarla. Primitivos nuevos en `_primitivos.scss`:
+`.ah-panel` (card contenedora con título, para agrupar el filtro) y
+`.ah-barra-acciones` (fila de botones tipo píldora, más redondeados que
+`.ah-btn` normal, para diferenciar "acción de barra de herramientas" de
+"acción de formulario"). `tenant-list` gana un filtro en vivo por
+código (substring, sin distinguir mayúsculas) y estado (select), 100%
+client-side sobre la lista ya cargada (mismo criterio que la paginación
+-- si el volumen real de tenants crece, se mueve a query params del
+backend). Estado vacío distingue explícitamente "sin tenants" de
+"ningún tenant coincide con el filtro". Verificado en navegador real:
+filtro por código y por estado combinados funcionan correctamente sobre
+datos reales, sin errores de consola, build de producción en verde.
+
+**Cuarta iteración: ancho, acciones consolidadas y formato de estado**
+(mismo día, pedido directo, cierre de esta ronda de iteración del
+workpanel). Ancho de `.consola` en `tenant-list` iterado varias veces
+(960px → 1200px → 1500px → **sin `max-width`**, `width: 100%`) hasta
+quedar sin tope fijo -- cualquier número concreto siempre deja espacio
+libre en pantallas más anchas que ese número, así que se resolvió de
+raíz en vez de seguir subiendo el valor. La columna "Acciones" pasa de
+3 botones por fila (Editar/Activar-Suspender/Dar de baja) a **un solo
+botón "Ver detalles"** que abre el mismo modal de edición, ahora con la
+pill de estado actual en la cabecera y las transiciones válidas
+(`transicionesDisponibles`) debajo del formulario -- `cambiarEstado` se
+reemplaza por `cambiarEstadoDesdeModal`, que cierra el modal después
+(el snapshot `t` con el que se abrió queda desactualizado en cuanto el
+estado cambia). Los valores crudos de estado (`en_onboarding`,
+`dado_de_baja`) dejan de mostrarse tal cual -- `etiquetaEstadoTenant()`
+nueva en `tenant.service.ts` los traduce a texto legible ("En
+onboarding", "Dado de baja"), usada en el filtro, la pill de la tabla y
+la del modal. Los botones "Nuevo"/"Actualizar" vuelven al radio
+estándar del sistema (`var(--ah-radius)`, 6px) en vez del estilo
+píldora de `.ah-barra-acciones` -- se dejó de usar esa clase en esta
+vista para que los botones se vean consistentes con el resto del
+diseño (el primitivo sigue disponible para quien sí quiera esa
+variante). `.ah-tabla` gana `table-layout: auto` explícito en
+`_primitivos.scss` (documentado como el patrón de distribución
+automática de columnas a reutilizar cuando se toquen las demás
+vistas). Verificado en navegador real: pills muestran las etiquetas
+formateadas, botón único por fila abre el modal con la pill de estado +
+las transiciones correctas para ese estado puntual, columnas de la
+tabla con anchos distintos según su contenido, sin errores de consola,
+build de producción en verde.
+
 **La dirección estética completa vive en `docs/diseno/DIRECCION_VISUAL.md`**
 — tokens, tipografía, el componente "tira de progreso de vuelo" como
 unidad estructural reutilizada en los 5 módulos, la decisión de densidad
@@ -283,6 +387,11 @@ Referencia más completa y reciente: `services/ramp/aerohub_ramp/` (S1.5).
   caracteres UTF-8 (§, acentos) pasados por argumento/heredoc. Para
   aplicar DDL nuevo con esos caracteres, usar `pymonetdb` directo desde
   Python, no `mclient`.
+- `columna_booleana.is_(True)` de SQLAlchemy genera `IS true`, que MonetDB
+  rechaza (`42000!syntax error, esperando sqlNULL o DISTINCT o NOT` --
+  el operador `IS` solo acepta `NULL`/`NOT NULL`, no un literal booleano).
+  Usar `columna_booleana == True` (comparación de igualdad, `= true`) en
+  su lugar. Encontrado en `consultas_catalogo.py::listar_planes`.
 
 ## Entorno de desarrollo
 

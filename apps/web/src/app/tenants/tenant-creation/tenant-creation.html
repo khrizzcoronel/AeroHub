@@ -1,6 +1,19 @@
-<section class="consola">
-  <h1>Aprovisionar tenant (CU-O18)</h1>
+<h2>Aprovisionar tenant (CU-O18)</h2>
 
+@if (resultado(); as r) {
+  <div class="ah-alerta ah-alerta--aviso resultado">
+    <p class="resultado__titulo">Tenant creado.</p>
+    <dl class="resultado__lista">
+      <dt>tenant_id</dt>
+      <dd>{{ r.tenant_id }}</dd>
+      <dt>usuario_admin_id</dt>
+      <dd>{{ r.usuario_admin_id }}</dd>
+      <dt>password_temporal</dt>
+      <dd>{{ r.password_temporal }}</dd>
+    </dl>
+  </div>
+  <button type="button" class="ah-btn" (click)="cerrar.emit()">Cerrar</button>
+} @else {
   <form class="formulario" (ngSubmit)="enviar()">
     <div class="ah-campo">
       <label class="ah-campo__etiqueta" for="codigo">Codigo</label>
@@ -27,31 +40,35 @@
     </div>
 
     <div class="ah-campo">
-      <label class="ah-campo__etiqueta" for="aeropuertoId">Aeropuerto id</label>
-      <input
+      <label class="ah-campo__etiqueta" for="aeropuertoId">Aeropuerto</label>
+      <select
         id="aeropuertoId"
-        type="text"
-        inputmode="numeric"
-        pattern="[0-9]+"
         required
         [ngModel]="aeropuertoId()"
         (ngModelChange)="aeropuertoId.set($event)"
         name="aeropuertoId"
-      />
+      >
+        <option value="" disabled selected>Seleccionar aeropuerto</option>
+        @for (a of aeropuertos(); track a.id) {
+          <option [value]="a.id">{{ a.codigo_iata }} &ndash; {{ a.nombre }}</option>
+        }
+      </select>
     </div>
 
     <div class="ah-campo">
-      <label class="ah-campo__etiqueta" for="planId">Plan id</label>
-      <input
+      <label class="ah-campo__etiqueta" for="planId">Plan</label>
+      <select
         id="planId"
-        type="text"
-        inputmode="numeric"
-        pattern="[0-9]+"
         required
         [ngModel]="planId()"
         (ngModelChange)="planId.set($event)"
         name="planId"
-      />
+      >
+        <option value="" disabled selected>Seleccionar plan</option>
+        @for (p of planes(); track p.id) {
+          <option [value]="p.id">{{ p.nombre }} ({{ p.codigo }})</option>
+        }
+      </select>
     </div>
 
     <div class="ah-campo">
@@ -78,26 +95,15 @@
       />
     </div>
 
-    <button type="submit" class="ah-btn" [disabled]="enviando()">
-      {{ enviando() ? 'Enviando...' : 'Crear tenant' }}
-    </button>
-  </form>
+    @if (error()) {
+      <p class="ah-alerta" role="alert">{{ error() }}</p>
+    }
 
-  @if (error()) {
-    <p class="ah-alerta" role="alert">{{ error() }}</p>
-  }
-
-  @if (resultado(); as r) {
-    <div class="ah-alerta ah-alerta--aviso resultado">
-      <p class="resultado__titulo">Tenant creado.</p>
-      <dl class="resultado__lista">
-        <dt>tenant_id</dt>
-        <dd>{{ r.tenant_id }}</dd>
-        <dt>usuario_admin_id</dt>
-        <dd>{{ r.usuario_admin_id }}</dd>
-        <dt>password_temporal</dt>
-        <dd>{{ r.password_temporal }}</dd>
-      </dl>
+    <div class="modal-acciones">
+      <button type="submit" class="ah-btn" [disabled]="enviando()">
+        {{ enviando() ? 'Enviando...' : 'Crear tenant' }}
+      </button>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrar.emit()">Cancelar</button>
     </div>
-  }
-</section>
+  </form>
+}

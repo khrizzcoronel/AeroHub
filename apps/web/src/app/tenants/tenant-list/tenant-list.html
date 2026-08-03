@@ -1,0 +1,183 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>Tenants</h1>
+  </div>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar tenants</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroCodigo">Codigo</label>
+        <input
+          id="filtroCodigo"
+          type="text"
+          placeholder="Ej. MEC"
+          [ngModel]="filtroCodigo()"
+          (ngModelChange)="actualizarFiltroCodigo($event)"
+          name="filtroCodigo"
+        />
+      </div>
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroEstado">Estado</label>
+        <select
+          id="filtroEstado"
+          [ngModel]="filtroEstado()"
+          (ngModelChange)="actualizarFiltroEstado($event)"
+          name="filtroEstado"
+        >
+          <option value="">Todas</option>
+          @for (estado of ESTADOS_VALIDOS; track estado) {
+            <option [value]="estado">{{ etiquetaEstadoTenant(estado) }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn" (click)="abrirModalCrear()">Nuevo</button>
+    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTenants()" [disabled]="cargando()">
+      Actualizar
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
+
+  @if (tenants().length === 0) {
+    <p class="ah-vacio">Sin tenants todavia.</p>
+  } @else if (tenantsFiltrados().length === 0) {
+    <p class="ah-vacio">Ningun tenant coincide con el filtro.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Codigo</th>
+            <th>Razon social</th>
+            <th>Plan</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of tenantsPagina(); track t.id) {
+            <tr>
+              <td>{{ t.codigo }}</td>
+              <td>{{ t.razon_social }}</td>
+              <td>{{ nombrePlan(t.plan_id) }}</td>
+              <td>
+                <span class="ah-pill" [class]="claseEstadoTenant(t.estado)">{{ etiquetaEstadoTenant(t.estado) }}</span>
+              </td>
+              <td>
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="editar(t)">
+                  Ver detalles
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (totalPaginas() > 1) {
+      <div class="ah-paginacion">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnterior()" [disabled]="paginaActual() === 1">
+          Anterior
+        </button>
+        <span class="ah-paginacion__estado">Pagina {{ paginaActual() }} de {{ totalPaginas() }}</span>
+        <button
+          type="button"
+          class="ah-btn ah-btn--secundario"
+          (click)="paginaSiguiente()"
+          [disabled]="paginaActual() === totalPaginas()"
+        >
+          Siguiente
+        </button>
+      </div>
+    }
+  }
+</section>
+
+@if (mostrarModalCrear()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalCrear()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <span></span>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalCrear()" aria-label="Cerrar">✕</button>
+      </div>
+      <app-tenant-creation (cerrar)="cerrarModalCrear()" />
+    </div>
+  </div>
+}
+
+@if (tenantEditando(); as t) {
+  <div class="ah-modal-fondo" (click)="cerrarModalEditar()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <div class="modal-titulo-grupo">
+          <h2>{{ t.codigo }}</h2>
+          <span class="ah-pill" [class]="claseEstadoTenant(t.estado)">{{ etiquetaEstadoTenant(t.estado) }}</span>
+        </div>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalEditar()" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="razonSocialEdit">Razon social</label>
+          <input
+            id="razonSocialEdit"
+            type="text"
+            [ngModel]="razonSocialEdit()"
+            (ngModelChange)="razonSocialEdit.set($event)"
+            name="razonSocialEdit"
+          />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="planIdEdit">Plan</label>
+          <select
+            id="planIdEdit"
+            [ngModel]="planIdEdit()"
+            (ngModelChange)="planIdEdit.set($event)"
+            name="planIdEdit"
+          >
+            @for (p of planes(); track p.id) {
+              <option [value]="p.id">{{ p.nombre }} ({{ p.codigo }})</option>
+            }
+          </select>
+        </div>
+        <label class="tenant-fila__sandbox">
+          <input
+            type="checkbox"
+            [ngModel]="esSandboxEdit()"
+            (ngModelChange)="esSandboxEdit.set($event)"
+            name="esSandboxEdit"
+          />
+          Es sandbox
+        </label>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="guardarEdicion()">Guardar</button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalEditar()">Cancelar</button>
+        </div>
+
+        @if (transicionesDisponibles(t.estado).length > 0) {
+          <div class="modal-separador"></div>
+          <p class="ah-campo__etiqueta">Cambiar estado</p>
+          <div class="modal-acciones">
+            @for (estadoNuevo of transicionesDisponibles(t.estado); track estadoNuevo) {
+              <button
+                type="button"
+                class="ah-btn ah-btn--secundario"
+                [class.tenant-fila__accion--baja]="estadoNuevo === 'dado_de_baja'"
+                (click)="cambiarEstadoDesdeModal(t.id, estadoNuevo)"
+              >
+                {{ estadoNuevo === 'dado_de_baja' ? 'Dar de baja' : estadoNuevo === 'activo' ? 'Activar' : 'Suspender' }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

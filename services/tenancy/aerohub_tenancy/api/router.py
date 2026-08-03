@@ -18,12 +18,19 @@ from pydantic import BaseModel, Field
 
 from ..application import (
     ApiKeyNoEncontrada,
+    TenantNoEncontrado,
+    actualizar_tenant,
     aprovisionar_tenant,
+    cambiar_estado_tenant,
+    consultar_aeropuertos,
+    consultar_planes,
+    consultar_tenants,
     crear_api_key,
+    obtener_tenant,
     revocar_api_key,
     rotar_api_key,
 )
-from ..domain import TenantInvalido
+from ..domain import ESTADOS_VALIDOS, TenantInvalido, TransicionTenantInvalida
 
 router = APIRouter(tags=["tenants"])
 
@@ -79,6 +86,156 @@ def crear_tenant(cuerpo: TenantCrearRequest) -> TenantCrearResponse:
         usuario_admin_id=str(resultado.usuario_admin_id),
         password_temporal=resultado.password_temporal,
     )
+
+
+class AeropuertoResponse(BaseModel):
+    id: str
+    codigo_iata: str
+    codigo_icao: str
+    nombre: str
+    ciudad: str
+
+
+class PlanResponse(BaseModel):
+    id: str
+    codigo: str
+    nombre: str
+    tarifa_base_mensual: str
+    moneda: str
+
+
+@router.get(
+    "/catalogo/aeropuertos",
+    response_model=list[AeropuertoResponse],
+    dependencies=[Depends(requiere_scope("tenants:crear"))],
+)
+def listar_aeropuertos_endpoint() -> list[AeropuertoResponse]:
+    """Para el select de aeropuerto del formulario de tenant -- antes se
+    pedia el id de memoria en un campo de texto libre."""
+    return [
+        AeropuertoResponse(
+            id=str(a.id),
+            codigo_iata=a.codigo_iata,
+            codigo_icao=a.codigo_icao,
+            nombre=a.nombre,
+            ciudad=a.ciudad,
+        )
+        for a in consultar_aeropuertos()
+    ]
+
+
+@router.get(
+    "/catalogo/planes",
+    response_model=list[PlanResponse],
+    dependencies=[Depends(requiere_scope("tenants:crear"))],
+)
+def listar_planes_endpoint() -> list[PlanResponse]:
+    return [
+        PlanResponse(
+            id=str(p.id),
+            codigo=p.codigo,
+            nombre=p.nombre,
+            tarifa_base_mensual=p.tarifa_base_mensual,
+            moneda=p.moneda,
+        )
+        for p in consultar_planes()
+    ]
+
+
+class TenantResumenResponse(BaseModel):
+    id: str
+    codigo: str
+    razon_social: str
+    aeropuerto_id: str
+    plan_id: str
+    estado: str
+    es_sandbox: bool
+
+
+def _resumen_a_response(r) -> TenantResumenResponse:  # noqa: ANN001
+    return TenantResumenResponse(
+        id=str(r.id),
+        codigo=r.codigo,
+        razon_social=r.razon_social,
+        aeropuerto_id=str(r.aeropuerto_id),
+        plan_id=str(r.plan_id),
+        estado=r.estado,
+        es_sandbox=r.es_sandbox,
+    )
+
+
+@router.get(
+    "/tenants",
+    response_model=list[TenantResumenResponse],
+    dependencies=[Depends(requiere_scope("tenants:administrar"))],
+)
+def listar_tenants_endpoint() -> list[TenantResumenResponse]:
+    """Workpanel: lista de todos los tenants (alcance 'interno', no hay
+    filtro de tenant que aplicar -- ver consultas_tenant.py)."""
+    return [_resumen_a_response(r) for r in consultar_tenants()]
+
+
+@router.get(
+    "/tenants/{tenant_id}",
+    response_model=TenantResumenResponse,
+    dependencies=[Depends(requiere_scope("tenants:administrar"))],
+)
+def obtener_tenant_endpoint(tenant_id: int) -> TenantResumenResponse:
+    try:
+        return _resumen_a_response(obtener_tenant(tenant_id))
+    except TenantNoEncontrado as exc:
+        raise HTTPException(status_code=404, detail="tenant no encontrado") from exc
+
+
+class TenantActualizarRequest(BaseModel):
+    razon_social: str = Field(min_length=1)
+    plan_id: int
+    es_sandbox: bool = False
+
+
+@router.patch(
+    "/tenants/{tenant_id}",
+    response_model=TenantResumenResponse,
+    dependencies=[Depends(requiere_scope("tenants:administrar"))],
+)
+def actualizar_tenant_endpoint(
+    tenant_id: int, cuerpo: TenantActualizarRequest
+) -> TenantResumenResponse:
+    try:
+        resultado = actualizar_tenant(
+            tenant_id=tenant_id,
+            razon_social=cuerpo.razon_social,
+            plan_id=cuerpo.plan_id,
+            es_sandbox=cuerpo.es_sandbox,
+        )
+    except TenantNoEncontrado as exc:
+        raise HTTPException(status_code=404, detail="tenant no encontrado") from exc
+    except TenantInvalido as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _resumen_a_response(resultado)
+
+
+class TenantCambiarEstadoRequest(BaseModel):
+    estado_nuevo: str = Field(description=f"uno de: {', '.join(ESTADOS_VALIDOS)}")
+
+
+@router.post(
+    "/tenants/{tenant_id}/estado",
+    response_model=TenantResumenResponse,
+    dependencies=[Depends(requiere_scope("tenants:administrar"))],
+)
+def cambiar_estado_tenant_endpoint(
+    tenant_id: int, cuerpo: TenantCambiarEstadoRequest
+) -> TenantResumenResponse:
+    """Transiciones validas por domain/tenant.py -- p. ej. dar de baja es
+    terminal, no se puede reactivar un tenant 'dado_de_baja'."""
+    try:
+        resultado = cambiar_estado_tenant(tenant_id=tenant_id, estado_nuevo=cuerpo.estado_nuevo)
+    except TenantNoEncontrado as exc:
+        raise HTTPException(status_code=404, detail="tenant no encontrado") from exc
+    except TransicionTenantInvalida as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _resumen_a_response(resultado)
 
 
 class ApiKeyCrearResponse(BaseModel):

@@ -41,3 +41,9 @@ _ALCANCE_INTERNO = (
 )
 for _tabla in _ALCANCE_INTERNO:
     registrar_alcance("tenants", _tabla, "interno")
+
+# catalogo.aeropuerto redeclarada localmente para el workpanel de tenants
+# (consultas_catalogo.py) -- alcance 'global' (sin tenant_id, dato de
+# referencia), mismo criterio que catalogo.modulo ya registra
+# aerohub_gateway/aerohub_support (re-registro idempotente entre modulos).
+registrar_alcance("catalogo", "aeropuerto", "global")

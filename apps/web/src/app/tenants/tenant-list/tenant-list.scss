@@ -1,0 +1,93 @@
+// Workpanel de tenants (post S1.13) -- distribucion de tabla con
+// columnas y estado como insignia solida (.ah-pill), pedido explicito
+// del usuario en lugar de la lista de tiras usada en vuelos/puertas/
+// rampa/billing -- esta vista es un panel administrativo de registros,
+// no un tablero de monitoreo en tiempo real, la tabla clasica se lee
+// mejor para "revisar y accionar filas" que el componente tira.
+
+.consola {
+  // Sin max-width (iterado 960px -> 1200px -> 1500px -> sin tope,
+  // pedido directo): cualquier limite fijo deja espacio libre a la
+  // derecha en pantallas mas anchas que ese numero. Esta vista es una
+  // tabla administrativa de registros, no un formulario -- ocupa el
+  // 100% del area de contenido disponible dentro del shell.
+  width: 100%;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+.consola__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.consola__acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+// Scroll horizontal contenido a la tabla, nunca a la pagina -- la regla
+// general del sistema (DIRECCION_VISUAL.md §4) para cualquier contenido
+// ancho en movil.
+.tabla-envoltorio {
+  overflow-x: auto;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  background: #fff;
+}
+
+.tabla-envoltorio .ah-tabla {
+  min-width: 640px;
+}
+
+// "Dar de baja" es la unica accion irreversible de la fila -- un tinte
+// sutil de aviso (no el rojo saturado de estado-critico, ese esta
+// reservado a la insignia de estado) evita que quede visualmente igual
+// a "Editar"/"Suspender", sin gritar.
+.tenant-fila__accion--baja:hover:not(:disabled) {
+  background: var(--ah-danger-50);
+  border-color: var(--ah-danger-600);
+  color: var(--ah-danger-600);
+}
+
+.tenant-fila__sandbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--ah-ink-600);
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.modal-titulo-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.modal-titulo-grupo h2 {
+  margin: 0;
+}
+
+.modal-separador {
+  border-top: 1px solid var(--ah-line-200);
+  margin: 0.25rem 0;
+}

@@ -1,20 +1,15 @@
-// Formulario de aprovisionamiento de tenant (Sprint S1.13) -- baja
-// frecuencia de uso, sin componente "tira" (no hay lista de tenants que
-// recorrer en esta vista, research.md Decision 3).
-
-.consola {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
+// Formulario de aprovisionamiento de tenant (Sprint S1.13, embebido en
+// modal post-workpanel) -- baja frecuencia de uso, sin componente "tira".
 
 .formulario {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+}
+
+.modal-acciones {
+  display: flex;
+  gap: 0.6rem;
 }
 
 .resultado__titulo {

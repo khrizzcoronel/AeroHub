@@ -14,6 +14,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     MetaData,
+    Numeric,
     String,
     Table,
 )
@@ -139,5 +140,21 @@ api_key = Table(
     Column("rotada_en", DateTime(timezone=True)),
     Column("expira_en", DateTime(timezone=True)),
     Column("estado", String(20)),
+    schema="tenants",
+)
+
+# Sprint "workpanel de tenants" (post S1.13): catalogo de planes -- ya
+# existia la tabla desde S0.2, nunca se habia declarado su Table() ni
+# expuesto por API (aprovisionar_tenant solo recibia plan_id ya elegido
+# de memoria). Alcance G1 'interno' (ya registrado en alcances.py).
+plan = Table(
+    "plan",
+    metadata,
+    Column("id", BigInt, primary_key=True),
+    Column("codigo", String(30)),
+    Column("nombre", String(100)),
+    Column("tarifa_base_mensual", Numeric(12, 2)),
+    Column("moneda", String(3)),
+    Column("activo", Boolean),
     schema="tenants",
 )

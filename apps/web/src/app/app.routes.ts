@@ -10,7 +10,7 @@ import { PanelFacturas } from './billing/panel-facturas/panel-facturas';
 import { TableroPuertas } from './puertas/tablero-puertas/tablero-puertas';
 import { PanelTurnaround } from './rampa/panel-turnaround/panel-turnaround';
 import { Shell } from './shell/shell';
-import { TenantCreation } from './tenants/tenant-creation/tenant-creation';
+import { TenantList } from './tenants/tenant-list/tenant-list';
 import { Invitar } from './usuarios/invitar/invitar';
 import { EstadoTiempoReal } from './vuelos/estado-tiempo-real/estado-tiempo-real';
 
@@ -23,19 +23,28 @@ export const appRoutes: Route[] = [
   { path: 'aceptar-invitacion', component: AceptarInvitacion },
 
   // Autenticadas, envueltas en el shell con menu dinamico (FR-028).
+  // `data.title` alimenta el indicador de vista actual del shell -- no
+  // depende de modulos_visibles (esa lista solo cubre M1-M9, no las
+  // vistas de identidad/tenancy que viven fuera del menu dinamico).
   {
     path: '',
     component: Shell,
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'tenants/nuevo' },
-      { path: 'cambiar-password', component: CambiarPassword },
-      { path: 'usuarios/invitar', component: Invitar },
-      { path: 'tenants/nuevo', component: TenantCreation },
-      { path: 'vuelos/tiempo-real', component: EstadoTiempoReal },
-      { path: 'puertas/tablero', component: TableroPuertas },
-      { path: 'rampa/turnaround', component: PanelTurnaround },
-      { path: 'billing/facturas', component: PanelFacturas },
+      { path: '', pathMatch: 'full', redirectTo: 'tenants' },
+      { path: 'cambiar-password', component: CambiarPassword, data: { title: 'Cambiar contraseña' } },
+      { path: 'usuarios/invitar', component: Invitar, data: { title: 'Invitar usuario' } },
+      // 'tenants/nuevo' ya no es una ruta -- crear tenant es un modal
+      // dentro de TenantList (pedido explicito: no navegar de pagina).
+      { path: 'tenants', component: TenantList, data: { title: 'Tenants' } },
+      {
+        path: 'vuelos/tiempo-real',
+        component: EstadoTiempoReal,
+        data: { title: 'AODB · Estado de vuelos' },
+      },
+      { path: 'puertas/tablero', component: TableroPuertas, data: { title: 'Terminal & Gate Manager' } },
+      { path: 'rampa/turnaround', component: PanelTurnaround, data: { title: 'Ground Operations' } },
+      { path: 'billing/facturas', component: PanelFacturas, data: { title: 'Revenue & Billing' } },
     ],
   },
 ];
