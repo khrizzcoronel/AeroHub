@@ -43,8 +43,14 @@ MODULOS: dict[str, Modulo] = {
 
 # rol -> (modulos que puede operar, scopes que se emiten en su JWT)
 _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
+    # Sin modulos operativos visibles: role_platform_admin no tiene
+    # tenant propio (tenant_id NULL) ni scopes de negocio (vuelos:*,
+    # billing:*, etc.) -- listarlo con acceso a M1-M9 producia un menu
+    # que ofrecia pantallas que el rol no puede realmente operar
+    # (403 "scope insuficiente" al primer clic). Su superficie real es
+    # administrar tenants/API Keys, no operar el dia a dia de uno.
     "role_platform_admin": (
-        frozenset(MODULOS),
+        frozenset(),
         frozenset(
             {
                 "tenants:crear",

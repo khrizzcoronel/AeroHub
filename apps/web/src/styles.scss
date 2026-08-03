@@ -5,6 +5,8 @@
    la tira de progreso de vuelo (flight progress strip), usada como
    franja lateral en el login y como acento de estado en el shell. */
 
+@use 'app/primitivos';
+
 :root {
   --ah-navy-950: #0a1830;
   --ah-navy-900: #0e2142;
@@ -20,6 +22,15 @@
   --ah-ink-400: #8791a1;
   --ah-danger-600: #c8372f;
   --ah-danger-50: #fdecea;
+
+  // Semaforo operacional (Sprint S1.11, DIRECCION_VISUAL.md §2.3) --
+  // el UNICO lugar donde entra color saturado en el area de trabajo.
+  // Todo lo demas del sistema es navy/tinta/papel, por eso un estado
+  // critico salta en una lista de 40 filas en vez de perderse.
+  --ah-estado-ok: #2f9e44;
+  --ah-estado-atencion: #f5a623;
+  --ah-estado-critico: #d64545;
+  --ah-estado-neutro: #8791a1;
 
   --ah-font-display: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
   --ah-font-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;

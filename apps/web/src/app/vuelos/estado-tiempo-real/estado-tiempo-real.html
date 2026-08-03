@@ -1,48 +1,48 @@
-<h1>Estado de vuelo en tiempo real</h1>
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>Estado de vuelo en tiempo real</h1>
+    <div class="consola__acciones">
+      <button
+        type="button"
+        class="ah-btn"
+        (click)="conectar()"
+        [disabled]="conectado()"
+      >
+        Conectar
+      </button>
+      <button
+        type="button"
+        class="ah-btn ah-btn--secundario"
+        (click)="desconectar()"
+        [disabled]="!conectado()"
+      >
+        Desconectar
+      </button>
+    </div>
+  </div>
 
-<div>
-  <label for="tokenJwt">Token JWT (scope vuelos:leer)</label>
-  <textarea
-    id="tokenJwt"
-    rows="3"
-    [ngModel]="tokenJwt()"
-    (ngModelChange)="tokenJwt.set($event)"
-    [disabled]="conectado()"
-    name="tokenJwt"
-  ></textarea>
-</div>
+  <p class="consola__estado">Estado: {{ conectado() ? 'conectado' : 'desconectado' }}</p>
 
-<button type="button" (click)="conectar()" [disabled]="conectado() || !tokenJwt()">
-  Conectar
-</button>
-<button type="button" (click)="desconectar()" [disabled]="!conectado()">Desconectar</button>
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
 
-<p>Estado: {{ conectado() ? 'conectado' : 'desconectado' }}</p>
+  <h2>Ultimos cambios de estado</h2>
 
-@if (error()) {
-  <p role="alert">Error: {{ error() }}</p>
-}
-
-<h2>Ultimos cambios de estado</h2>
-@if (eventos().length === 0) {
-  <p>Sin eventos todavia.</p>
-} @else {
-  <table>
-    <thead>
-      <tr>
-        <th>Vuelo</th>
-        <th>Estado</th>
-        <th>Ocurrido en</th>
-      </tr>
-    </thead>
-    <tbody>
+  @if (eventos().length === 0) {
+    <p class="ah-vacio">Sin eventos todavia.</p>
+  } @else {
+    <div class="consola__lista">
       @for (evento of eventos(); track evento.vuelo_estado_id) {
-        <tr>
-          <td>{{ evento.vuelo_id }}</td>
-          <td>{{ evento.codigo_estado }}</td>
-          <td>{{ evento.ocurrido_en }}</td>
-        </tr>
+        <div class="ah-tira" [class]="claseDeEstado(evento.codigo_estado)">
+          <div class="ah-tira__barra"></div>
+          <div class="ah-tira__cuerpo">
+            <span class="ah-tira__dato">{{ evento.vuelo_id }}</span>
+            <span class="ah-tira__dato ah-tira__dato--secundario">{{ evento.ocurrido_en }}</span>
+            <span class="ah-tira__estado">{{ evento.codigo_estado }}</span>
+          </div>
+        </div>
       }
-    </tbody>
-  </table>
-}
+    </div>
+  }
+</section>

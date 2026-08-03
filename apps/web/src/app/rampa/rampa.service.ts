@@ -57,61 +57,39 @@ export interface Incidencia {
   detectada_en: string;
 }
 
+// Sprint S1.11 (research.md Decision 2, deuda de JWT): ningun metodo
+// recibe ya un tokenJwt por parametro -- authInterceptor (S1.10) agrega
+// el header Authorization a toda peticion HTTP saliente.
 @Injectable({ providedIn: 'root' })
 export class RampaService {
   private readonly http = inject(HttpClient);
 
-  private auth(tokenJwt: string): { headers: { Authorization: string } } {
-    return { headers: { Authorization: `Bearer ${tokenJwt}` } };
+  listarTurnarounds(): Observable<Turnaround[]> {
+    return this.http.get<Turnaround[]>(`${API_BASE_URL}/rampa/turnarounds`);
   }
 
-  listarTurnarounds(tokenJwt: string): Observable<Turnaround[]> {
-    return this.http.get<Turnaround[]>(`${API_BASE_URL}/rampa/turnarounds`, this.auth(tokenJwt));
+  crearTurnaround(peticion: CrearTurnaroundRequest): Observable<CrearTurnaroundResponse> {
+    return this.http.post<CrearTurnaroundResponse>(`${API_BASE_URL}/rampa/turnarounds`, peticion);
   }
 
-  crearTurnaround(
-    peticion: CrearTurnaroundRequest,
-    tokenJwt: string,
-  ): Observable<CrearTurnaroundResponse> {
-    return this.http.post<CrearTurnaroundResponse>(
-      `${API_BASE_URL}/rampa/turnarounds`,
-      peticion,
-      this.auth(tokenJwt),
-    );
+  listarTareas(turnaroundId: string): Observable<Tarea[]> {
+    return this.http.get<Tarea[]>(`${API_BASE_URL}/rampa/turnarounds/${turnaroundId}/tareas`);
   }
 
-  listarTareas(turnaroundId: string, tokenJwt: string): Observable<Tarea[]> {
-    return this.http.get<Tarea[]>(
-      `${API_BASE_URL}/rampa/turnarounds/${turnaroundId}/tareas`,
-      this.auth(tokenJwt),
-    );
-  }
-
-  iniciarTarea(
-    turnaroundId: string,
-    tipoTareaId: string,
-    tokenJwt: string,
-  ): Observable<IniciarTareaResponse> {
+  iniciarTarea(turnaroundId: string, tipoTareaId: string): Observable<IniciarTareaResponse> {
     return this.http.post<IniciarTareaResponse>(
       `${API_BASE_URL}/rampa/turnarounds/${turnaroundId}/tareas`,
       { tipo_tarea_id: tipoTareaId },
-      this.auth(tokenJwt),
     );
   }
 
-  finalizarTarea(
-    tareaId: string,
-    finReal: string,
-    tokenJwt: string,
-  ): Observable<FinalizarTareaResponse> {
-    return this.http.post<FinalizarTareaResponse>(
-      `${API_BASE_URL}/rampa/tareas/${tareaId}/finalizar`,
-      { fin_real: finReal },
-      this.auth(tokenJwt),
-    );
+  finalizarTarea(tareaId: string, finReal: string): Observable<FinalizarTareaResponse> {
+    return this.http.post<FinalizarTareaResponse>(`${API_BASE_URL}/rampa/tareas/${tareaId}/finalizar`, {
+      fin_real: finReal,
+    });
   }
 
-  listarIncidencias(tokenJwt: string): Observable<Incidencia[]> {
-    return this.http.get<Incidencia[]>(`${API_BASE_URL}/rampa/incidencias`, this.auth(tokenJwt));
+  listarIncidencias(): Observable<Incidencia[]> {
+    return this.http.get<Incidencia[]>(`${API_BASE_URL}/rampa/incidencias`);
   }
 }

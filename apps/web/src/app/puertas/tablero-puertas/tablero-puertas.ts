@@ -9,15 +9,32 @@ import {
   PuertasService,
 } from '../puertas.service';
 
-// Sin login real todavia (mismo estado que el resto de apps/web) -- el
-// token JWT se pega a mano.
+// Ocupacion/conflicto de una puerta (Sprint S1.12, research.md
+// Decision 1): funcion pura de PRESENTACION sobre las asignaciones ya
+// cargadas -- sin pedir nada nuevo al backend. Solapamiento de
+// intervalos [inicio_previsto, fin_previsto) entre pares consecutivos
+// (ya ordenados por asignacionesPorPuerta) es la senal de conflicto.
+export function claseOcupacionPuerta(asignaciones: AsignacionTablero[]): string {
+  if (asignaciones.length === 0) {
+    return '';
+  }
+  for (let i = 1; i < asignaciones.length; i++) {
+    if (asignaciones[i - 1].fin_previsto > asignaciones[i].inicio_previsto) {
+      return 'ah-tira--critico';
+    }
+  }
+  return 'ah-tira--ok';
+}
+
+// Sprint S1.11: ya no pide el JWT a mano -- authInterceptor (S1.10) lo
+// agrega automaticamente a toda peticion HTTP.
 @Component({
   selector: 'app-tablero-puertas',
   imports: [CommonModule, FormsModule],
   templateUrl: './tablero-puertas.html',
+  styleUrl: './tablero-puertas.scss',
 })
 export class TableroPuertas {
-  protected readonly tokenJwt = signal('');
   protected readonly puertas = signal<PuertaTablero[]>([]);
   protected readonly asignaciones = signal<AsignacionTablero[]>([]);
   protected readonly cargando = signal(false);
@@ -29,6 +46,8 @@ export class TableroPuertas {
   protected readonly inicioPrevisto = signal('');
   protected readonly finPrevisto = signal('');
   protected readonly asignando = signal(false);
+
+  protected readonly claseOcupacionPuerta = claseOcupacionPuerta;
 
   protected readonly asignacionesPorPuerta = computed(() => {
     const mapa = new Map<string, AsignacionTablero[]>();
@@ -48,7 +67,7 @@ export class TableroPuertas {
   protected cargarTablero(): void {
     this.cargando.set(true);
     this.error.set(null);
-    this.puertasService.obtenerTablero(this.tokenJwt()).subscribe({
+    this.puertasService.obtenerTablero().subscribe({
       next: (respuesta) => {
         this.puertas.set(respuesta.puertas);
         this.asignaciones.set(respuesta.asignaciones);
@@ -65,15 +84,12 @@ export class TableroPuertas {
     this.asignando.set(true);
     this.error.set(null);
     this.puertasService
-      .asignarPuerta(
-        {
-          vuelo_id: this.vueloId(),
-          puerta_id: this.puertaId(),
-          inicio_previsto: this.aUtcIso(this.inicioPrevisto()),
-          fin_previsto: this.aUtcIso(this.finPrevisto()),
-        },
-        this.tokenJwt(),
-      )
+      .asignarPuerta({
+        vuelo_id: this.vueloId(),
+        puerta_id: this.puertaId(),
+        inicio_previsto: this.aUtcIso(this.inicioPrevisto()),
+        fin_previsto: this.aUtcIso(this.finPrevisto()),
+      })
       .subscribe({
         next: () => {
           this.asignando.set(false);
@@ -93,7 +109,7 @@ export class TableroPuertas {
     this.cargando.set(true);
     this.error.set(null);
     this.resultadoAutomatica.set(null);
-    this.puertasService.ejecutarAsignacionAutomatica(this.tokenJwt()).subscribe({
+    this.puertasService.ejecutarAsignacionAutomatica().subscribe({
       next: (respuesta) => {
         this.resultadoAutomatica.set(respuesta);
         this.cargando.set(false);

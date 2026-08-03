@@ -641,6 +641,83 @@ mano en ningún formulario.
 
 ---
 
+### 8.11 Sprint S1.11 — Sistema de diseño + deuda de JWT + vista canónica
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Primero de 4 sprints de rediseño de interfaz (`docs/diseno/DIRECCION_VISUAL.md`): construir el sistema de diseño (tokens + primitivos compartidos), probarlo en un consumidor real, y cerrar la deuda del JWT manual que S1.10 dejó pendiente en 5 de las 14 vistas. |
+| **Acciones fuente** | Rediseño de interfaz aprobado con el usuario (no es Fase 2 del plan de implementación) — `specs/013-diseno-sistema-jwt/`. |
+| **Requisitos** | Sin requisitos RF-/RNF- nuevos — sprint de presentación, sin cambios de backend ni de esquema. |
+
+**Entregables:** tokens de semáforo operacional (`--ah-estado-ok/atencion/critico/neutro`) y tipografía mono para dato en
+`apps/web/src/styles.scss`; primitivos compartidos nuevos en `apps/web/src/app/_primitivos.scss` (`.ah-tira`, `.ah-tabla`,
+`.ah-campo`, `.ah-btn`, `.ah-alerta`, `.ah-vacio`), reutilizados desde S1.12 en adelante; `_auth-form.scss` (S1.10) consolidado
+sobre esos mismos primitivos; `vuelos/estado-tiempo-real` (M1) rediseñada por completo como la vista canónica del componente
+"tira"; las 4 vistas que aún pedían un JWT pegado a mano (estado de vuelos, facturas, turnaround, tablero de puertas) y sus 3
+servicios HTTP dejan de requerirlo — el WebSocket de vuelos (que no pasa por `HttpClient`/`authInterceptor`) lee el token de
+`AuthService.token()` en vez de un textarea.
+
+**Compuerta de pruebas:** vista canónica verificada contra el WebSocket real del gateway en Docker (3 cambios de estado reales
+del vuelo canario MEC, colores de semáforo correctos, orden más-reciente-primero); cero campos de token en las 4 vistas
+afectadas (`grep -rn tokenJwt apps/web/src` sin coincidencias fuera de comentarios); responsiva en escritorio y móvil sin scroll
+horizontal; foco de teclado visible; regla `prefers-reduced-motion` presente; sin errores de consola.
+
+**DoD:** el sistema de diseño existe y está probado en una vista real; la aplicación deja de pedir un token que ya no necesita
+en ninguna pantalla.
+
+---
+
+### 8.12 Sprint S1.12 — Tableros operativos densos (puertas + rampa)
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Segundo de 4 sprints de rediseño de interfaz: aplicar el sistema de diseño de S1.11 a las 2 vistas de tableros densos que quedaron con HTML crudo desde S1.4/S1.5. |
+| **Acciones fuente** | Rediseño de interfaz aprobado con el usuario — `specs/014-tableros-operativos-densos/`. |
+| **Requisitos** | Sin requisitos RF-/RNF- nuevos — sprint de presentación, sin cambios de backend ni de contrato HTTP. |
+
+**Entregables:** `puertas/tablero-puertas` (M3) rediseñada con `.ah-tira` por puerta (color = ocupación/conflicto, calculado
+en el frontend por solapamiento de intervalos de las asignaciones ya cargadas, sin endpoint nuevo) y `.ah-tabla` para las
+asignaciones anidadas; `rampa/panel-turnaround` (M4) rediseñada con `.ah-tira` por turnaround (color = desviación aproximada
+por `estado`, con refinamiento de "en curso vencido") y `.ah-tabla` para tareas e incidencias, con un primitivo nuevo
+`.ah-punto` (semáforo dentro de celda) para las columnas de estado de tarea y severidad de incidencia. Cero cambios en
+`puertas.service.ts`/`rampa.service.ts` — exclusivamente presentación.
+
+**Compuerta de pruebas:** verificado en navegador real contra el backend real en Docker — tablero de puertas real con
+ocupación correcta (verde/gris según asignaciones, lógica de solapamiento trazada manualmente sobre datos reales);
+turnarounds/tareas/incidencias reales con semáforo correcto (tareas completadas en verde, incidencias de severidad
+alta/crítica en rojo); responsivo en móvil sin scroll horizontal; sin errores de consola; build de producción en verde.
+
+**DoD:** las 3 vistas rediseñadas hasta ahora (vuelos, puertas, rampa) se leen como un mismo sistema visual — mismo
+componente tira, misma tipografía mono, misma paleta de semáforo.
+
+---
+
+### 8.13 Sprint S1.13 — Vistas administrativas + consolidación
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Tercero de 4 sprints de rediseño: rediseñar `billing/panel-facturas` y `tenants/tenant-creation`, y auditar las 8 vistas de identidad de S1.10 contra el sistema ya formalizado en S1.11/S1.12. |
+| **Acciones fuente** | Rediseño de interfaz aprobado con el usuario — `specs/015-vistas-administrativas-consolidacion/`. |
+| **Requisitos** | Sin requisitos RF-/RNF- nuevos — sprint de presentación, sin cambios de backend. |
+
+**Entregables:** `billing/panel-facturas` (M5) rediseñada con `.ah-tira` por factura (color = estado, 5 valores reales:
+`vencida`/`disputada`→crítico, `emitida`→atención, `pagada`→ok, `borrador`→neutro) y `.ah-tabla` para las líneas de cargo;
+`tenants/tenant-creation` rediseñado con `.ah-campo`/`.ah-btn`, resultado de creación presentado como lista de definición
+dentro de un aviso; auditoría de las 8 vistas de identidad de S1.10 — encontró y corrigió una inconsistencia real:
+`auth/login/login.scss` era la única de las 6 vistas de auth que nunca se consolidó sobre `_auth-form.scss` en S1.11,
+manteniendo una copia duplicada completa de `.field`/`.btn`/`.alert`/`.card__link`; corregida importando el archivo
+compartido y dejando en `login.scss` solo sus reglas exclusivas (el riel navy decorativo). Las otras 5 vistas y el shell
+ya estaban consistentes.
+
+**Compuerta de pruebas:** verificado en navegador real — facturas reales con semáforo correcto (borrador=neutro,
+disputada=rojo, confirmado con datos reales); formulario de tenant funcional con los primitivos correctos; sin scroll
+horizontal en móvil; sin errores de consola; build de producción en verde.
+
+**DoD:** las cinco áreas de negocio de `apps/web` (identidad, vuelos, puertas, rampa, facturación) y el formulario de
+tenant se leen como un mismo sistema visual de punta a punta.
+
+---
+
 ## 9. FASE 2 — Capa táctica (RF-T\*)
 
 **Semanas 23–34 · 6 sprints · D4 · Medallion (Parquet) + ClickHouse `ah_tactico`**

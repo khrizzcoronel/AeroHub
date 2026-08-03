@@ -1,3 +1,11 @@
+// Sprint S1.13 (auditoria de S1.10, research.md Decision 4): login.scss
+// era la unica de las 6 vistas de auth que NO se apoyaba en
+// _auth-form.scss -- tenia su propia copia duplicada de .field/.btn/
+// .alert/.card__link, nunca consolidada en S1.11. Corregido: se importa
+// el archivo compartido y solo quedan aqui las reglas exclusivas del
+// login (el riel navy decorativo, la animacion de tiras).
+@use '../auth-form';
+
 :host {
   display: block;
   min-height: 100vh;
@@ -131,76 +139,4 @@
   margin: -0.6rem 0 0;
   color: var(--ah-ink-600);
   font-size: 0.9rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.field__label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ah-ink-600);
-}
-
-.field input {
-  padding: 0.65rem 0.75rem;
-  border-radius: var(--ah-radius);
-  border: 1px solid var(--ah-line-200);
-  font-size: 0.95rem;
-  background: #fff;
-  color: var(--ah-ink-900);
-}
-
-.field input:focus-visible {
-  outline: 2px solid var(--ah-blue-500);
-  outline-offset: 1px;
-}
-
-.btn {
-  padding: 0.7rem 1rem;
-  border: none;
-  border-radius: var(--ah-radius);
-  background: var(--ah-blue-500);
-  color: #fff;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.btn:hover:not(:disabled) {
-  background: #2559c4;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn:focus-visible {
-  outline: 2px solid var(--ah-navy-900);
-  outline-offset: 2px;
-}
-
-.alert {
-  margin: 0;
-  padding: 0.6rem 0.75rem;
-  border-radius: var(--ah-radius);
-  background: var(--ah-danger-50);
-  color: var(--ah-danger-600);
-  font-size: 0.85rem;
-}
-
-.card__link {
-  font-size: 0.85rem;
-  color: var(--ah-blue-500);
-  text-decoration: none;
-  text-align: center;
-}
-
-.card__link:hover {
-  text-decoration: underline;
 }

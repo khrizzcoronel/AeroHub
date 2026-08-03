@@ -11,6 +11,7 @@ import { CrearTenantResponse, TenantService } from '../tenant.service';
   selector: 'app-tenant-creation',
   imports: [FormsModule],
   templateUrl: './tenant-creation.html',
+  styleUrl: './tenant-creation.scss',
 })
 export class TenantCreation {
   protected readonly codigo = signal('');

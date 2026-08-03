@@ -1,6 +1,14 @@
 // Estilos de formulario compartidos entre las vistas publicas de /auth
 // (login, cambiar-password, recuperar, restablecer, verificar-correo,
 // aceptar-invitacion) -- evita duplicar .card/.field/.btn en cada una.
+//
+// Sprint S1.11 (research.md Decision 2): .field/.btn/.alert/.notice se
+// apoyan en los primitivos globales (.ah-campo/.ah-btn/.ah-alerta) via
+// @extend, en vez de mantener sus propias reglas de padding/color
+// duplicadas -- una sola fuente de verdad para el mismo componente
+// visual. Los nombres de clase en las 6 plantillas HTML NO cambian.
+
+@use '../primitivos';
 
 .stage-simple {
   min-height: 100vh;
@@ -35,27 +43,28 @@
 }
 
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  @extend .ah-campo;
 }
 
 .field__label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ah-ink-600);
+  @extend .ah-campo__etiqueta;
 }
 
 .field__hint {
-  font-size: 0.78rem;
-  color: var(--ah-ink-400);
+  @extend .ah-campo__pista;
 }
 
+// Descendant selectors (".ah-campo input") no son un target valido de
+// @extend en Sass -- se repiten las mismas propiedades que .ah-campo
+// input en primitivos.scss, ambas apoyadas en los mismos tokens
+// (--ah-line-200, --ah-radius, --ah-blue-500), asi que no hay una
+// segunda decision de diseno escondida aqui, solo sintaxis.
 .field input {
   padding: 0.65rem 0.75rem;
   border-radius: var(--ah-radius);
   border: 1px solid var(--ah-line-200);
   font-size: 0.95rem;
+  font-family: inherit;
   background: #fff;
   color: var(--ah-ink-900);
 }
@@ -66,47 +75,15 @@
 }
 
 .btn {
-  padding: 0.7rem 1rem;
-  border: none;
-  border-radius: var(--ah-radius);
-  background: var(--ah-blue-500);
-  color: #fff;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.btn:hover:not(:disabled) {
-  background: #2559c4;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn:focus-visible {
-  outline: 2px solid var(--ah-navy-900);
-  outline-offset: 2px;
+  @extend .ah-btn;
 }
 
 .alert {
-  margin: 0;
-  padding: 0.6rem 0.75rem;
-  border-radius: var(--ah-radius);
-  background: var(--ah-danger-50);
-  color: var(--ah-danger-600);
-  font-size: 0.85rem;
+  @extend .ah-alerta;
 }
 
 .notice {
-  margin: 0;
-  padding: 0.6rem 0.75rem;
-  border-radius: var(--ah-radius);
-  background: #eaf1ff;
-  color: var(--ah-navy-800);
-  font-size: 0.85rem;
+  @extend .ah-alerta, .ah-alerta--aviso;
 }
 
 .card__link {

@@ -43,49 +43,37 @@ export interface CalcularFacturacionResponse {
   cargos_ya_existentes: number;
 }
 
+// Sprint S1.11 (research.md Decision 2, deuda de JWT): ningun metodo
+// recibe ya un tokenJwt por parametro -- authInterceptor (S1.10) agrega
+// el header Authorization a toda peticion HTTP saliente.
 @Injectable({ providedIn: 'root' })
 export class BillingService {
   private readonly http = inject(HttpClient);
 
-  private auth(tokenJwt: string): { headers: { Authorization: string } } {
-    return { headers: { Authorization: `Bearer ${tokenJwt}` } };
+  listarFacturas(): Observable<Factura[]> {
+    return this.http.get<Factura[]>(`${API_BASE_URL}/billing/facturas`);
   }
 
-  listarFacturas(tokenJwt: string): Observable<Factura[]> {
-    return this.http.get<Factura[]>(`${API_BASE_URL}/billing/facturas`, this.auth(tokenJwt));
-  }
-
-  obtenerFactura(facturaId: string, tokenJwt: string): Observable<FacturaDetalle> {
-    return this.http.get<FacturaDetalle>(
-      `${API_BASE_URL}/billing/facturas/${facturaId}`,
-      this.auth(tokenJwt),
-    );
+  obtenerFactura(facturaId: string): Observable<FacturaDetalle> {
+    return this.http.get<FacturaDetalle>(`${API_BASE_URL}/billing/facturas/${facturaId}`);
   }
 
   calcularFacturacion(
     peticion: CalcularFacturacionRequest,
-    tokenJwt: string,
   ): Observable<CalcularFacturacionResponse> {
     return this.http.post<CalcularFacturacionResponse>(
       `${API_BASE_URL}/billing/facturacion/calcular`,
       peticion,
-      this.auth(tokenJwt),
     );
   }
 
-  emitirFactura(facturaId: string, tokenJwt: string): Observable<void> {
-    return this.http.post<void>(
-      `${API_BASE_URL}/billing/facturas/${facturaId}/emitir`,
-      {},
-      this.auth(tokenJwt),
-    );
+  emitirFactura(facturaId: string): Observable<void> {
+    return this.http.post<void>(`${API_BASE_URL}/billing/facturas/${facturaId}/emitir`, {});
   }
 
-  disputarFactura(facturaId: string, motivo: string, tokenJwt: string): Observable<void> {
-    return this.http.post<void>(
-      `${API_BASE_URL}/billing/facturas/${facturaId}/disputar`,
-      { motivo },
-      this.auth(tokenJwt),
-    );
+  disputarFactura(facturaId: string, motivo: string): Observable<void> {
+    return this.http.post<void>(`${API_BASE_URL}/billing/facturas/${facturaId}/disputar`, {
+      motivo,
+    });
   }
 }

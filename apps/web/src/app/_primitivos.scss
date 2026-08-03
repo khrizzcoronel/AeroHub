@@ -1,0 +1,230 @@
+// Primitivos compartidos del sistema de diseño (Sprint S1.11,
+// DIRECCION_VISUAL.md §2, research.md Decision 1). Global -- importado
+// una vez desde styles.scss, no por componente: S1.12/S1.13 los
+// consumen desde carpetas sin relacion de dependencia entre si
+// (puertas/, rampa/, billing/, tenants/), asi que no pueden vivir dentro
+// de un modulo especifico como auth/.
+
+// -- .ah-tira -- el componente estructural: una fila = un vuelo/puerta/
+// turnaround/factura. Barra de estado de 4px a la izquierda + datos en
+// mono alineados por columna (DIRECCION_VISUAL.md §2.4).
+.ah-tira {
+  display: grid;
+  grid-template-columns: 4px 1fr;
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  overflow: hidden;
+  min-height: 40px;
+}
+
+.ah-tira__barra {
+  background: var(--ah-estado-neutro);
+  // Unica animacion nueva permitida (research.md Decision 4) -- respeta
+  // prefers-reduced-motion, ya anulado globalmente mas abajo en este
+  // archivo (styles.scss).
+  transition: background-color 150ms ease;
+}
+
+.ah-tira--ok .ah-tira__barra {
+  background: var(--ah-estado-ok);
+}
+
+.ah-tira--atencion .ah-tira__barra {
+  background: var(--ah-estado-atencion);
+}
+
+.ah-tira--critico .ah-tira__barra {
+  background: var(--ah-estado-critico);
+}
+
+.ah-tira__cuerpo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1.25rem;
+  padding: 0.5rem 0.85rem;
+  font-family: var(--ah-font-mono);
+  font-size: 0.85rem;
+  color: var(--ah-ink-900);
+}
+
+.ah-tira__dato {
+  white-space: nowrap;
+}
+
+.ah-tira__dato--secundario {
+  color: var(--ah-ink-600);
+}
+
+// Contenido expandible dentro de una tira (Sprint S1.12): una tabla
+// anidada (asignaciones de una puerta, tareas de un turnaround) cae en
+// la misma columna que .ah-tira__cuerpo, en su propia fila -- sin esto,
+// el auto-placement de CSS Grid la empujaria a la columna angosta de
+// 4px de la barra de estado.
+.ah-tira__detalle {
+  grid-column: 2;
+  margin: 0 0.85rem 0.5rem;
+  width: auto;
+}
+
+.ah-tira__estado {
+  margin-left: auto;
+  font-family: var(--ah-font-body);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+// -- .ah-punto -- semaforo dentro de una celda de tabla (Sprint S1.12):
+// severidad de incidencia, estado de tarea -- mismo lenguaje visual que
+// la barra de .ah-tira, para columnas donde el color acompana al texto
+// en vez de ser el borde de una fila completa.
+.ah-punto {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  background: var(--ah-estado-neutro);
+  vertical-align: middle;
+}
+
+.ah-punto--ok {
+  background: var(--ah-estado-ok);
+}
+
+.ah-punto--atencion {
+  background: var(--ah-estado-atencion);
+}
+
+.ah-punto--critico {
+  background: var(--ah-estado-critico);
+}
+
+// -- .ah-tabla -- tabla densa: alto de fila 40px, numerales tabulares
+// (rejilla de 4px, DIRECCION_VISUAL.md §2.3).
+.ah-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--ah-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
+.ah-tabla th,
+.ah-tabla td {
+  height: 40px;
+  padding: 0 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--ah-line-200);
+}
+
+.ah-tabla th {
+  font-family: var(--ah-font-body);
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--ah-ink-600);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+// -- .ah-campo -- campo de formulario (mismo patron ya usado en las
+// vistas de auth de S1.10, formalizado aqui para que todo el sistema
+// comparta una unica definicion, research.md Decision 2).
+.ah-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ah-campo__etiqueta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ah-ink-600);
+}
+
+.ah-campo__pista {
+  font-size: 0.78rem;
+  color: var(--ah-ink-400);
+}
+
+.ah-campo input,
+.ah-campo textarea {
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--ah-radius);
+  border: 1px solid var(--ah-line-200);
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ah-ink-900);
+}
+
+.ah-campo input:focus-visible,
+.ah-campo textarea:focus-visible {
+  outline: 2px solid var(--ah-blue-500);
+  outline-offset: 1px;
+}
+
+// -- .ah-btn --
+.ah-btn {
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: var(--ah-radius);
+  background: var(--ah-blue-500);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.ah-btn:hover:not(:disabled) {
+  background: #2559c4;
+}
+
+.ah-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ah-btn:focus-visible {
+  outline: 2px solid var(--ah-navy-900);
+  outline-offset: 2px;
+}
+
+.ah-btn--secundario {
+  background: #fff;
+  color: var(--ah-ink-900);
+  border: 1px solid var(--ah-line-200);
+}
+
+.ah-btn--secundario:hover:not(:disabled) {
+  background: var(--ah-paper-100);
+}
+
+// -- .ah-alerta -- error/aviso (reusa mensajeDeError existente).
+.ah-alerta {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--ah-radius);
+  background: var(--ah-danger-50);
+  color: var(--ah-danger-600);
+  font-size: 0.85rem;
+}
+
+.ah-alerta--aviso {
+  background: #eaf1ff;
+  color: var(--ah-navy-800);
+}
+
+// -- .ah-vacio -- estado vacio de una tabla/lista sin datos.
+.ah-vacio {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--ah-ink-400);
+  font-size: 0.9rem;
+}

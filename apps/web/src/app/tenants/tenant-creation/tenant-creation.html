@@ -1,98 +1,103 @@
-<h1>Aprovisionar tenant (CU-O18)</h1>
+<section class="consola">
+  <h1>Aprovisionar tenant (CU-O18)</h1>
 
-<form (ngSubmit)="enviar()">
-  <div>
-    <label for="codigo">Codigo</label>
-    <input
-      id="codigo"
-      type="text"
-      required
-      [ngModel]="codigo()"
-      (ngModelChange)="codigo.set($event)"
-      name="codigo"
-    />
-  </div>
+  <form class="formulario" (ngSubmit)="enviar()">
+    <div class="ah-campo">
+      <label class="ah-campo__etiqueta" for="codigo">Codigo</label>
+      <input
+        id="codigo"
+        type="text"
+        required
+        [ngModel]="codigo()"
+        (ngModelChange)="codigo.set($event)"
+        name="codigo"
+      />
+    </div>
 
-  <div>
-    <label for="razonSocial">Razon social</label>
-    <input
-      id="razonSocial"
-      type="text"
-      required
-      [ngModel]="razonSocial()"
-      (ngModelChange)="razonSocial.set($event)"
-      name="razonSocial"
-    />
-  </div>
+    <div class="ah-campo">
+      <label class="ah-campo__etiqueta" for="razonSocial">Razon social</label>
+      <input
+        id="razonSocial"
+        type="text"
+        required
+        [ngModel]="razonSocial()"
+        (ngModelChange)="razonSocial.set($event)"
+        name="razonSocial"
+      />
+    </div>
 
-  <div>
-    <label for="aeropuertoId">Aeropuerto id</label>
-    <input
-      id="aeropuertoId"
-      type="text"
-      inputmode="numeric"
-      pattern="[0-9]+"
-      required
-      [ngModel]="aeropuertoId()"
-      (ngModelChange)="aeropuertoId.set($event)"
-      name="aeropuertoId"
-    />
-  </div>
+    <div class="ah-campo">
+      <label class="ah-campo__etiqueta" for="aeropuertoId">Aeropuerto id</label>
+      <input
+        id="aeropuertoId"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]+"
+        required
+        [ngModel]="aeropuertoId()"
+        (ngModelChange)="aeropuertoId.set($event)"
+        name="aeropuertoId"
+      />
+    </div>
 
-  <div>
-    <label for="planId">Plan id</label>
-    <input
-      id="planId"
-      type="text"
-      inputmode="numeric"
-      pattern="[0-9]+"
-      required
-      [ngModel]="planId()"
-      (ngModelChange)="planId.set($event)"
-      name="planId"
-    />
-  </div>
+    <div class="ah-campo">
+      <label class="ah-campo__etiqueta" for="planId">Plan id</label>
+      <input
+        id="planId"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]+"
+        required
+        [ngModel]="planId()"
+        (ngModelChange)="planId.set($event)"
+        name="planId"
+      />
+    </div>
 
-  <div>
-    <label for="emailAdmin">Email del administrador</label>
-    <input
-      id="emailAdmin"
-      type="email"
-      required
-      [ngModel]="emailAdmin()"
-      (ngModelChange)="emailAdmin.set($event)"
-      name="emailAdmin"
-    />
-  </div>
+    <div class="ah-campo">
+      <label class="ah-campo__etiqueta" for="emailAdmin">Email del administrador</label>
+      <input
+        id="emailAdmin"
+        type="email"
+        required
+        [ngModel]="emailAdmin()"
+        (ngModelChange)="emailAdmin.set($event)"
+        name="emailAdmin"
+      />
+    </div>
 
-  <div>
-    <label for="nombreAdmin">Nombre del administrador</label>
-    <input
-      id="nombreAdmin"
-      type="text"
-      required
-      [ngModel]="nombreAdmin()"
-      (ngModelChange)="nombreAdmin.set($event)"
-      name="nombreAdmin"
-    />
-  </div>
+    <div class="ah-campo">
+      <label class="ah-campo__etiqueta" for="nombreAdmin">Nombre del administrador</label>
+      <input
+        id="nombreAdmin"
+        type="text"
+        required
+        [ngModel]="nombreAdmin()"
+        (ngModelChange)="nombreAdmin.set($event)"
+        name="nombreAdmin"
+      />
+    </div>
 
-  <button type="submit" [disabled]="enviando()">
-    {{ enviando() ? 'Enviando...' : 'Crear tenant' }}
-  </button>
-</form>
+    <button type="submit" class="ah-btn" [disabled]="enviando()">
+      {{ enviando() ? 'Enviando...' : 'Crear tenant' }}
+    </button>
+  </form>
 
-@if (error()) {
-  <p role="alert">Error: {{ error() }}</p>
-}
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
 
-@if (resultado(); as r) {
-  <div>
-    <p>Tenant creado.</p>
-    <ul>
-      <li>tenant_id: {{ r.tenant_id }}</li>
-      <li>usuario_admin_id: {{ r.usuario_admin_id }}</li>
-      <li>password_temporal: {{ r.password_temporal }}</li>
-    </ul>
-  </div>
-}
+  @if (resultado(); as r) {
+    <div class="ah-alerta ah-alerta--aviso resultado">
+      <p class="resultado__titulo">Tenant creado.</p>
+      <dl class="resultado__lista">
+        <dt>tenant_id</dt>
+        <dd>{{ r.tenant_id }}</dd>
+        <dt>usuario_admin_id</dt>
+        <dd>{{ r.usuario_admin_id }}</dd>
+        <dt>password_temporal</dt>
+        <dd>{{ r.password_temporal }}</dd>
+      </dl>
+    </div>
+  }
+</section>

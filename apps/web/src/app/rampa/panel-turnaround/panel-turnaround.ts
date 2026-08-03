@@ -4,15 +4,60 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Incidencia, RampaService, Tarea, Turnaround } from '../rampa.service';
 
-// Sin login real todavia (mismo estado que el resto de apps/web) -- el
-// token JWT se pega a mano.
+// Semaforo de turnaround (Sprint S1.12, research.md Decision 2): mapeo
+// de presentacion sobre el 'estado' que el backend ya expone --
+// 'interrumpido' es la unica senal de desviacion real; un turnaround
+// 'en_curso' cuyo fin_previsto ya paso se reclasifica a 'atencion' (el
+// refinamiento mas simple calculable sin pedir tiempos reales al
+// backend, que hoy no expone esa granularidad).
+export function claseEstadoTurnaround(t: Turnaround, ahora: Date): string {
+  if (t.estado === 'interrumpido') {
+    return 'ah-tira--critico';
+  }
+  if (t.estado === 'en_curso') {
+    return new Date(t.fin_previsto) < ahora ? 'ah-tira--atencion' : 'ah-tira--ok';
+  }
+  if (t.estado === 'completado') {
+    return 'ah-tira--ok';
+  }
+  return ''; // 'planificado' -- neutro
+}
+
+// Severidad de incidencia (research.md Decision 3) -- mapeo exhaustivo
+// de los 4 valores de chk_incidencia_rampa_severidad. Devuelve la clase
+// de ".ah-punto" (celda de tabla), no de ".ah-tira" (la incidencia no es
+// la unidad "tira" de esta vista, ver research.md Decision 4).
+export function puntoSeveridadIncidencia(severidad: string): string {
+  if (severidad === 'alta' || severidad === 'critica') {
+    return 'ah-punto--critico';
+  }
+  if (severidad === 'media') {
+    return 'ah-punto--atencion';
+  }
+  return 'ah-punto'; // 'baja' -- neutro
+}
+
+// Estado de una tarea del turnaround -- mismo criterio de ".ah-punto"
+// que la severidad, dentro de la tabla de tareas.
+export function puntoEstadoTarea(estado: string): string {
+  if (estado === 'en_curso' || estado === 'completada') {
+    return 'ah-punto--ok';
+  }
+  if (estado === 'omitida') {
+    return 'ah-punto--atencion';
+  }
+  return 'ah-punto'; // 'pendiente' -- neutro
+}
+
+// Sprint S1.11: ya no pide el JWT a mano -- authInterceptor (S1.10) lo
+// agrega automaticamente a toda peticion HTTP.
 @Component({
   selector: 'app-panel-turnaround',
   imports: [CommonModule, FormsModule],
   templateUrl: './panel-turnaround.html',
+  styleUrl: './panel-turnaround.scss',
 })
 export class PanelTurnaround {
-  protected readonly tokenJwt = signal('');
   protected readonly error = signal<string | null>(null);
   protected readonly cargando = signal(false);
 
@@ -29,11 +74,16 @@ export class PanelTurnaround {
   protected readonly tipoTareaId = signal('');
   protected readonly finReal = signal('');
 
+  protected readonly claseEstadoTurnaround = claseEstadoTurnaround;
+  protected readonly puntoSeveridadIncidencia = puntoSeveridadIncidencia;
+  protected readonly puntoEstadoTarea = puntoEstadoTarea;
+  protected readonly ahora = new Date();
+
   private readonly rampaService = inject(RampaService);
 
   protected cargarTurnarounds(): void {
     this.error.set(null);
-    this.rampaService.listarTurnarounds(this.tokenJwt()).subscribe({
+    this.rampaService.listarTurnarounds().subscribe({
       next: (respuesta) => this.turnarounds.set(respuesta),
       error: (err: HttpErrorResponse) => this.error.set(this.mensajeDeError(err)),
     });
@@ -43,15 +93,12 @@ export class PanelTurnaround {
     this.cargando.set(true);
     this.error.set(null);
     this.rampaService
-      .crearTurnaround(
-        {
-          vuelo_llegada_id: this.vueloLlegadaId(),
-          vuelo_salida_id: this.vueloSalidaId(),
-          inicio_previsto: this.aUtcIso(this.inicioPrevisto()),
-          fin_previsto: this.aUtcIso(this.finPrevisto()),
-        },
-        this.tokenJwt(),
-      )
+      .crearTurnaround({
+        vuelo_llegada_id: this.vueloLlegadaId(),
+        vuelo_salida_id: this.vueloSalidaId(),
+        inicio_previsto: this.aUtcIso(this.inicioPrevisto()),
+        fin_previsto: this.aUtcIso(this.finPrevisto()),
+      })
       .subscribe({
         next: () => {
           this.cargando.set(false);
@@ -75,7 +122,7 @@ export class PanelTurnaround {
       return;
     }
     this.error.set(null);
-    this.rampaService.listarTareas(turnaroundId, this.tokenJwt()).subscribe({
+    this.rampaService.listarTareas(turnaroundId).subscribe({
       next: (respuesta) => this.tareas.set(respuesta),
       error: (err: HttpErrorResponse) => this.error.set(this.mensajeDeError(err)),
     });
@@ -88,7 +135,7 @@ export class PanelTurnaround {
     }
     this.cargando.set(true);
     this.error.set(null);
-    this.rampaService.iniciarTarea(turnaroundId, this.tipoTareaId(), this.tokenJwt()).subscribe({
+    this.rampaService.iniciarTarea(turnaroundId, this.tipoTareaId()).subscribe({
       next: () => {
         this.cargando.set(false);
         this.cargarTareas();
@@ -103,26 +150,24 @@ export class PanelTurnaround {
   protected finalizarTarea(tareaId: string): void {
     this.cargando.set(true);
     this.error.set(null);
-    this.rampaService
-      .finalizarTarea(tareaId, this.aUtcIso(this.finReal()), this.tokenJwt())
-      .subscribe({
-        next: (respuesta) => {
-          this.cargando.set(false);
-          this.cargarTareas();
-          if (respuesta.incidencia_generada) {
-            this.cargarIncidencias();
-          }
-        },
-        error: (err: HttpErrorResponse) => {
-          this.error.set(this.mensajeDeError(err));
-          this.cargando.set(false);
-        },
-      });
+    this.rampaService.finalizarTarea(tareaId, this.aUtcIso(this.finReal())).subscribe({
+      next: (respuesta) => {
+        this.cargando.set(false);
+        this.cargarTareas();
+        if (respuesta.incidencia_generada) {
+          this.cargarIncidencias();
+        }
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.mensajeDeError(err));
+        this.cargando.set(false);
+      },
+    });
   }
 
   protected cargarIncidencias(): void {
     this.error.set(null);
-    this.rampaService.listarIncidencias(this.tokenJwt()).subscribe({
+    this.rampaService.listarIncidencias().subscribe({
       next: (respuesta) => this.incidencias.set(respuesta),
       error: (err: HttpErrorResponse) => this.error.set(this.mensajeDeError(err)),
     });

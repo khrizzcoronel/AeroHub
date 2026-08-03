@@ -45,32 +45,25 @@ export interface AsignacionAutomaticaResponse {
   sin_asignar: string[];
 }
 
+// Sprint S1.11 (research.md Decision 2, deuda de JWT): ningun metodo
+// recibe ya un tokenJwt por parametro -- authInterceptor (S1.10) agrega
+// el header Authorization a toda peticion HTTP saliente.
 @Injectable({ providedIn: 'root' })
 export class PuertasService {
   private readonly http = inject(HttpClient);
 
-  obtenerTablero(tokenJwt: string): Observable<TableroResponse> {
-    return this.http.get<TableroResponse>(`${API_BASE_URL}/puertas/tablero`, {
-      headers: { Authorization: `Bearer ${tokenJwt}` },
-    });
+  obtenerTablero(): Observable<TableroResponse> {
+    return this.http.get<TableroResponse>(`${API_BASE_URL}/puertas/tablero`);
   }
 
-  asignarPuerta(
-    peticion: AsignarPuertaRequest,
-    tokenJwt: string,
-  ): Observable<AsignarPuertaResponse> {
-    return this.http.post<AsignarPuertaResponse>(
-      `${API_BASE_URL}/puertas/asignaciones`,
-      peticion,
-      { headers: { Authorization: `Bearer ${tokenJwt}` } },
-    );
+  asignarPuerta(peticion: AsignarPuertaRequest): Observable<AsignarPuertaResponse> {
+    return this.http.post<AsignarPuertaResponse>(`${API_BASE_URL}/puertas/asignaciones`, peticion);
   }
 
-  ejecutarAsignacionAutomatica(tokenJwt: string): Observable<AsignacionAutomaticaResponse> {
+  ejecutarAsignacionAutomatica(): Observable<AsignacionAutomaticaResponse> {
     return this.http.post<AsignacionAutomaticaResponse>(
       `${API_BASE_URL}/puertas/asignaciones/automatica`,
       {},
-      { headers: { Authorization: `Bearer ${tokenJwt}` } },
     );
   }
 }

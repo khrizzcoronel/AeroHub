@@ -1,0 +1,43 @@
+// Vista canonica del sistema de diseno (Sprint S1.11) -- consola densa,
+// no tarjetas con aire (DIRECCION_VISUAL.md §2.2). Primer consumidor real
+// de .ah-tira/.ah-vacio/.ah-alerta/.ah-btn.
+
+.consola {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.consola__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.consola__estado {
+  font-size: 0.85rem;
+  color: var(--ah-ink-600);
+}
+
+.consola__acciones {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.consola__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+@media (max-width: 640px) {
+  .ah-tira__cuerpo {
+    gap: 0.15rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}

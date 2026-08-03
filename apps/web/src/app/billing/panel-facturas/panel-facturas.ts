@@ -4,23 +4,28 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { BillingService, Factura, FacturaDetalle } from '../billing.service';
 
-// Sin login real todavia (mismo estado que el resto de apps/web) -- el
-// token JWT se pega a mano.
+// Semaforo de estado de factura (Sprint S1.13, research.md Decision 1):
+// mapeo exhaustivo de los 5 valores de chk_factura_estado.
+export function claseEstadoFactura(estado: string): string {
+  if (estado === 'vencida' || estado === 'disputada') {
+    return 'ah-tira--critico';
+  }
+  if (estado === 'emitida') {
+    return 'ah-tira--atencion';
+  }
+  if (estado === 'pagada') {
+    return 'ah-tira--ok';
+  }
+  return ''; // 'borrador' -- neutro
+}
+
 @Component({
   selector: 'app-panel-facturas',
   imports: [CommonModule, FormsModule],
   templateUrl: './panel-facturas.html',
-  // Cifras monetarias alineadas a la derecha con numeros tabulares --
-  // legibilidad real de montos en columna, no decoracion.
-  styles: `
-    .columna-monto {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-  `,
+  styleUrl: './panel-facturas.scss',
 })
 export class PanelFacturas {
-  protected readonly tokenJwt = signal('');
   protected readonly error = signal<string | null>(null);
   protected readonly cargando = signal(false);
 
@@ -34,11 +39,13 @@ export class PanelFacturas {
 
   protected readonly motivoDisputa = signal('');
 
+  protected readonly claseEstadoFactura = claseEstadoFactura;
+
   private readonly billingService = inject(BillingService);
 
   protected cargarFacturas(): void {
     this.error.set(null);
-    this.billingService.listarFacturas(this.tokenJwt()).subscribe({
+    this.billingService.listarFacturas().subscribe({
       next: (respuesta) => this.facturas.set(respuesta),
       error: (err: HttpErrorResponse) => this.error.set(this.mensajeDeError(err)),
     });
@@ -55,7 +62,6 @@ export class PanelFacturas {
           periodo_inicio: this.periodoInicio(),
           periodo_fin: this.periodoFin(),
         },
-        this.tokenJwt(),
       )
       .subscribe({
         next: (respuesta) => {
@@ -79,7 +85,7 @@ export class PanelFacturas {
 
   protected verDetalle(facturaId: string): void {
     this.error.set(null);
-    this.billingService.obtenerFactura(facturaId, this.tokenJwt()).subscribe({
+    this.billingService.obtenerFactura(facturaId).subscribe({
       next: (respuesta) => this.detalle.set(respuesta),
       error: (err: HttpErrorResponse) => this.error.set(this.mensajeDeError(err)),
     });
@@ -88,7 +94,7 @@ export class PanelFacturas {
   protected emitirFactura(facturaId: string): void {
     this.cargando.set(true);
     this.error.set(null);
-    this.billingService.emitirFactura(facturaId, this.tokenJwt()).subscribe({
+    this.billingService.emitirFactura(facturaId).subscribe({
       next: () => {
         this.cargando.set(false);
         this.verDetalle(facturaId);
@@ -104,7 +110,7 @@ export class PanelFacturas {
   protected disputarFactura(facturaId: string): void {
     this.cargando.set(true);
     this.error.set(null);
-    this.billingService.disputarFactura(facturaId, this.motivoDisputa(), this.tokenJwt()).subscribe({
+    this.billingService.disputarFactura(facturaId, this.motivoDisputa()).subscribe({
       next: () => {
         this.cargando.set(false);
         this.motivoDisputa.set('');

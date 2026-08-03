@@ -102,16 +102,17 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.8 | Soporte D6 (tickets/SLA, KB, changelog) + observabilidad (uptime, error budget, bloqueo de despliegue) | `7f77acf` |
 | S1.9 | Continuidad operacional RTO/RPO (ADR-018): snapshot verificado, réplica caliente (shipper), conmutación guiada, prueba de restauración semanal -- RNF-R01 sigue como riesgo abierto (mecanismo + métrica, cierre formal en Fase 4/S4.2) | `0d8b766` |
 | S1.10 | Identidad y acceso (ADR-020): login real, sesión revocable, cambio de contraseña obligatorio, invitaciones/verificación/recuperación por correo, frontend completo de auth | `666b660` |
-| **S1.11** | **Rediseño: sistema de diseño + quitar JWT manual + `vuelos/estado-tiempo-real`** | **siguiente** |
-| S1.12 | Rediseño: `puertas/tablero` + `rampa/turnaround` | pendiente |
-| S1.13 | Rediseño: `billing/facturas` + `tenants/nuevo` + auditoría de las 8 vistas de S1.10 | pendiente |
+| S1.11 | Rediseño: sistema de diseño (tokens + primitivos `.ah-*`) + quitar JWT manual de 4 vistas/3 servicios + `vuelos/estado-tiempo-real` como vista canónica | pendiente de commit |
+| S1.12 | Rediseño: `puertas/tablero` (ocupación/conflicto) + `rampa/turnaround` (desviación, tareas, incidencias) | pendiente de commit |
+| S1.13 | Rediseño: `billing/facturas` (semáforo de estado) + `tenants/nuevo` + auditoría de las 8 vistas de S1.10 (1 inconsistencia real corregida en `login.scss`) | pendiente de commit |
+| **S1.14** | **Rediseño: `fids-player/pantalla-player`** | **siguiente** |
 | S1.14 | Rediseño: `fids-player/pantalla-player` | pendiente |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
 retomar.
 
-## Rediseño de interfaz (S1.11–S1.14) — aprobado, sin empezar
+## Rediseño de interfaz (S1.11–S1.14)
 
 La capa operativa (S0.1–S1.10) está **completa y commiteada**. Lo siguiente
 acordado con el usuario NO es la Fase 2 del plan de implementación, sino
@@ -119,6 +120,68 @@ acordado con el usuario NO es la Fase 2 del plan de implementación, sino
 sin ningún estilo (HTML crudo, renderizado por defecto del navegador)
 porque S1.1–S1.6 se construyeron como "Angular mínimo funcional" a
 propósito, y el skill `frontend-design` recién se aplicó en S1.10.
+
+**S1.11 implementado** (`specs/013-diseno-sistema-jwt/`, pendiente de
+commit): tokens de semáforo operacional + tipografía mono para dato en
+`apps/web/src/styles.scss`; primitivos compartidos nuevos
+`apps/web/src/app/_primitivos.scss` (`.ah-tira`, `.ah-tabla`, `.ah-campo`,
+`.ah-btn`, `.ah-alerta`, `.ah-vacio`); `_auth-form.scss` de S1.10
+consolidado sobre esos mismos primitivos (sin cambiar clases en las 6
+plantillas HTML de auth); `vuelos/estado-tiempo-real` (M1) rediseñada por
+completo como la vista canónica del componente "tira" —verificada en
+navegador real contra el WebSocket del gateway en Docker con 3 cambios de
+estado reales del vuelo canario MEC—; las 4 vistas que pedían JWT manual
+(estado de vuelos, facturas, turnaround, tablero de puertas) y sus 3
+servicios HTTP ya no lo requieren — el WebSocket de vuelos lee
+`AuthService.token()` en vez de un textarea, ya que no pasa por
+`HttpClient`/`authInterceptor`. **Hallazgo empírico**: `apps/web/Dockerfile`
+copia el código en build-time (`COPY apps apps`, sin volumen) — un cambio
+de frontend no se refleja en el contenedor `web` corriendo hasta
+`docker compose up -d --build web`; un simple `restart` sirve el bundle
+viejo. También se detectó que IBM Plex Sans/Mono nunca se enlazaron de
+verdad desde S1.10 (solo declaradas en `--ah-font-*`, sin `<link>` en
+`index.html`) — corregido en este sprint. **Hallazgo adicional**: el
+mapeo rol→módulos de S1.10 (`packages/contracts/aerohub_contracts/roles_modulos.py`)
+listaba `role_platform_admin` con acceso a M1-M9, pero ese rol no tiene
+tenant propio ni scopes de negocio (`vuelos:*`, `billing:*`, etc.) --
+el menú ofrecía pantallas que producían 403 al primer clic. Corregido:
+`role_platform_admin` ahora ve el menú vacío de módulos operativos (solo
+administra tenants/API Keys, que no depende de `modulos_visibles`).
+
+**S1.12 implementado** (`specs/014-tableros-operativos-densos/`,
+pendiente de commit): `puertas/tablero-puertas` (M3) rediseñada con
+`.ah-tira` por puerta -- el color de la barra refleja ocupación/conflicto,
+calculado en el frontend por solapamiento de intervalos de las
+asignaciones ya cargadas (sin endpoint nuevo); `rampa/panel-turnaround`
+(M4) rediseñada con `.ah-tira` por turnaround (color = desviación
+aproximada por `estado`, con refinamiento para "en curso" vencido) y
+`.ah-tabla` para tareas e incidencias; primitivo nuevo `.ah-punto`
+(`apps/web/src/app/_primitivos.scss`) para semáforo dentro de una celda
+de tabla (severidad de incidencia, estado de tarea) -- distinto de
+`.ah-tira__barra`, que colorea el borde de una fila completa. Verificado
+en navegador real contra datos reales del backend en Docker: ocupación
+de puertas correcta (verde/gris, lógica de solapamiento trazada
+manualmente sobre datos sembrados reales), tareas completadas en verde,
+incidencias de severidad alta/crítica en rojo, sin scroll horizontal en
+móvil, sin errores de consola, build de producción en verde.
+
+**S1.13 implementado** (`specs/015-vistas-administrativas-consolidacion/`,
+pendiente de commit): `billing/panel-facturas` (M5) rediseñada con
+`.ah-tira` por factura (color = estado, mapeo exhaustivo de los 5
+valores reales: `vencida`/`disputada`→crítico, `emitida`→atención,
+`pagada`→ok, `borrador`→neutro) y `.ah-tabla` para líneas de cargo;
+`tenants/tenant-creation` rediseñado con `.ah-campo`/`.ah-btn`, sin
+componente "tira" (no hay lista que recorrer en esa vista). **Auditoría
+de las 8 vistas de S1.10**: encontró y corrigió una inconsistencia
+real -- `auth/login/login.scss` era la única de las 6 vistas de auth que
+nunca se consolidó sobre `_auth-form.scss` en S1.11, con una copia
+duplicada completa de `.field`/`.btn`/`.alert`/`.card__link`; corregida
+importando el archivo compartido, dejando en `login.scss` solo sus
+reglas exclusivas (el riel navy decorativo). Las otras 5 vistas y el
+shell ya estaban consistentes -- verificado por grep antes de tocar
+nada. Con S1.11+S1.12+S1.13, las 5 áreas de negocio de `apps/web` y el
+formulario de tenant comparten un mismo sistema visual de punta a punta;
+queda pendiente solo `fids-player` (S1.14, otra aplicación).
 
 **La dirección estética completa vive en `docs/diseno/DIRECCION_VISUAL.md`**
 — tokens, tipografía, el componente "tira de progreso de vuelo" como
@@ -131,10 +194,11 @@ Tres decisiones ya tomadas por el usuario (no re-preguntarlas):
 
 1. **M6/M8/M9 quedan fuera**: tienen backend pero ninguna vista Angular;
    crearlas sería construir funcionalidad, no rediseñar.
-2. **Quitar el `<textarea>` de JWT manual va incluido** (S1.11): las 5
-   vistas sin estilo y sus 4 servicios todavía reciben `tokenJwt` por
-   parámetro, pese a que `authInterceptor` ya lo agrega desde S1.10 --
-   es código muerto que confunde, no se maquilla, se elimina.
+2. **Quitar el `<textarea>` de JWT manual iba incluido en S1.11 — ya
+   hecho**: las 4 vistas (estado de vuelos, facturas, turnaround, tablero
+   de puertas) y sus 3 servicios ya no reciben `tokenJwt` por parámetro;
+   `grep -rn tokenJwt apps/web/src` solo encuentra comentarios que
+   documentan que ya no se usa.
 3. **Cada sprint corre su ciclo Spec Kit completo** (`specs/013-` a
    `specs/016-`), dividido así deliberadamente para no sobrecargar el
    contexto de una sola sesión.
