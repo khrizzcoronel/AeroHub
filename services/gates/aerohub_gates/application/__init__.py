@@ -12,6 +12,13 @@ from .consultar_asignaciones import (
     PuertaTablero,
     consultar_tablero_de_puertas,
 )
+from .informes import (
+    GrupoInforme,
+    InformeCompuesto,
+    InformeSimple,
+    consultar_informe_asignaciones_compuesto,
+    consultar_informe_asignaciones_simple,
+)
 
 __all__ = [
     "asignar_puerta",
@@ -26,4 +33,9 @@ __all__ = [
     "PuertaTablero",
     "ejecutar_asignacion_automatica",
     "ResultadoAsignacionAutomatica",
+    "consultar_informe_asignaciones_simple",
+    "consultar_informe_asignaciones_compuesto",
+    "InformeSimple",
+    "InformeCompuesto",
+    "GrupoInforme",
 ]

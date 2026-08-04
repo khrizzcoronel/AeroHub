@@ -45,6 +45,7 @@ from .consultas import (
     obtener_usuario_por_id,
 )
 from .consultas_catalogo import listar_aeropuertos, listar_planes
+from .consultas_informe import agrupar_tenants_por_plan_estado, listar_tenants_informe
 from .consultas_identidad import (
     contar_intentos_fallidos_recientes,
     listar_roles_vigentes_del_usuario,
@@ -134,4 +135,6 @@ __all__ = [
     "listar_usuarios_del_tenant",
     "listar_api_keys_del_tenant",
     "listar_licencias_del_tenant",
+    "listar_tenants_informe",
+    "agrupar_tenants_por_plan_estado",
 ]

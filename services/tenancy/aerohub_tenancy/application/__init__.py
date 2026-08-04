@@ -9,6 +9,13 @@ from .consultar_perfil import (
     consultar_mi_perfil,
     consultar_perfil,
 )
+from .informes import (
+    GrupoInforme,
+    InformeCompuesto,
+    InformeSimple,
+    consultar_informe_tenants_compuesto,
+    consultar_informe_tenants_simple,
+)
 from .gestionar_api_key import (
     ApiKeyNoEncontrada,
     ApiKeyResumen,
@@ -119,4 +126,9 @@ __all__ = [
     "cambiar_estado_usuario",
     "UsuarioDetalle",
     "UsuarioDelTenantNoEncontrado",
+    "consultar_informe_tenants_simple",
+    "consultar_informe_tenants_compuesto",
+    "InformeSimple",
+    "InformeCompuesto",
+    "GrupoInforme",
 ]

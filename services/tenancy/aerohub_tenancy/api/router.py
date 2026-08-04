@@ -12,31 +12,38 @@ URL -- pertenece al tenant del JWT/API Key de quien la gestiona).
 
 from __future__ import annotations
 
+import csv
+import io
+
 from aerohub_contracts import requiere_scope
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError
 
 from ..application import (
     ApiKeyNoEncontrada,
+    InformeCompuesto,
+    InformeSimple,
     TenantNoEncontrado,
     actualizar_tenant,
     aprovisionar_tenant,
     cambiar_estado_tenant,
     consultar_aeropuertos,
     consultar_api_keys_del_tenant,
+    consultar_informe_tenants_compuesto,
+    consultar_informe_tenants_simple,
     consultar_licencias_del_tenant,
     consultar_planes,
     consultar_tenants,
     crear_api_key,
+    eliminar_tenant_fisico,
     obtener_tenant,
     revocar_api_key,
     rotar_api_key,
     validar_disponibilidad_tenant,
-    eliminar_tenant_fisico,
 )
 from ..domain import ESTADOS_VALIDOS, TenantInvalido, TransicionTenantInvalida
-
-from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(tags=["tenants"])
 
@@ -347,14 +354,14 @@ def listar_licencias_mi_tenant_endpoint() -> list[LicenciaResumenResponse]:
     licencias = consultar_licencias_del_tenant()
     return [
         LicenciaResumenResponse(
-            id=l.id,
-            modulo_codigo=l.modulo_codigo,
-            modulo_nombre=l.modulo_nombre,
-            activa_desde=l.activa_desde.isoformat(),
-            activa_hasta=l.activa_hasta.isoformat() if l.activa_hasta else None,
-            es_vigente=l.es_vigente,
+            id=lic.id,
+            modulo_codigo=lic.modulo_codigo,
+            modulo_nombre=lic.modulo_nombre,
+            activa_desde=lic.activa_desde.isoformat(),
+            activa_hasta=lic.activa_hasta.isoformat() if lic.activa_hasta else None,
+            es_vigente=lic.es_vigente,
         )
-        for l in licencias
+        for lic in licencias
     ]
 
 
@@ -414,4 +421,98 @@ def rotar_api_key_endpoint(api_key_id: int) -> ApiKeyCrearResponse:
     return ApiKeyCrearResponse(
         api_key_id=str(resultado.api_key_id),
         api_key_en_claro=resultado.api_key_en_claro,
+    )
+
+
+# --------------------------------------------------------------------------
+# Informes operativos (Sprint S1.18, RF-I01-RF-I04)
+# --------------------------------------------------------------------------
+
+
+class InformeSimpleResponse(BaseModel):
+    parametros: dict[str, str]
+    generado_en: str
+    filas: list[dict[str, object]]
+
+
+class GrupoInformeResponse(BaseModel):
+    clave: str
+    metricas: dict[str, object]
+    subtotal: int
+
+
+class InformeCompuestoResponse(BaseModel):
+    parametros: dict[str, str]
+    generado_en: str
+    grupos: list[GrupoInformeResponse]
+    total: int
+
+
+def _csv_informe_simple(informe: InformeSimple) -> Response:
+    buffer = io.StringIO()
+    escritor = csv.writer(buffer)
+    for clave, valor in informe.parametros.items():
+        escritor.writerow([clave, valor])
+    escritor.writerow(["generado_en", informe.generado_en])
+    escritor.writerow([])
+    if informe.filas:
+        columnas = list(informe.filas[0].keys())
+        escritor.writerow(columnas)
+        for fila in informe.filas:
+            escritor.writerow([fila.get(c, "") for c in columnas])
+    return Response(content=buffer.getvalue(), media_type="text/csv")
+
+
+def _csv_informe_compuesto(informe: InformeCompuesto) -> Response:
+    buffer = io.StringIO()
+    escritor = csv.writer(buffer)
+    for clave, valor in informe.parametros.items():
+        escritor.writerow([clave, valor])
+    escritor.writerow(["generado_en", informe.generado_en])
+    escritor.writerow([])
+    if informe.grupos:
+        columnas_metricas = list(informe.grupos[0].metricas.keys())
+        escritor.writerow(["clave", *columnas_metricas, "subtotal"])
+        for g in informe.grupos:
+            valores_metricas = [g.metricas.get(c, "") for c in columnas_metricas]
+            escritor.writerow([g.clave, *valores_metricas, g.subtotal])
+    escritor.writerow(["TOTAL", informe.total])
+    return Response(content=buffer.getvalue(), media_type="text/csv")
+
+
+@router.get(
+    "/tenants/informes/simple",
+    response_model=None,
+    dependencies=[Depends(requiere_scope("tenants:administrar"))],
+)
+def informe_tenants_simple_endpoint(
+    estado: str | None = None, formato: str = "json"
+) -> InformeSimpleResponse | Response:
+    informe = consultar_informe_tenants_simple(estado=estado)
+    if formato == "csv":
+        return _csv_informe_simple(informe)
+    return InformeSimpleResponse(
+        parametros=informe.parametros, generado_en=informe.generado_en, filas=informe.filas
+    )
+
+
+@router.get(
+    "/tenants/informes/compuesto",
+    response_model=None,
+    dependencies=[Depends(requiere_scope("tenants:administrar"))],
+)
+def informe_tenants_compuesto_endpoint(
+    formato: str = "json",
+) -> InformeCompuestoResponse | Response:
+    informe = consultar_informe_tenants_compuesto()
+    if formato == "csv":
+        return _csv_informe_compuesto(informe)
+    return InformeCompuestoResponse(
+        parametros=informe.parametros,
+        generado_en=informe.generado_en,
+        grupos=[
+            GrupoInformeResponse(clave=g.clave, metricas=g.metricas, subtotal=g.subtotal)
+            for g in informe.grupos
+        ],
+        total=informe.total,
     )

@@ -24,6 +24,7 @@ from .consultas import (
     obtener_turnaround_por_vuelo_llegada,
     obtener_vuelo_por_id,
 )
+from .consultas_informe import agrupar_turnarounds_por_tipo_tarea, listar_turnarounds_informe
 
 # Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
 # solo infrastructure/ importa aerohub_repository. application/ obtiene
@@ -50,4 +51,6 @@ __all__ = [
     "contexto_tenant_id",
     "contexto_usuario_id",
     "contexto_rol_actor",
+    "listar_turnarounds_informe",
+    "agrupar_turnarounds_por_tipo_tarea",
 ]

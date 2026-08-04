@@ -37,6 +37,13 @@ from .gestionar_tarifario import (
     agregar_concepto_a_tarifario,
     crear_tarifario,
 )
+from .informes import (
+    GrupoInforme,
+    InformeCompuesto,
+    InformeSimple,
+    consultar_informe_facturacion_compuesto,
+    consultar_informe_facturas_simple,
+)
 
 __all__ = [
     "crear_tarifario",
@@ -73,4 +80,9 @@ __all__ = [
     "ConceptoTarifarioResumen",
     "consultar_conceptos_cargo",
     "ConceptoCargo",
+    "consultar_informe_facturas_simple",
+    "consultar_informe_facturacion_compuesto",
+    "InformeSimple",
+    "InformeCompuesto",
+    "GrupoInforme",
 ]

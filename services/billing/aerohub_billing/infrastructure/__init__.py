@@ -40,6 +40,7 @@ from .consultas import (
     obtener_tarifario_vigente,
     obtener_vuelo_por_id,
 )
+from .consultas_informe import agrupar_facturacion_por_concepto, listar_facturas_informe
 
 # Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
 # solo infrastructure/ importa aerohub_repository. application/ obtiene
@@ -82,4 +83,6 @@ __all__ = [
     "contexto_tenant_id",
     "contexto_usuario_id",
     "contexto_rol_actor",
+    "listar_facturas_informe",
+    "agrupar_facturacion_por_concepto",
 ]

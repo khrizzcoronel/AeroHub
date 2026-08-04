@@ -10,6 +10,7 @@ en cada entrada de journal/auditoria de esta transaccion.
 
 from __future__ import annotations
 
+import contextlib
 import secrets
 from dataclasses import dataclass
 
@@ -176,7 +177,7 @@ def aprovisionar_tenant(
     # "solo pantalla" (que ya mostraba la contrasena desde S1.1) en vez
     # de propagar un 502 que le ocultaria password_temporal a quien crea
     # el tenant si justo el correo fallo.
-    try:
+    with contextlib.suppress(EnvioDeCorreoFallo, Exception):
         enviar_correo(
             mensaje_bienvenida_tenant(
                 destinatario=email_admin,
@@ -185,8 +186,6 @@ def aprovisionar_tenant(
                 password_temporal=password_temporal,
             )
         )
-    except (EnvioDeCorreoFallo, Exception):
-        pass
 
     return ResultadoAprovisionamiento(
         tenant_id=tenant_id,

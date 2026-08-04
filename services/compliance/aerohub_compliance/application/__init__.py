@@ -45,6 +45,13 @@ from .gestionar_reportes import (
 from .gestionar_reportes import (
     UsuarioNoIdentificado as ReporteUsuarioNoIdentificado,
 )
+from .informes import (
+    GrupoInforme,
+    InformeCompuesto,
+    InformeSimple,
+    consultar_informe_auditoria_simple,
+    consultar_informe_reportes_dgac_compuesto,
+)
 
 __all__ = [
     "crear_post_mortem",
@@ -77,4 +84,9 @@ __all__ = [
     "ConsultarPostMortemNoEncontrado",
     "consultar_incidentes",
     "IncidenteTablero",
+    "consultar_informe_auditoria_simple",
+    "consultar_informe_reportes_dgac_compuesto",
+    "InformeSimple",
+    "InformeCompuesto",
+    "GrupoInforme",
 ]

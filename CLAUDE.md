@@ -109,7 +109,8 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.15 | Fase 1.5: contrato de API generado + superficie del AODB (alta de vuelo, registro de estado) + 2 endpoints huérfanos (cancelar asignación, reenviar verificación) | pendiente de commit |
 | S1.16 | Fase 1.5: administración de FIDS (plantillas, pantallas, telemetría) -- corrige además el hallazgo crítico de que ningún rol tenía scopes `fids:*` | pendiente de commit |
 | S1.17 | Fase 1.5: tarifarios (RF-T10) y conciliación de pax -- historial completo de tarifarios con conceptos, activación con aviso de inmutabilidad, conciliación con diferencia derivada | pendiente de commit |
-| **S1.18** | **Fase 1.5: informes operativos (familia RF-I nueva)** | **siguiente** |
+| S1.18 | Fase 1.5: informes operativos (familia RF-I nueva) -- 6 informes (simple+compuesto) en M1/M3/M4/M5/Tenancy/M9, primitivo `.ah-informe`, exportación CSV, auditoría de emisión en M5/M9 | pendiente de commit |
+| **S1.19** | **Fase 1.5: Compliance Hub (M9)** | **siguiente** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
@@ -266,6 +267,44 @@ integración nuevos contra MonetDB real vía `TestClient`
 existente `test_billing_facturacion.py` sin regresiones (11/11 verde);
 build de producción de `apps/web` en verde. No verificado en navegador
 real (misma regla vigente).
+
+**S1.18 implementado** (`specs/020-informes-operativos/`, pendiente de
+commit): formaliza la familia de requisitos RF-I01-RF-I04 (informes
+simples/compuestos, totales calculados en el servidor, parámetros
+declarados en el artefacto exportado, auditoría de emisión) con 6
+informes -- uno simple y uno compuesto por módulo dueño de su tabla
+raíz: M1 AODB (vuelos por aerolínea, puntualidad), M3 Gates
+(asignaciones por puerta, conflictos), M4 Ground Ops (turnarounds por
+tipo de tarea, incidencias), M5 Billing (facturación por concepto de
+cargo, cierra RF-E02), Tenancy (tenants por plan×estado, usuarios/
+licencias), M9 Compliance (eventos de auditoría, emisión de
+`reporte_dgac` por tipo). **Decisión de diseño explícita**: un único
+componente Angular reutilizable `informes/panel-informe` configurado
+por `@Input()` en vez de 6 vistas casi idénticas -- los 6 módulos
+solo aportan una configuración declarativa (`informes-config.ts`) más
+un componente de una línea cada uno (sin `withComponentInputBinding()`
+habilitado en el router, hacía falta ese paso intermedio). Primitivo
+CSS nuevo `.ah-informe` (cabecera de parámetros/fecha de generación,
+filas de subtotal/total diferenciadas). CSV se construye en el mismo
+endpoint que el JSON (`?formato=csv`) a partir del mismo objeto ya
+calculado, nunca una consulta paralela. RF-I04 (auditoría de emisión)
+solo en los informes compuestos de M5 y M9, los únicos con validez
+externa en este sprint. **2 hallazgos empíricos nuevos de MonetDB**
+(detalle en la sección de hallazgos más abajo): `GROUP BY` sobre una
+columna en su forma completa `esquema.tabla.columna` es rechazado
+incluso para la consulta agregada más simple -- se resuelve con
+`tabla.alias("v")`; y `select(tabla)` completo sobre una tabla con
+columna `JSON` (aquí `compliance.log_auditoria`) vuelve a fallar el
+patrón ya documentado en S1.9 si se seleccionan también las columnas
+JSON sin necesitarlas. Verificado: ruff/mypy/bandit/import-linter en
+verde sobre los 6 servicios (incluye 3 hallazgos de deuda preexistente
+en `aerohub_tenancy` corregidos de paso porque bloqueaban un run
+limpio: un `type: ignore` de mypy en `correo_smtp.py`, un `Row` sin
+importar en `licencia.py`, una variable ambigua `l` en `router.py`);
+15 tests de integración nuevos contra MonetDB real (uno por módulo,
+más SC-002/SC-003/RF-I04), suite `test_billing_facturacion.py` y
+`test_aplicacion_s1_1.py` sin regresiones; build de producción de
+`apps/web` en verde. No verificado en navegador real (regla vigente).
 
 ## Rediseño de interfaz (S1.11–S1.14)
 
@@ -609,6 +648,31 @@ Referencia más completa y reciente: `services/ramp/aerohub_ramp/` (S1.5).
   explícito al rol en MonetDB. Si falta, la base de datos lanza `access denied`
   (que en FastAPI llega como un `OperationalError` de SQLAlchemy y se traduce
   a `403 acceso denegado`).
+- `GROUP BY` sobre una columna referenciada en su forma completa de 3
+  partes `esquema.tabla.columna` (lo que SQLAlchemy Core genera por
+  defecto al agrupar sobre `tabla.c.columna` directamente) es rechazado
+  con `42000!SELECT: cannot use non GROUP BY column ... without an
+  aggregate function`, **incluso cuando esa columna exacta está en el
+  `GROUP BY`** y sin ninguna función agregada de por medio -- reproducido
+  con una consulta tan simple como
+  `SELECT ops.vuelo.aerolinea_id, count(*) FROM ops.vuelo GROUP BY
+  ops.vuelo.aerolinea_id`. Se resuelve con un alias de tabla
+  (`tabla.alias("v")`): SQLAlchemy compila entonces `v.columna` (2
+  partes) en vez de `esquema.tabla.columna` (3 partes), y MonetDB lo
+  acepta. Encontrado en
+  `aerohub_aodb/infrastructure/consultas_informe.py::agrupar_vuelos_por_aerolinea`
+  (S1.18) -- aplicar el mismo alias a todo `GROUP BY` nuevo sobre una
+  tabla de `schema="..."`.
+- `sqlalchemy-monetdb` ya deserializa columnas `JSON` a `dict`/`list` en
+  la lectura (hallazgo original de S1.9) -- un `select(tabla)` completo
+  sobre una tabla con columna(s) `JSON` (p. ej. `compliance.log_auditoria.
+  valores_nuevos`) vuelve a intentar `json.loads()` sobre un `dict` ya
+  deserializado y falla con `TypeError: the JSON object must be str,
+  bytes or bytearray, not dict`. Reproducido de nuevo en S1.18 al hacer
+  `select(log_auditoria)` para un informe -- la fila no necesitaba esas
+  columnas. Corregido seleccionando solo las columnas escalares
+  necesarias (`select(tabla.c.col1, tabla.c.col2, ...)`) en vez de la
+  tabla completa.
 - `JOIN` contra una subconsulta con `GROUP BY` (patrón "última fila por
   grupo": `JOIN (SELECT col, max(version) ... GROUP BY col)`) es rechazado
   con `42000!SELECT: cannot use non GROUP BY column ... without an

@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import BigInteger, Column, DateTime, MetaData, String, Table, select
-from sqlalchemy.engine import Connection
+from sqlalchemy.engine import Connection, Row
 
 _metadata = MetaData()
 

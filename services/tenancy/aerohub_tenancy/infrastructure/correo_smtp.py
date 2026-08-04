@@ -31,10 +31,7 @@ def crear_adaptador_smtp_desde_entorno() -> EnviarCorreo:
         correo.add_alternative(mensaje.cuerpo_html, subtype="html")
 
         try:
-            if puerto == 465:
-                smtp_cls = smtplib.SMTP_SSL
-            else:
-                smtp_cls = smtplib.SMTP
+            smtp_cls: type[smtplib.SMTP] = smtplib.SMTP_SSL if puerto == 465 else smtplib.SMTP
 
             with smtp_cls(host, puerto, timeout=15) as smtp:
                 if usar_tls and puerto != 465:

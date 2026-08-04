@@ -21,6 +21,7 @@ from .consultas import (
     obtener_puerta_por_id,
     obtener_vuelo_con_envergadura,
 )
+from .consultas_informe import agrupar_asignaciones_por_puerta, listar_asignaciones_informe
 
 # Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
 # solo infrastructure/ importa aerohub_repository. application/ obtiene
@@ -43,4 +44,6 @@ __all__ = [
     "reintentar_en_conflicto",
     "contexto_tenant_id",
     "contexto_usuario_id",
+    "listar_asignaciones_informe",
+    "agrupar_asignaciones_por_puerta",
 ]

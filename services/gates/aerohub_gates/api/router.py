@@ -8,19 +8,26 @@ negocio vive aqui (esa es la promesa de "sin capa BFF", SRS §6.4).
 
 from __future__ import annotations
 
-from datetime import datetime
+import csv
+import io
+from datetime import date, datetime
 
 from aerohub_contracts import requiere_scope
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from ..application import (
     AsignacionNoEncontrada,
+    InformeCompuesto,
+    InformeSimple,
     PuertaNoEncontrada,
     UsuarioNoIdentificado,
     VueloNoEncontrado,
     asignar_puerta,
     cancelar_asignacion,
+    consultar_informe_asignaciones_compuesto,
+    consultar_informe_asignaciones_simple,
     consultar_tablero_de_puertas,
     ejecutar_asignacion_automatica,
 )
@@ -160,4 +167,104 @@ def asignacion_automatica_endpoint() -> AsignacionAutomaticaResponse:
     return AsignacionAutomaticaResponse(
         asignados=[str(v) for v in resultado.asignados],
         sin_asignar=[str(v) for v in resultado.sin_asignar],
+    )
+
+
+# --------------------------------------------------------------------------
+# Informes operativos (Sprint S1.18, RF-I01-RF-I04)
+# --------------------------------------------------------------------------
+
+
+class InformeSimpleResponse(BaseModel):
+    parametros: dict[str, str]
+    generado_en: str
+    filas: list[dict[str, object]]
+
+
+class GrupoInformeResponse(BaseModel):
+    clave: str
+    metricas: dict[str, object]
+    subtotal: int
+
+
+class InformeCompuestoResponse(BaseModel):
+    parametros: dict[str, str]
+    generado_en: str
+    grupos: list[GrupoInformeResponse]
+    total: int
+
+
+def _csv_informe_simple(informe: InformeSimple) -> Response:
+    buffer = io.StringIO()
+    escritor = csv.writer(buffer)
+    for clave, valor in informe.parametros.items():
+        escritor.writerow([clave, valor])
+    escritor.writerow(["generado_en", informe.generado_en])
+    escritor.writerow([])
+    if informe.filas:
+        columnas = list(informe.filas[0].keys())
+        escritor.writerow(columnas)
+        for fila in informe.filas:
+            escritor.writerow([fila.get(c, "") for c in columnas])
+    return Response(content=buffer.getvalue(), media_type="text/csv")
+
+
+def _csv_informe_compuesto(informe: InformeCompuesto) -> Response:
+    buffer = io.StringIO()
+    escritor = csv.writer(buffer)
+    for clave, valor in informe.parametros.items():
+        escritor.writerow([clave, valor])
+    escritor.writerow(["generado_en", informe.generado_en])
+    escritor.writerow([])
+    if informe.grupos:
+        columnas_metricas = list(informe.grupos[0].metricas.keys())
+        escritor.writerow(["clave", *columnas_metricas, "subtotal"])
+        for g in informe.grupos:
+            valores_metricas = [g.metricas.get(c, "") for c in columnas_metricas]
+            escritor.writerow([g.clave, *valores_metricas, g.subtotal])
+    escritor.writerow(["TOTAL", informe.total])
+    return Response(content=buffer.getvalue(), media_type="text/csv")
+
+
+@router.get(
+    "/informes/simple",
+    response_model=None,
+    dependencies=[Depends(requiere_scope("puertas:leer"))],
+)
+def informe_asignaciones_simple_endpoint(
+    periodo_inicio: date, periodo_fin: date, puerta_id: str | None = None, formato: str = "json"
+) -> InformeSimpleResponse | Response:
+    informe = consultar_informe_asignaciones_simple(
+        periodo_inicio=periodo_inicio,
+        periodo_fin=periodo_fin,
+        puerta_id=int(puerta_id) if puerta_id is not None else None,
+    )
+    if formato == "csv":
+        return _csv_informe_simple(informe)
+    return InformeSimpleResponse(
+        parametros=informe.parametros, generado_en=informe.generado_en, filas=informe.filas
+    )
+
+
+@router.get(
+    "/informes/compuesto",
+    response_model=None,
+    dependencies=[Depends(requiere_scope("puertas:leer"))],
+)
+def informe_asignaciones_compuesto_endpoint(
+    periodo_inicio: date, periodo_fin: date, formato: str = "json"
+) -> InformeCompuestoResponse | Response:
+    informe = consultar_informe_asignaciones_compuesto(
+        periodo_inicio=periodo_inicio, periodo_fin=periodo_fin
+    )
+    if formato == "csv":
+        return _csv_informe_compuesto(informe)
+    return InformeCompuestoResponse(
+        parametros=informe.parametros,
+        generado_en=informe.generado_en,
+        grupos=[
+            GrupoInformeResponse(clave=g.clave, metricas=g.metricas, subtotal=g.subtotal)
+            for g in informe.grupos
+        ],
+        total=informe.total,
     )

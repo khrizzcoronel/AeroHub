@@ -10,6 +10,13 @@ from .consultar_catalogos import (
     consultar_tipos_vuelo,
 )
 from .consultar_vuelo import VueloConsultado, consultar_vuelo
+from .informes import (
+    GrupoInforme,
+    InformeCompuesto,
+    InformeSimple,
+    consultar_informe_vuelos_compuesto,
+    consultar_informe_vuelos_simple,
+)
 from .registrar_cambio_estado import (
     EstadoDesconocido,
     ResultadoCambioEstado,
@@ -37,4 +44,9 @@ __all__ = [
     "Aeronave",
     "TipoVuelo",
     "Aeropuerto",
+    "consultar_informe_vuelos_simple",
+    "consultar_informe_vuelos_compuesto",
+    "InformeSimple",
+    "InformeCompuesto",
+    "GrupoInforme",
 ]

@@ -71,6 +71,28 @@ export class Shell {
     return scopes.includes('billing:escribir');
   });
 
+  // Sprint S1.18 -- informes operativos (RF-I01-04): un enlace auxiliar
+  // por modulo, mismo mecanismo que puedeVerTarifarios (M1/M3/M4/M5 ya
+  // tienen su ruta principal ocupada por modulosConVista).
+  protected readonly puedeVerInformesVuelos = computed(() =>
+    (this.perfil()?.scopes ?? []).includes('vuelos:leer'),
+  );
+  protected readonly puedeVerInformesPuertas = computed(() =>
+    (this.perfil()?.scopes ?? []).includes('puertas:leer'),
+  );
+  protected readonly puedeVerInformesRampa = computed(() =>
+    (this.perfil()?.scopes ?? []).includes('rampa:leer'),
+  );
+  protected readonly puedeVerInformesBilling = computed(() =>
+    (this.perfil()?.scopes ?? []).includes('billing:leer'),
+  );
+  protected readonly puedeVerInformesTenants = computed(() =>
+    (this.perfil()?.scopes ?? []).includes('tenants:administrar'),
+  );
+  protected readonly puedeVerInformesCompliance = computed(() =>
+    (this.perfil()?.scopes ?? []).includes('compliance:leer'),
+  );
+
   // Sprint S1.15 -- endpoint huerfano POST /auth/solicitar-verificacion
   // (ya existia desde S1.10, sin ningun boton que lo invocara). Vive en
   // el shell, no en la vista publica /verificar-correo, porque el

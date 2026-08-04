@@ -8,11 +8,14 @@ negocio vive aqui (SRS Sec6.4).
 
 from __future__ import annotations
 
+import csv
+import io
 from datetime import date, datetime
 from decimal import Decimal
 
 from aerohub_contracts import requiere_scope
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from ..application import (
@@ -21,6 +24,8 @@ from ..application import (
     ConciliacionYaExiste,
     DiferenciaNoNula,
     FacturaNoEncontrada,
+    InformeCompuesto,
+    InformeSimple,
     PeriodoInvalido,
     TarifarioNoEncontrado,
     TarifarioVigenteNoEncontrado,
@@ -30,11 +35,13 @@ from ..application import (
     agregar_concepto_a_tarifario,
     calcular_facturacion,
     conciliar,
-    consultar_conciliacion,
     consultar_conceptos_cargo,
+    consultar_conciliacion,
     consultar_conciliaciones,
     consultar_factura,
     consultar_facturas,
+    consultar_informe_facturacion_compuesto,
+    consultar_informe_facturas_simple,
     consultar_tarifarios,
     crear_tarifario,
     disputar_factura,
@@ -472,3 +479,111 @@ def conciliar_endpoint(conciliacion_id: int) -> None:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except UsuarioNoIdentificado as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+# --------------------------------------------------------------------------
+# Informes operativos (Sprint S1.18, RF-I01-RF-I04)
+# --------------------------------------------------------------------------
+
+
+class InformeSimpleResponse(BaseModel):
+    parametros: dict[str, str]
+    generado_en: str
+    filas: list[dict[str, object]]
+
+
+class GrupoInformeResponse(BaseModel):
+    clave: str
+    metricas: dict[str, object]
+    subtotal: Decimal
+
+
+class InformeCompuestoResponse(BaseModel):
+    parametros: dict[str, str]
+    generado_en: str
+    grupos: list[GrupoInformeResponse]
+    total: Decimal
+
+
+def _csv_informe_simple(informe: InformeSimple) -> Response:
+    buffer = io.StringIO()
+    escritor = csv.writer(buffer)
+    for clave, valor in informe.parametros.items():
+        escritor.writerow([clave, valor])
+    escritor.writerow(["generado_en", informe.generado_en])
+    escritor.writerow([])
+    if informe.filas:
+        columnas = list(informe.filas[0].keys())
+        escritor.writerow(columnas)
+        for fila in informe.filas:
+            escritor.writerow([fila.get(c, "") for c in columnas])
+    return Response(content=buffer.getvalue(), media_type="text/csv")
+
+
+def _csv_informe_compuesto(informe: InformeCompuesto) -> Response:
+    buffer = io.StringIO()
+    escritor = csv.writer(buffer)
+    for clave, valor in informe.parametros.items():
+        escritor.writerow([clave, valor])
+    escritor.writerow(["generado_en", informe.generado_en])
+    escritor.writerow([])
+    if informe.grupos:
+        columnas_metricas = list(informe.grupos[0].metricas.keys())
+        escritor.writerow(["clave", *columnas_metricas, "subtotal"])
+        for g in informe.grupos:
+            valores_metricas = [g.metricas.get(c, "") for c in columnas_metricas]
+            escritor.writerow([g.clave, *valores_metricas, str(g.subtotal)])
+    escritor.writerow(["TOTAL", str(informe.total)])
+    return Response(content=buffer.getvalue(), media_type="text/csv")
+
+
+@router.get(
+    "/informes/simple",
+    response_model=None,
+    dependencies=[Depends(requiere_scope("billing:leer"))],
+)
+def informe_facturas_simple_endpoint(
+    periodo_inicio: date,
+    periodo_fin: date,
+    aerolinea_id: str | None = None,
+    estado: str | None = None,
+    formato: str = "json",
+) -> InformeSimpleResponse | Response:
+    informe = consultar_informe_facturas_simple(
+        periodo_inicio=periodo_inicio,
+        periodo_fin=periodo_fin,
+        aerolinea_id=int(aerolinea_id) if aerolinea_id is not None else None,
+        estado=estado,
+    )
+    if formato == "csv":
+        return _csv_informe_simple(informe)
+    return InformeSimpleResponse(
+        parametros=informe.parametros, generado_en=informe.generado_en, filas=informe.filas
+    )
+
+
+@router.get(
+    "/informes/compuesto",
+    response_model=None,
+    dependencies=[Depends(requiere_scope("billing:leer"))],
+)
+def informe_facturacion_compuesto_endpoint(
+    periodo_inicio: date, periodo_fin: date, formato: str = "json"
+) -> InformeCompuestoResponse | Response:
+    """RF-I04: la emision de este informe (validez externa, cierra
+    RF-E02) queda registrada en compliance.log_auditoria (research.md
+    Decision 4)."""
+    informe = consultar_informe_facturacion_compuesto(
+        periodo_inicio=periodo_inicio, periodo_fin=periodo_fin
+    )
+    if formato == "csv":
+        return _csv_informe_compuesto(informe)
+    return InformeCompuestoResponse(
+        parametros=informe.parametros,
+        generado_en=informe.generado_en,
+        grupos=[
+            GrupoInformeResponse(clave=g.clave, metricas=g.metricas, subtotal=g.subtotal)
+            for g in informe.grupos
+        ],
+        total=informe.total,
+    )

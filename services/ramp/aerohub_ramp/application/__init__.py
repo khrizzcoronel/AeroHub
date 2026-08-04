@@ -26,6 +26,13 @@ from .iniciar_tarea import (
     UsuarioNoIdentificado,
     iniciar_tarea,
 )
+from .informes import (
+    GrupoInforme,
+    InformeCompuesto,
+    InformeSimple,
+    consultar_informe_turnarounds_compuesto,
+    consultar_informe_turnarounds_simple,
+)
 
 __all__ = [
     "crear_turnaround",
@@ -48,4 +55,9 @@ __all__ = [
     "TareaTablero",
     "consultar_incidencias",
     "IncidenciaTablero",
+    "consultar_informe_turnarounds_simple",
+    "consultar_informe_turnarounds_compuesto",
+    "InformeSimple",
+    "InformeCompuesto",
+    "GrupoInforme",
 ]

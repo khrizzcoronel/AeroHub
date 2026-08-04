@@ -28,6 +28,7 @@ from .consultas import (
     obtener_post_mortem_por_id,
     obtener_tipo_incidente_por_id,
 )
+from .consultas_informe import agrupar_reportes_dgac_por_tipo, listar_eventos_auditoria_informe
 
 # Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
 # solo infrastructure/ importa aerohub_repository.
@@ -56,4 +57,6 @@ __all__ = [
     "contexto_tenant_id",
     "contexto_usuario_id",
     "contexto_rol_actor",
+    "listar_eventos_auditoria_informe",
+    "agrupar_reportes_dgac_por_tipo",
 ]

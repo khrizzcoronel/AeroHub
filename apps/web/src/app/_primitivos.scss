@@ -454,3 +454,57 @@
     opacity: 1;
   }
 }
+
+// -- .ah-informe -- primitivo unico de informes (Sprint S1.18, RF-I01-04):
+// cabecera de parametros/fecha de generacion + filas de subtotal/total
+// diferenciadas de filas normales dentro de .ah-tabla ya existente.
+// Reutiliza .ah-panel (filtros) y .ah-tabla (filas/grupos) -- este
+// primitivo solo agrega la cabecera declarativa y el estilo de
+// subtotal/total, sin reimplementar tabla ni formulario.
+.ah-informe__cabecera {
+  background: var(--ah-paper-100);
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  font-size: 0.82rem;
+  color: var(--ah-ink-600);
+}
+
+.ah-informe__parametro {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.ah-informe__parametro strong {
+  color: var(--ah-ink-900);
+  font-weight: 600;
+}
+
+// Fila de subtotal por grupo -- distinta de una fila de dato normal.
+.ah-informe tr.ah-informe__subtotal td {
+  font-weight: 600;
+  background: var(--ah-paper-100);
+  border-top: 1px solid var(--ah-line-200);
+}
+
+// Fila de total general -- la mas destacada de la tabla.
+.ah-informe tr.ah-informe__total td {
+  font-weight: 700;
+  background: #eaf1ff;
+  color: var(--ah-navy-800);
+  border-top: 2px solid var(--ah-navy-800);
+}
+
+// Composicion para impresion (RF-I03: el artefacto declara sus
+// parametros sin depender de la aplicacion) -- oculta controles
+// interactivos, deja cabecera + tabla.
+@media print {
+  .ah-informe .ah-panel,
+  .ah-informe .ah-btn,
+  .ah-informe .consola__acciones {
+    display: none !important;
+  }
+}
