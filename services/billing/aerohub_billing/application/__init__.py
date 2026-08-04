@@ -13,13 +13,18 @@ from .conciliar_pax import (
     registrar_conciliacion,
 )
 from .consultar import (
+    ConceptoTarifarioResumen,
     ConciliacionTablero,
     FacturaLineaTablero,
     FacturaTablero,
+    TarifarioResumen,
     consultar_conciliacion,
+    consultar_conciliaciones,
     consultar_factura,
     consultar_facturas,
+    consultar_tarifarios,
 )
+from .consultar_catalogos import ConceptoCargo, consultar_conceptos_cargo
 from .disputar_factura import FacturaNoEncontrada, disputar_factura, emitir_factura
 from .gestionar_tarifario import (
     ConceptoCargoNoEncontrado,
@@ -59,7 +64,13 @@ __all__ = [
     "consultar_facturas",
     "consultar_factura",
     "consultar_conciliacion",
+    "consultar_conciliaciones",
+    "consultar_tarifarios",
     "FacturaTablero",
     "FacturaLineaTablero",
     "ConciliacionTablero",
+    "TarifarioResumen",
+    "ConceptoTarifarioResumen",
+    "consultar_conceptos_cargo",
+    "ConceptoCargo",
 ]

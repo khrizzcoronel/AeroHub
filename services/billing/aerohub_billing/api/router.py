@@ -31,8 +31,11 @@ from ..application import (
     calcular_facturacion,
     conciliar,
     consultar_conciliacion,
+    consultar_conceptos_cargo,
+    consultar_conciliaciones,
     consultar_factura,
     consultar_facturas,
+    consultar_tarifarios,
     crear_tarifario,
     disputar_factura,
     emitir_factura,
@@ -130,6 +133,32 @@ class ConciliacionResponse(BaseModel):
     conciliado_en: datetime | None
 
 
+class ConceptoCargoResponse(BaseModel):
+    id: str
+    codigo: str
+    nombre: str
+    unidad_medida: str
+    base_calculo: str
+
+
+class ConceptoTarifarioResponse(BaseModel):
+    id: str
+    concepto_cargo_id: str
+    tarifa_unitaria: Decimal
+    monto_minimo: Decimal | None
+    monto_maximo: Decimal | None
+
+
+class TarifarioResponse(BaseModel):
+    id: str
+    nombre: str
+    moneda: str
+    vigente_desde: date
+    vigente_hasta: date | None
+    estado: str
+    conceptos: list[ConceptoTarifarioResponse]
+
+
 @router.post(
     "/tarifarios",
     response_model=CrearTarifarioResponse,
@@ -182,6 +211,57 @@ def activar_tarifario_endpoint(tarifario_id: int) -> None:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except TarifarioYaVigente as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get(
+    "/catalogo/conceptos-cargo",
+    response_model=list[ConceptoCargoResponse],
+    dependencies=[Depends(requiere_scope("billing:leer"))],
+)
+def listar_conceptos_cargo_endpoint() -> list[ConceptoCargoResponse]:
+    """Catalogo de solo lectura para el <select> de alta de concepto de
+    tarifario -- Sprint S1.17, nunca ids pegados a mano."""
+    return [
+        ConceptoCargoResponse(
+            id=str(c.id),
+            codigo=c.codigo,
+            nombre=c.nombre,
+            unidad_medida=c.unidad_medida,
+            base_calculo=c.base_calculo,
+        )
+        for c in consultar_conceptos_cargo()
+    ]
+
+
+@router.get(
+    "/tarifarios",
+    response_model=list[TarifarioResponse],
+    dependencies=[Depends(requiere_scope("billing:leer"))],
+)
+def listar_tarifarios_endpoint() -> list[TarifarioResponse]:
+    """Historial completo del tenant (todos los estados), no solo el
+    vigente -- Sprint S1.17, cierra RF-T10 en el fondo (spec.md US2)."""
+    return [
+        TarifarioResponse(
+            id=str(t.id),
+            nombre=t.nombre,
+            moneda=t.moneda,
+            vigente_desde=t.vigente_desde,
+            vigente_hasta=t.vigente_hasta,
+            estado=t.estado,
+            conceptos=[
+                ConceptoTarifarioResponse(
+                    id=str(c.id),
+                    concepto_cargo_id=str(c.concepto_cargo_id),
+                    tarifa_unitaria=c.tarifa_unitaria,
+                    monto_minimo=c.monto_minimo,
+                    monto_maximo=c.monto_maximo,
+                )
+                for c in t.conceptos
+            ],
+        )
+        for t in consultar_tarifarios()
+    ]
 
 
 @router.post(
@@ -330,6 +410,28 @@ def registrar_conciliacion_endpoint(
     return RegistrarConciliacionResponse(
         conciliacion_id=str(resultado.conciliacion_id), diferencia=resultado.diferencia
     )
+
+
+@router.get(
+    "/conciliaciones",
+    response_model=list[ConciliacionResponse],
+    dependencies=[Depends(requiere_scope("billing:leer"))],
+)
+def listar_conciliaciones_endpoint() -> list[ConciliacionResponse]:
+    """Todas las conciliaciones del tenant -- Sprint S1.17 (spec.md US3)."""
+    return [
+        ConciliacionResponse(
+            id=str(c.id),
+            vuelo_id=str(c.vuelo_id),
+            periodo=c.periodo,
+            pax_reportado_aerolinea=c.pax_reportado_aerolinea,
+            pax_registrado_sistema=c.pax_registrado_sistema,
+            diferencia=c.diferencia,
+            fuente_reporte=c.fuente_reporte,
+            conciliado_en=c.conciliado_en,
+        )
+        for c in consultar_conciliaciones()
+    ]
 
 
 @router.get(

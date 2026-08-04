@@ -9,8 +9,11 @@ from decimal import Decimal
 from ..domain import diferencia as _diferencia
 from ..infrastructure import (
     calcular_total_factura,
+    listar_conceptos_de_tarifario,
+    listar_conciliaciones,
     listar_facturas,
     listar_lineas_de_factura,
+    listar_tarifarios,
     obtener_conciliacion_por_id,
     obtener_factura_por_id,
     sesion,
@@ -46,6 +49,26 @@ class FacturaLineaTablero:
     cantidad: Decimal
     precio_unitario: Decimal
     monto: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class ConceptoTarifarioResumen:
+    id: int
+    concepto_cargo_id: int
+    tarifa_unitaria: Decimal
+    monto_minimo: Decimal | None
+    monto_maximo: Decimal | None
+
+
+@dataclass(frozen=True, slots=True)
+class TarifarioResumen:
+    id: int
+    nombre: str
+    moneda: str
+    vigente_desde: date
+    vigente_hasta: date | None
+    estado: str
+    conceptos: list[ConceptoTarifarioResumen]
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +142,58 @@ def consultar_factura(*, factura_id: int) -> tuple[FacturaTablero, list[FacturaL
             for linea in listar_lineas_de_factura(conn, factura_id=factura_id)
         ]
     return cabecera, lineas
+
+
+def consultar_tarifarios() -> list[TarifarioResumen]:
+    """Sprint S1.17 -- historial completo (todos los estados), cada uno
+    con sus conceptos, reutilizando listar_conceptos_de_tarifario ya
+    existente desde S1.6 (research.md Decision 4)."""
+    with sesion() as conn:
+        tarifarios = listar_tarifarios(conn)
+        return [
+            TarifarioResumen(
+                id=t.id,
+                nombre=t.nombre,
+                moneda=t.moneda,
+                vigente_desde=t.vigente_desde,
+                vigente_hasta=t.vigente_hasta,
+                estado=t.estado,
+                conceptos=[
+                    ConceptoTarifarioResumen(
+                        id=c.id,
+                        concepto_cargo_id=c.concepto_cargo_id,
+                        tarifa_unitaria=c.tarifa_unitaria,
+                        monto_minimo=c.monto_minimo,
+                        monto_maximo=c.monto_maximo,
+                    )
+                    for c in listar_conceptos_de_tarifario(conn, tarifario_id=t.id)
+                ],
+            )
+            for t in tarifarios
+        ]
+
+
+def consultar_conciliaciones() -> list[ConciliacionTablero]:
+    """Sprint S1.17 -- todas las conciliaciones del tenant, diferencia
+    siempre derivada (research.md Decision 5)."""
+    with sesion() as conn:
+        filas = listar_conciliaciones(conn)
+    return [
+        ConciliacionTablero(
+            id=c.id,
+            vuelo_id=c.vuelo_id,
+            periodo=c.periodo,
+            pax_reportado_aerolinea=c.pax_reportado_aerolinea,
+            pax_registrado_sistema=c.pax_registrado_sistema,
+            diferencia=_diferencia(
+                pax_reportado_aerolinea=c.pax_reportado_aerolinea,
+                pax_registrado_sistema=c.pax_registrado_sistema,
+            ),
+            fuente_reporte=c.fuente_reporte,
+            conciliado_en=c.conciliado_en,
+        )
+        for c in filas
+    ]
 
 
 def consultar_conciliacion(*, conciliacion_id: int) -> ConciliacionTablero:

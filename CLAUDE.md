@@ -108,7 +108,8 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.14 | Rediseño: `fids-player/pantalla-player` (3 modos: configuración/reproducción/sin señal) -- cierra el rediseño de interfaz S1.11-S1.14 | `2285ced` |
 | S1.15 | Fase 1.5: contrato de API generado + superficie del AODB (alta de vuelo, registro de estado) + 2 endpoints huérfanos (cancelar asignación, reenviar verificación) | pendiente de commit |
 | S1.16 | Fase 1.5: administración de FIDS (plantillas, pantallas, telemetría) -- corrige además el hallazgo crítico de que ningún rol tenía scopes `fids:*` | pendiente de commit |
-| **S1.17** | **Fase 1.5: tarifarios (RF-T10) y conciliación de pax** | **siguiente** |
+| S1.17 | Fase 1.5: tarifarios (RF-T10) y conciliación de pax -- historial completo de tarifarios con conceptos, activación con aviso de inmutabilidad, conciliación con diferencia derivada | pendiente de commit |
+| **S1.18** | **Fase 1.5: informes operativos (familia RF-I nueva)** | **siguiente** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
@@ -235,6 +236,36 @@ MonetDB real (`tests/integration/test_fids_administracion.py`); build de
 producción de `apps/web` en verde. **No verificado en navegador real**
 (regla vigente desde esta sesión: no probar automáticamente en el
 navegador salvo pedido explícito) -- pendiente si el usuario lo solicita.
+
+**S1.17 implementado** (`specs/019-tarifarios-conciliacion-pax/`,
+pendiente de commit): superficie completa de tarifarios (RF-T10) y
+conciliación de pax (RF-O15) en M5 Billing, hasta ahora sin ningún
+consumidor en `apps/web` pese a existir desde S1.6. A diferencia de
+S1.15/S1.16, **sin hallazgo de scopes** -- `role_tenant_admin` y
+`role_billing_officer` ya tenían `billing:escribir`, verificado antes de
+implementar. 3 endpoints GET nuevos en `aerohub_billing`
+(`/billing/tarifarios` con historial completo y conceptos anidados,
+`/billing/conciliaciones`, `/billing/catalogo/conceptos-cargo`), todos
+`billing:leer`. Vista nueva `billing/panel-tarifarios` con dos
+secciones (tarifarios, conciliaciones) -- expuesta como enlace manual
+del shell (`puedeVerTarifarios`, por scope `billing:escribir`), no como
+segunda ruta de M5: `modulosConVista` solo admite una ruta por módulo y
+`/billing/facturas` ya la ocupa desde S1.13, mismo mecanismo que
+`usuarios`/`api-keys`/`licencias`. **Corrección de 2 suposiciones
+erróneas del spec inicial tras leer el código real (Principio III)**:
+`conciliar()` EXIGE diferencia cero para marcar conciliada (no al
+revés, como decía el borrador -- compuerta de pruebas deliberada de
+S1.6), y `pax_registrado_sistema` es un dato de entrada al registrar
+una conciliación, no algo que el sistema calcula solo. El aviso de
+inmutabilidad al activar un tarifario es puramente informativo -- el
+backend (`activar_tarifario`) nunca validó "al menos un concepto", así
+que el frontend tampoco introduce esa regla. Verificado: ruff/mypy/
+bandit/import-linter en verde sobre `aerohub_billing`; 3 tests de
+integración nuevos contra MonetDB real vía `TestClient`
+(`tests/integration/test_billing_tarifarios_conciliacion.py`), suite
+existente `test_billing_facturacion.py` sin regresiones (11/11 verde);
+build de producción de `apps/web` en verde. No verificado en navegador
+real (misma regla vigente).
 
 ## Rediseño de interfaz (S1.11–S1.14)
 

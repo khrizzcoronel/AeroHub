@@ -62,6 +62,15 @@ export class Shell {
     return !!tenantId;
   });
 
+  // Sprint S1.17 -- tarifarios/conciliación no es un modulo M1-M9 propio
+  // (vive dentro de M5, cuya unica ruta ya esta ocupada por
+  // /billing/facturas -- modulosConVista solo admite una ruta por
+  // modulo), mismo mecanismo que usuarios/api-keys/licencias.
+  protected readonly puedeVerTarifarios = computed(() => {
+    const scopes = this.perfil()?.scopes ?? [];
+    return scopes.includes('billing:escribir');
+  });
+
   // Sprint S1.15 -- endpoint huerfano POST /auth/solicitar-verificacion
   // (ya existia desde S1.10, sin ningun boton que lo invocara). Vive en
   // el shell, no en la vista publica /verificar-correo, porque el

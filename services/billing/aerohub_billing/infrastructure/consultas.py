@@ -85,6 +85,18 @@ def obtener_tarifario_vigente(conn: Connection, *, moneda: str) -> Row | None:
     return conn.execute(stmt).first()
 
 
+def listar_tarifarios(conn: Connection) -> list[Row]:
+    """Sprint S1.17 -- todos los tarifarios del tenant, cualquier estado
+    (a diferencia de listar_tarifarios_vigentes): historial completo
+    para la vista administrativa (research.md Decision 4)."""
+    stmt = (
+        select(tarifario)
+        .where(tarifario.c.tenant_id == contexto_tenant_id())
+        .order_by(tarifario.c.moneda, tarifario.c.vigente_desde.desc())
+    )
+    return list(conn.execute(stmt))
+
+
 def listar_tarifarios_vigentes(conn: Connection) -> list[Row]:
     """Todos los tarifarios 'vigente' del tenant, sin filtrar por moneda --
     usado por el motor de facturacion (CU-O17) para elegir el tarifario
@@ -207,6 +219,17 @@ def obtener_conciliacion_por_id(conn: Connection, conciliacion_id: int) -> Row |
         conciliacion_pax.c.id == conciliacion_id,
     )
     return conn.execute(stmt).first()
+
+
+def listar_conciliaciones(conn: Connection) -> list[Row]:
+    """Sprint S1.17 -- todas las conciliaciones del tenant, sin filtro
+    adicional (research.md Decision 5)."""
+    stmt = (
+        select(conciliacion_pax)
+        .where(conciliacion_pax.c.tenant_id == contexto_tenant_id())
+        .order_by(conciliacion_pax.c.periodo.desc())
+    )
+    return list(conn.execute(stmt))
 
 
 def obtener_conciliacion_por_vuelo_periodo(

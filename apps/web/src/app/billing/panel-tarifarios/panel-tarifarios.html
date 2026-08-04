@@ -1,0 +1,370 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>Tarifarios y conciliación</h1>
+    <div class="consola__acciones">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTodo()" [disabled]="cargando()">
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
+
+  <!-- ============ Sección Tarifarios (US1/US2) ============ -->
+  <h2>Tarifarios</h2>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar tarifario</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroTarifario">Nombre o moneda</label>
+        <input
+          id="filtroTarifario"
+          type="text"
+          [ngModel]="filtroTarifario()"
+          (ngModelChange)="actualizarFiltroTarifario($event)"
+          name="filtroTarifario"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn" (click)="abrirModalTarifario()">Nuevo tarifario</button>
+  </div>
+
+  @if (tarifarios().length === 0) {
+    <p class="ah-vacio">Sin tarifarios creados todavía.</p>
+  } @else if (tarifariosFiltrados().length === 0) {
+    <p class="ah-vacio">Ningún tarifario coincide con la búsqueda.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Moneda</th>
+            <th>Estado</th>
+            <th>Vigencia</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of tarifariosFiltrados(); track t.id) {
+            <tr>
+              <td>{{ t.nombre }}</td>
+              <td>{{ t.moneda }}</td>
+              <td>
+                <span class="ah-pill" [class]="claseEstadoTarifario(t.estado)">{{ etiquetaEstadoTarifario(t.estado) }}</span>
+              </td>
+              <td>
+                {{ t.vigente_desde | date: 'dd/MM/yyyy' }}
+                @if (t.vigente_hasta) { – {{ t.vigente_hasta | date: 'dd/MM/yyyy' }} }
+              </td>
+              <td>
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verConceptos(t)">
+                  Ver conceptos ({{ t.conceptos.length }})
+                </button>
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalAgregarConcepto(t)">
+                  Agregar concepto
+                </button>
+                @if (t.estado === 'borrador') {
+                  <button type="button" class="ah-btn ah-btn--sm" (click)="abrirModalActivar(t)">Activar</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ============ Sección Conciliación de pax (US3) ============ -->
+  <h2>Conciliación de pax</h2>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar conciliación</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroConciliacion">Vuelo o período</label>
+        <input
+          id="filtroConciliacion"
+          type="text"
+          [ngModel]="filtroConciliacion()"
+          (ngModelChange)="actualizarFiltroConciliacion($event)"
+          name="filtroConciliacion"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn" (click)="abrirModalConciliacion()">Nueva conciliación</button>
+  </div>
+
+  @if (errorConciliar()) {
+    <p class="ah-alerta" role="alert">{{ errorConciliar() }}</p>
+  }
+
+  @if (conciliaciones().length === 0) {
+    <p class="ah-vacio">Sin conciliaciones registradas todavía.</p>
+  } @else if (conciliacionesFiltradas().length === 0) {
+    <p class="ah-vacio">Ninguna conciliación coincide con la búsqueda.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Vuelo</th>
+            <th>Período</th>
+            <th>Pax aerolínea</th>
+            <th>Pax sistema</th>
+            <th>Diferencia</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of conciliacionesFiltradas(); track c.id) {
+            <tr>
+              <td>{{ c.vuelo_id }}</td>
+              <td>{{ c.periodo }}</td>
+              <td>{{ c.pax_reportado_aerolinea }}</td>
+              <td>{{ c.pax_registrado_sistema }}</td>
+              <td>
+                <span class="ah-pill" [class]="c.diferencia === 0 ? 'ah-pill--ok' : 'ah-pill--atencion'">{{ c.diferencia }}</span>
+              </td>
+              <td>
+                @if (c.conciliado_en) {
+                  <span class="ah-pill ah-pill--ok">Conciliada</span>
+                } @else {
+                  <span class="ah-pill">Pendiente</span>
+                }
+              </td>
+              <td>
+                @if (!c.conciliado_en) {
+                  <button
+                    type="button"
+                    class="ah-btn ah-btn--sm"
+                    (click)="conciliar(c)"
+                    [disabled]="conciliando() === c.id || c.diferencia !== 0"
+                  >
+                    Conciliar
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<!-- Modal: Nuevo tarifario -->
+@if (mostrarModalTarifario()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalTarifario()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Nuevo tarifario</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalTarifario()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorFormularioTarifario()) {
+        <p class="ah-alerta" role="alert">{{ errorFormularioTarifario() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="nombreTarifario">Nombre</label>
+          <input id="nombreTarifario" type="text" [ngModel]="nombreTarifario()" (ngModelChange)="nombreTarifario.set($event)" name="nombreTarifario" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="monedaTarifario">Moneda (ISO 4217, ej. USD)</label>
+          <input id="monedaTarifario" type="text" maxlength="3" [ngModel]="monedaTarifario()" (ngModelChange)="monedaTarifario.set($event)" name="monedaTarifario" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="vigenteDesdeTarifario">Vigente desde</label>
+          <input id="vigenteDesdeTarifario" type="date" [ngModel]="vigenteDesdeTarifario()" (ngModelChange)="vigenteDesdeTarifario.set($event)" name="vigenteDesdeTarifario" />
+        </div>
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="crearTarifario()"
+            [disabled]="guardandoTarifario() || !nombreTarifario() || !monedaTarifario() || !vigenteDesdeTarifario()"
+          >
+            Crear
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalTarifario()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Ver conceptos (US2) -->
+@if (tarifarioViendoConceptos(); as t) {
+  <div class="ah-modal-fondo" (click)="cerrarModalConceptos()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Conceptos de {{ t.nombre }}</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalConceptos()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (t.conceptos.length === 0) {
+        <p class="ah-vacio">Este tarifario todavía no tiene conceptos agregados.</p>
+      } @else {
+        <div class="tabla-envoltorio">
+          <table class="ah-tabla">
+            <thead>
+              <tr>
+                <th>Concepto</th>
+                <th>Tarifa unitaria</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of t.conceptos; track c.id) {
+                <tr>
+                  <td>{{ nombreConceptoDe(c.concepto_cargo_id) }}</td>
+                  <td>{{ c.tarifa_unitaria }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      <div class="modal-acciones">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalConceptos()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Agregar concepto -->
+@if (tarifarioAgregandoConcepto(); as t) {
+  <div class="ah-modal-fondo" (click)="cerrarModalAgregarConcepto()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Agregar concepto — {{ t.nombre }}</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalAgregarConcepto()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorAgregarConcepto()) {
+        <p class="ah-alerta" role="alert">{{ errorAgregarConcepto() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="conceptoCargoId">Concepto de cargo</label>
+          @if (conceptosCargo().length === 0) {
+            <p class="ah-vacio ah-vacio--compacto">Sin conceptos de cargo en el catálogo.</p>
+          } @else {
+            <select id="conceptoCargoId" [ngModel]="conceptoCargoId()" (ngModelChange)="conceptoCargoId.set($event)" name="conceptoCargoId">
+              <option value="" disabled selected>Seleccionar...</option>
+              @for (c of conceptosCargo(); track c.id) {
+                <option [value]="c.id">{{ c.nombre }} ({{ c.codigo }})</option>
+              }
+            </select>
+          }
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="tarifaUnitaria">Tarifa unitaria</label>
+          <input id="tarifaUnitaria" type="number" step="0.01" [ngModel]="tarifaUnitaria()" (ngModelChange)="tarifaUnitaria.set($event)" name="tarifaUnitaria" />
+        </div>
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="agregarConcepto()"
+            [disabled]="agregandoConcepto() || !conceptoCargoId() || !tarifaUnitaria()"
+          >
+            Agregar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalAgregarConcepto()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Activar tarifario (FR-003 -- aviso de inmutabilidad) -->
+@if (tarifarioActivando(); as t) {
+  <div class="ah-modal-fondo" (click)="cerrarModalActivar()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Activar {{ t.nombre }}</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalActivar()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorActivar()) {
+        <p class="ah-alerta" role="alert">{{ errorActivar() }}</p>
+      }
+
+      <p class="ah-alerta ah-alerta--aviso">
+        Activar este tarifario lo marca como vigente para {{ t.moneda }}. Los cargos y facturas
+        ya emitidos con el tarifario vigente actual <strong>no se ven afectados</strong> —
+        cada cargo histórico queda calculado con la tarifa que tenía en su momento.
+      </p>
+
+      <div class="modal-acciones">
+        <button type="button" class="ah-btn" (click)="confirmarActivacion()" [disabled]="activando()">
+          Confirmar activación
+        </button>
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalActivar()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Nueva conciliación -->
+@if (mostrarModalConciliacion()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalConciliacion()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Nueva conciliación</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalConciliacion()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorFormularioConciliacion()) {
+        <p class="ah-alerta" role="alert">{{ errorFormularioConciliacion() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="vueloIdConciliacion">ID de vuelo</label>
+          <input id="vueloIdConciliacion" type="text" [ngModel]="vueloIdConciliacion()" (ngModelChange)="vueloIdConciliacion.set($event)" name="vueloIdConciliacion" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="periodoConciliacion">Período (ej. 2026-08)</label>
+          <input id="periodoConciliacion" type="text" [ngModel]="periodoConciliacion()" (ngModelChange)="periodoConciliacion.set($event)" name="periodoConciliacion" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="paxAerolinea">Pax reportado por la aerolínea</label>
+          <input id="paxAerolinea" type="number" [ngModel]="paxAerolinea()" (ngModelChange)="paxAerolinea.set($event)" name="paxAerolinea" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="paxSistema">Pax registrado por el sistema</label>
+          <input id="paxSistema" type="number" [ngModel]="paxSistema()" (ngModelChange)="paxSistema.set($event)" name="paxSistema" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="fuenteReporte">Fuente del reporte</label>
+          <input id="fuenteReporte" type="text" [ngModel]="fuenteReporte()" (ngModelChange)="fuenteReporte.set($event)" name="fuenteReporte" />
+        </div>
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="registrarConciliacion()"
+            [disabled]="guardandoConciliacion() || !vueloIdConciliacion() || !periodoConciliacion() || paxAerolinea() === null || paxSistema() === null"
+          >
+            Registrar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalConciliacion()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

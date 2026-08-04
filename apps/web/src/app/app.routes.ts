@@ -7,6 +7,7 @@ import { Recuperar } from './auth/recuperar/recuperar';
 import { Restablecer } from './auth/restablecer/restablecer';
 import { VerificarCorreo } from './auth/verificar-correo/verificar-correo';
 import { PanelFacturas } from './billing/panel-facturas/panel-facturas';
+import { PanelTarifarios } from './billing/panel-tarifarios/panel-tarifarios';
 import { TableroPuertas } from './puertas/tablero-puertas/tablero-puertas';
 import { PanelTurnaround } from './rampa/panel-turnaround/panel-turnaround';
 import { Shell } from './shell/shell';
@@ -52,6 +53,11 @@ export const appRoutes: Route[] = [
       { path: 'puertas/tablero', component: TableroPuertas, data: { title: 'Terminal & Gate Manager' } },
       { path: 'rampa/turnaround', component: PanelTurnaround, data: { title: 'Ground Operations' } },
       { path: 'billing/facturas', component: PanelFacturas, data: { title: 'Revenue & Billing' } },
+      {
+        path: 'billing/tarifarios',
+        component: PanelTarifarios,
+        data: { title: 'Tarifarios y conciliación' },
+      },
     ],
   },
 ];
