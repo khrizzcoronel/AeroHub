@@ -32,10 +32,17 @@ from ..application import (
     VentanaInvalida,
     agregar_accion,
     completar_accion,
+    consultar_accesos_auditor,
+    consultar_controles_soc2,
+    consultar_evidencia_soc2,
     consultar_incidentes,
     consultar_informe_auditoria_simple,
     consultar_informe_reportes_dgac_compuesto,
     consultar_post_mortem,
+    consultar_post_mortems,
+    consultar_reportes_dgac,
+    consultar_tipos_incidente,
+    consultar_tipos_reporte,
     crear_incidente,
     crear_post_mortem,
     editar_causa_raiz,
@@ -485,3 +492,191 @@ def informe_reportes_dgac_compuesto_endpoint(
         ],
         total=informe.total,
     )
+
+
+# --------------------------------------------------------------------------
+# Listados y catalogos (Sprint S1.19 -- Compliance Hub)
+# --------------------------------------------------------------------------
+
+
+class PostMortemResumenResponse(BaseModel):
+    id: str
+    incidente_ref: str
+    severidad: str
+    estado: str
+    iniciado_en: datetime
+    publicado_en: datetime | None
+
+
+class ReporteDgacResumenResponse(BaseModel):
+    id: str
+    tipo_reporte_id: str
+    periodo_inicio: date
+    periodo_fin: date
+    contenido_ref: str
+    hash_contenido: str
+    emitido_en: datetime
+
+
+class AccesoAuditorResumenResponse(BaseModel):
+    id: str
+    auditor_usuario_id: str
+    inicio: datetime
+    fin: datetime
+    motivo: str
+
+
+class EvidenciaSoc2ResumenResponse(BaseModel):
+    id: str
+    control_soc2_id: str
+    periodo_inicio: date
+    periodo_fin: date
+    ruta_artefacto: str
+    hash_artefacto: str
+    generado_en: datetime
+
+
+class TipoIncidenteResponse(BaseModel):
+    id: str
+    codigo: str
+    descripcion: str
+    categoria: str
+
+
+class TipoReporteRegulatorioResponse(BaseModel):
+    id: str
+    codigo: str
+    nombre: str
+    periodicidad: str
+    autoridad: str
+
+
+class ControlSoc2Response(BaseModel):
+    id: str
+    codigo_control: str
+    nombre: str
+    categoria: str
+
+
+@router.get(
+    "/post-mortems",
+    response_model=list[PostMortemResumenResponse],
+    dependencies=[Depends(requiere_scope("compliance:leer"))],
+)
+def listar_post_mortems_endpoint() -> list[PostMortemResumenResponse]:
+    """Sprint S1.19 -- listado que faltaba desde S1.7 (spec.md FR-007)."""
+    return [
+        PostMortemResumenResponse(
+            id=str(p.id),
+            incidente_ref=p.incidente_ref,
+            severidad=p.severidad,
+            estado=p.estado,
+            iniciado_en=p.iniciado_en,
+            publicado_en=p.publicado_en,
+        )
+        for p in consultar_post_mortems()
+    ]
+
+
+@router.get(
+    "/reportes-dgac",
+    response_model=list[ReporteDgacResumenResponse],
+    dependencies=[Depends(requiere_scope("compliance:leer"))],
+)
+def listar_reportes_dgac_endpoint() -> list[ReporteDgacResumenResponse]:
+    return [
+        ReporteDgacResumenResponse(
+            id=str(r.id),
+            tipo_reporte_id=str(r.tipo_reporte_id),
+            periodo_inicio=r.periodo_inicio,
+            periodo_fin=r.periodo_fin,
+            contenido_ref=r.contenido_ref,
+            hash_contenido=r.hash_contenido,
+            emitido_en=r.emitido_en,
+        )
+        for r in consultar_reportes_dgac()
+    ]
+
+
+@router.get(
+    "/accesos-auditor",
+    response_model=list[AccesoAuditorResumenResponse],
+    dependencies=[Depends(requiere_scope("compliance:leer"))],
+)
+def listar_accesos_auditor_endpoint() -> list[AccesoAuditorResumenResponse]:
+    return [
+        AccesoAuditorResumenResponse(
+            id=str(a.id),
+            auditor_usuario_id=str(a.auditor_usuario_id),
+            inicio=a.inicio,
+            fin=a.fin,
+            motivo=a.motivo,
+        )
+        for a in consultar_accesos_auditor()
+    ]
+
+
+@router.get(
+    "/evidencia-soc2",
+    response_model=list[EvidenciaSoc2ResumenResponse],
+    dependencies=[Depends(requiere_scope("compliance:leer"))],
+)
+def listar_evidencia_soc2_endpoint() -> list[EvidenciaSoc2ResumenResponse]:
+    return [
+        EvidenciaSoc2ResumenResponse(
+            id=str(e.id),
+            control_soc2_id=str(e.control_soc2_id),
+            periodo_inicio=e.periodo_inicio,
+            periodo_fin=e.periodo_fin,
+            ruta_artefacto=e.ruta_artefacto,
+            hash_artefacto=e.hash_artefacto,
+            generado_en=e.generado_en,
+        )
+        for e in consultar_evidencia_soc2()
+    ]
+
+
+@router.get(
+    "/catalogo/tipos-incidente",
+    response_model=list[TipoIncidenteResponse],
+    dependencies=[Depends(requiere_scope("compliance:leer"))],
+)
+def listar_tipos_incidente_endpoint() -> list[TipoIncidenteResponse]:
+    return [
+        TipoIncidenteResponse(
+            id=str(t.id), codigo=t.codigo, descripcion=t.descripcion, categoria=t.categoria
+        )
+        for t in consultar_tipos_incidente()
+    ]
+
+
+@router.get(
+    "/catalogo/tipos-reporte",
+    response_model=list[TipoReporteRegulatorioResponse],
+    dependencies=[Depends(requiere_scope("compliance:leer"))],
+)
+def listar_tipos_reporte_endpoint() -> list[TipoReporteRegulatorioResponse]:
+    return [
+        TipoReporteRegulatorioResponse(
+            id=str(t.id),
+            codigo=t.codigo,
+            nombre=t.nombre,
+            periodicidad=t.periodicidad,
+            autoridad=t.autoridad,
+        )
+        for t in consultar_tipos_reporte()
+    ]
+
+
+@router.get(
+    "/catalogo/controles-soc2",
+    response_model=list[ControlSoc2Response],
+    dependencies=[Depends(requiere_scope("compliance:leer"))],
+)
+def listar_controles_soc2_endpoint() -> list[ControlSoc2Response]:
+    return [
+        ControlSoc2Response(
+            id=str(c.id), codigo_control=c.codigo_control, nombre=c.nombre, categoria=c.categoria
+        )
+        for c in consultar_controles_soc2()
+    ]

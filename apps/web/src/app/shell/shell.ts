@@ -30,9 +30,19 @@ export class Shell {
   // Solo modulos con vista propia en apps/web -- el resto (M2/M7/M8/M9)
   // se opera desde otros paneles (contracts/perfil-acceso.md, FR-028: el
   // shell no decide permisos, solo filtra lo que no tiene ruta aqui).
-  protected readonly modulosConVista = computed(
-    () => this.perfil()?.modulos_visibles.filter((m) => m.ruta !== null) ?? [],
-  );
+  // Sprint S1.19 -- role_support tiene M9 en modulos_visibles (soporte
+  // opera tickets, no compliance) pero ningun scope compliance:* --
+  // sin este filtro veria el enlace y cada llamada del panel devolveria
+  // 403 al cargar. Mismo tipo de exclusion que role_platform_admin en
+  // S1.11, aplicada aqui por modulo en vez de por rol completo.
+  protected readonly modulosConVista = computed(() => {
+    const scopes = this.perfil()?.scopes ?? [];
+    return (
+      this.perfil()?.modulos_visibles.filter(
+        (m) => m.ruta !== null && (m.codigo !== 'M9' || scopes.includes('compliance:leer')),
+      ) ?? []
+    );
+  });
 
   // Tenants no es un modulo M1-M9 (no aparece en modulos_visibles) --
   // se muestra segun el scope real del rol, igual criterio que el resto

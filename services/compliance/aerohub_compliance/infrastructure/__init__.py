@@ -23,10 +23,19 @@ from .comandos import (
 )
 from .consultas import (
     listar_acciones_de_post_mortem,
+    listar_accesos_auditor,
+    listar_evidencia_soc2,
     listar_incidentes,
+    listar_post_mortems,
+    listar_reportes_dgac,
     obtener_post_mortem_accion_por_id,
     obtener_post_mortem_por_id,
     obtener_tipo_incidente_por_id,
+)
+from .consultas_catalogo import (
+    listar_controles_soc2,
+    listar_tipos_incidente,
+    listar_tipos_reporte_regulatorio,
 )
 from .consultas_informe import agrupar_reportes_dgac_por_tipo, listar_eventos_auditoria_informe
 
@@ -59,4 +68,11 @@ __all__ = [
     "contexto_rol_actor",
     "listar_eventos_auditoria_informe",
     "agrupar_reportes_dgac_por_tipo",
+    "listar_post_mortems",
+    "listar_reportes_dgac",
+    "listar_accesos_auditor",
+    "listar_evidencia_soc2",
+    "listar_tipos_incidente",
+    "listar_tipos_reporte_regulatorio",
+    "listar_controles_soc2",
 ]

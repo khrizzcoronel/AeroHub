@@ -1,12 +1,28 @@
 from .consultar import (
+    AccesoAuditorResumen,
     AccionTablero,
+    EvidenciaSoc2Resumen,
     IncidenteTablero,
+    PostMortemResumen,
     PostMortemTablero,
+    ReporteDgacResumen,
+    consultar_accesos_auditor,
+    consultar_evidencia_soc2,
     consultar_incidentes,
     consultar_post_mortem,
+    consultar_post_mortems,
+    consultar_reportes_dgac,
 )
 from .consultar import (
     PostMortemNoEncontrado as ConsultarPostMortemNoEncontrado,
+)
+from .consultar_catalogos import (
+    ControlSoc2,
+    TipoIncidente,
+    TipoReporteRegulatorio,
+    consultar_controles_soc2,
+    consultar_tipos_incidente,
+    consultar_tipos_reporte,
 )
 from .gestionar_acceso_auditor import (
     ResultadoOtorgarAcceso,
@@ -89,4 +105,18 @@ __all__ = [
     "InformeSimple",
     "InformeCompuesto",
     "GrupoInforme",
+    "consultar_post_mortems",
+    "PostMortemResumen",
+    "consultar_reportes_dgac",
+    "ReporteDgacResumen",
+    "consultar_accesos_auditor",
+    "AccesoAuditorResumen",
+    "consultar_evidencia_soc2",
+    "EvidenciaSoc2Resumen",
+    "consultar_tipos_incidente",
+    "TipoIncidente",
+    "consultar_tipos_reporte",
+    "TipoReporteRegulatorio",
+    "consultar_controles_soc2",
+    "ControlSoc2",
 ]

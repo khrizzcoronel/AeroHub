@@ -12,9 +12,12 @@ from sqlalchemy import select
 from sqlalchemy.engine import Connection, Row
 
 from .tablas import (
+    acceso_auditor,
+    evidencia_soc2,
     incidente_seguridad,
     post_mortem,
     post_mortem_accion,
+    reporte_dgac,
     tipo_incidente,
 )
 
@@ -46,3 +49,25 @@ def listar_acciones_de_post_mortem(conn: Connection, *, post_mortem_id: int) -> 
 def obtener_post_mortem_accion_por_id(conn: Connection, accion_id: int) -> Row | None:
     stmt = select(post_mortem_accion).where(post_mortem_accion.c.id == accion_id)
     return conn.execute(stmt).first()
+
+
+def listar_post_mortems(conn: Connection) -> list[Row]:
+    """Sprint S1.19 -- listado que faltaba desde S1.7 (solo existia
+    obtener_post_mortem_por_id, sin forma de descubrir los ids)."""
+    stmt = select(post_mortem).where(post_mortem.c.tenant_id == contexto_tenant_id())
+    return list(conn.execute(stmt))
+
+
+def listar_reportes_dgac(conn: Connection) -> list[Row]:
+    stmt = select(reporte_dgac).where(reporte_dgac.c.tenant_id == contexto_tenant_id())
+    return list(conn.execute(stmt))
+
+
+def listar_accesos_auditor(conn: Connection) -> list[Row]:
+    stmt = select(acceso_auditor).where(acceso_auditor.c.tenant_id == contexto_tenant_id())
+    return list(conn.execute(stmt))
+
+
+def listar_evidencia_soc2(conn: Connection) -> list[Row]:
+    stmt = select(evidencia_soc2).where(evidencia_soc2.c.tenant_id == contexto_tenant_id())
+    return list(conn.execute(stmt))

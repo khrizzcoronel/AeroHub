@@ -17,6 +17,7 @@ import { UsuarioList } from './usuarios/usuario-list/usuario-list';
 import { ApiKeyList } from './api-keys/api-key-list/api-key-list';
 import { LicenciaList } from './licencias/licencia-list/licencia-list';
 import { EstadoTiempoReal } from './vuelos/estado-tiempo-real/estado-tiempo-real';
+import { PanelCompliance } from './compliance/panel-compliance/panel-compliance';
 import { InicioComponent } from './inicio.component';
 import { PantallaList } from './fids/pantalla-list/pantalla-list';
 import {
@@ -58,6 +59,7 @@ export const appRoutes: Route[] = [
         data: { title: 'AODB · Estado de vuelos' },
       },
       { path: 'fids/pantallas', component: PantallaList, data: { title: 'FIDS Management' } },
+      { path: 'compliance/panel', component: PanelCompliance, data: { title: 'Compliance Hub' } },
       { path: 'puertas/tablero', component: TableroPuertas, data: { title: 'Terminal & Gate Manager' } },
       { path: 'rampa/turnaround', component: PanelTurnaround, data: { title: 'Ground Operations' } },
       { path: 'billing/facturas', component: PanelFacturas, data: { title: 'Revenue & Billing' } },

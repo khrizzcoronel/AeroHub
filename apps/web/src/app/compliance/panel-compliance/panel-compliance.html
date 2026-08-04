@@ -1,0 +1,510 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>Compliance Hub</h1>
+    <div class="consola__acciones">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTodo()" [disabled]="cargando()">
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
+
+  <!-- ============ Incidentes ============ -->
+  <h2>Incidentes de seguridad</h2>
+  <div class="consola__acciones">
+    @if (puedeEscribir()) {
+      <button type="button" class="ah-btn" (click)="abrirModalIncidente()">Registrar incidente</button>
+    }
+  </div>
+  @if (incidentes().length === 0) {
+    <p class="ah-vacio">Sin incidentes registrados todavía.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th>Severidad</th>
+            <th>Detectado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (i of incidentes(); track i.id) {
+            <tr>
+              <td>{{ nombreTipoIncidente(i.tipo_incidente_id) }}</td>
+              <td>{{ i.descripcion }}</td>
+              <td>{{ i.severidad }}</td>
+              <td>{{ i.detectado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ i.estado }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ============ Post-mortems ============ -->
+  <h2>Post-mortems</h2>
+  <div class="consola__acciones">
+    @if (puedeEscribir()) {
+      <button type="button" class="ah-btn" (click)="abrirModalPostMortem()">Nuevo post-mortem</button>
+    }
+  </div>
+  @if (postMortems().length === 0) {
+    <p class="ah-vacio">Sin post-mortems todavía.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Incidente</th>
+            <th>Severidad</th>
+            <th>Estado</th>
+            <th>Iniciado</th>
+            <th>Publicado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of postMortems(); track p.id) {
+            <tr>
+              <td>{{ p.incidente_ref }}</td>
+              <td>{{ p.severidad }}</td>
+              <td>
+                <span class="ah-pill" [class.ah-pill--ok]="p.estado === 'publicado'">{{ p.estado }}</span>
+              </td>
+              <td>{{ p.iniciado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ p.publicado_en ? (p.publicado_en | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+              <td>
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalle(p.id)">
+                  Ver detalles
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ============ Reportes DGAC ============ -->
+  <h2>Reportes DGAC</h2>
+  <div class="consola__acciones">
+    @if (puedeEscribir()) {
+      <button type="button" class="ah-btn" (click)="abrirModalReporte()">Emitir reporte</button>
+    }
+  </div>
+  @if (reportesDgac().length === 0) {
+    <p class="ah-vacio">Sin reportes emitidos todavía.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Período</th>
+            <th>Referencia</th>
+            <th>Hash</th>
+            <th>Emitido</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of reportesDgac(); track r.id) {
+            <tr>
+              <td>{{ nombreTipoReporte(r.tipo_reporte_id) }}</td>
+              <td>{{ r.periodo_inicio }} – {{ r.periodo_fin }}</td>
+              <td>{{ r.contenido_ref }}</td>
+              <td><code>{{ r.hash_contenido | slice: 0 : 16 }}…</code></td>
+              <td>{{ r.emitido_en | date: 'dd/MM/yyyy HH:mm' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ============ Accesos de auditor ============ -->
+  <h2>Accesos de auditor</h2>
+  <div class="consola__acciones">
+    @if (puedeEscribir()) {
+      <button type="button" class="ah-btn" (click)="abrirModalAcceso()">Otorgar acceso</button>
+    }
+  </div>
+  @if (accesosAuditor().length === 0) {
+    <p class="ah-vacio">Sin accesos otorgados todavía.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Auditor</th>
+            <th>Ventana</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of accesosAuditor(); track a.id) {
+            <tr>
+              <td>{{ a.auditor_usuario_id }}</td>
+              <td>{{ a.inicio | date: 'dd/MM/yyyy HH:mm' }} – {{ a.fin | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ a.motivo }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ============ Evidencia SOC2 (solo lectura para roles sin compliance:escribir) ============ -->
+  <h2>Evidencia SOC2</h2>
+  <div class="consola__acciones">
+    @if (puedeEscribir()) {
+      <button type="button" class="ah-btn" (click)="abrirModalEvidencia()">Registrar evidencia</button>
+    }
+  </div>
+  @if (evidenciaSoc2().length === 0) {
+    <p class="ah-vacio">Sin evidencia registrada todavía.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Control</th>
+            <th>Período</th>
+            <th>Artefacto</th>
+            <th>Hash</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of evidenciaSoc2(); track e.id) {
+            <tr>
+              <td>{{ nombreControlSoc2(e.control_soc2_id) }}</td>
+              <td>{{ e.periodo_inicio }} – {{ e.periodo_fin }}</td>
+              <td>{{ e.ruta_artefacto }}</td>
+              <td><code>{{ e.hash_artefacto | slice: 0 : 16 }}…</code></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<!-- Modal: Nuevo incidente -->
+@if (mostrarModalIncidente()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalIncidente()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Registrar incidente</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalIncidente()" aria-label="Cerrar">✕</button>
+      </div>
+      @if (errorIncidente()) {
+        <p class="ah-alerta" role="alert">{{ errorIncidente() }}</p>
+      }
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="tipoIncidenteId">Tipo</label>
+          <select id="tipoIncidenteId" [ngModel]="tipoIncidenteId()" (ngModelChange)="tipoIncidenteId.set($event)" name="tipoIncidenteId">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (t of tiposIncidente(); track t.id) {
+              <option [value]="t.id">{{ t.descripcion }}</option>
+            }
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="descripcionIncidente">Descripción</label>
+          <input id="descripcionIncidente" type="text" [ngModel]="descripcionIncidente()" (ngModelChange)="descripcionIncidente.set($event)" name="descripcionIncidente" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="severidadIncidente">Severidad</label>
+          <select id="severidadIncidente" [ngModel]="severidadIncidente()" (ngModelChange)="severidadIncidente.set($event)" name="severidadIncidente">
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+            <option value="critica">Crítica</option>
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="detectadoEn">Detectado en</label>
+          <input id="detectadoEn" type="datetime-local" [ngModel]="detectadoEn()" (ngModelChange)="detectadoEn.set($event)" name="detectadoEn" />
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="crearIncidente()" [disabled]="guardandoIncidente() || !tipoIncidenteId() || !descripcionIncidente() || !detectadoEn()">
+            Registrar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalIncidente()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Nuevo post-mortem -->
+@if (mostrarModalPostMortem()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalPostMortem()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Nuevo post-mortem</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalPostMortem()" aria-label="Cerrar">✕</button>
+      </div>
+      @if (errorPostMortem()) {
+        <p class="ah-alerta" role="alert">{{ errorPostMortem() }}</p>
+      }
+      <p class="ah-alerta ah-alerta--aviso">Exclusivo para el rol SRE (ADR-009).</p>
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="incidenteRef">Referencia del incidente</label>
+          <input id="incidenteRef" type="text" [ngModel]="incidenteRef()" (ngModelChange)="incidenteRef.set($event)" name="incidenteRef" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="severidadPm">Severidad</label>
+          <select id="severidadPm" [ngModel]="severidadPm()" (ngModelChange)="severidadPm.set($event)" name="severidadPm">
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+            <option value="critica">Crítica</option>
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="iniciadoEn">Iniciado en</label>
+          <input id="iniciadoEn" type="datetime-local" [ngModel]="iniciadoEn()" (ngModelChange)="iniciadoEn.set($event)" name="iniciadoEn" />
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="crearPostMortem()" [disabled]="guardandoPostMortem() || !incidenteRef() || !iniciadoEn()">
+            Crear
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalPostMortem()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Detalle de post-mortem -->
+@if (detalle(); as d) {
+  <div class="ah-modal-fondo" (click)="cerrarDetalle()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Post-mortem — {{ d.post_mortem.incidente_ref }}</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarDetalle()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (error()) {
+        <p class="ah-alerta" role="alert">{{ error() }}</p>
+      }
+
+      <p>Estado: <strong>{{ d.post_mortem.estado }}</strong></p>
+
+      @if (d.post_mortem.estado !== 'publicado') {
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="causaRaiz">Causa raíz</label>
+          <textarea id="causaRaiz" rows="3" [ngModel]="causaRaiz()" (ngModelChange)="causaRaiz.set($event)" name="causaRaiz"></textarea>
+          <button type="button" class="ah-btn ah-btn--sm" (click)="guardarCausaRaiz()">Guardar causa raíz</button>
+        </div>
+      } @else {
+        <p><strong>Causa raíz:</strong> {{ d.post_mortem.causa_raiz }}</p>
+      }
+
+      <h3>Acciones</h3>
+      @if (d.acciones.length === 0) {
+        <p class="ah-vacio ah-vacio--compacto">Sin acciones todavía.</p>
+      } @else {
+        <div class="tabla-envoltorio">
+          <table class="ah-tabla">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Responsable</th>
+                <th>Vence</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of d.acciones; track a.id) {
+                <tr>
+                  <td>{{ a.descripcion }}</td>
+                  <td>{{ a.responsable_usuario_id }}</td>
+                  <td>{{ a.vence_en | date: 'dd/MM/yyyy' }}</td>
+                  <td>{{ a.estado }}</td>
+                  <td>
+                    @if (a.estado !== 'completada') {
+                      <button type="button" class="ah-btn ah-btn--sm" (click)="completarAccion(a.id)">Completar</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (d.post_mortem.estado !== 'publicado') {
+        <div class="formulario">
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="descripcionAccion">Nueva acción</label>
+            <input id="descripcionAccion" type="text" [ngModel]="descripcionAccion()" (ngModelChange)="descripcionAccion.set($event)" name="descripcionAccion" placeholder="Descripción" />
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="responsableAccion">Responsable (id de usuario)</label>
+            <input id="responsableAccion" type="text" [ngModel]="responsableAccion()" (ngModelChange)="responsableAccion.set($event)" name="responsableAccion" />
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="venceAccion">Vence</label>
+            <input id="venceAccion" type="datetime-local" [ngModel]="venceAccion()" (ngModelChange)="venceAccion.set($event)" name="venceAccion" />
+          </div>
+          <button type="button" class="ah-btn ah-btn--sm" (click)="agregarAccion()" [disabled]="!descripcionAccion() || !responsableAccion() || !venceAccion()">
+            Agregar acción
+          </button>
+        </div>
+      }
+
+      <div class="modal-acciones">
+        @if (d.post_mortem.estado !== 'publicado') {
+          <button type="button" class="ah-btn" (click)="publicar()">Publicar post-mortem</button>
+        }
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarDetalle()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Emitir reporte DGAC -->
+@if (mostrarModalReporte()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalReporte()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Emitir reporte DGAC</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalReporte()" aria-label="Cerrar">✕</button>
+      </div>
+      @if (errorReporte()) {
+        <p class="ah-alerta" role="alert">{{ errorReporte() }}</p>
+      }
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="tipoReporteId">Tipo</label>
+          <select id="tipoReporteId" [ngModel]="tipoReporteId()" (ngModelChange)="tipoReporteId.set($event)" name="tipoReporteId">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (t of tiposReporte(); track t.id) {
+              <option [value]="t.id">{{ t.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="periodoInicioReporte">Período desde</label>
+          <input id="periodoInicioReporte" type="date" [ngModel]="periodoInicioReporte()" (ngModelChange)="periodoInicioReporte.set($event)" name="periodoInicioReporte" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="periodoFinReporte">Período hasta</label>
+          <input id="periodoFinReporte" type="date" [ngModel]="periodoFinReporte()" (ngModelChange)="periodoFinReporte.set($event)" name="periodoFinReporte" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="contenidoRef">Referencia de contenido</label>
+          <input id="contenidoRef" type="text" [ngModel]="contenidoRef()" (ngModelChange)="contenidoRef.set($event)" name="contenidoRef" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="hashContenido">Hash de contenido</label>
+          <input id="hashContenido" type="text" [ngModel]="hashContenido()" (ngModelChange)="hashContenido.set($event)" name="hashContenido" />
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="registrarReporte()" [disabled]="guardandoReporte() || !tipoReporteId() || !contenidoRef() || !hashContenido()">
+            Emitir
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalReporte()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Otorgar acceso de auditor -->
+@if (mostrarModalAcceso()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalAcceso()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Otorgar acceso de auditor</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalAcceso()" aria-label="Cerrar">✕</button>
+      </div>
+      @if (errorAcceso()) {
+        <p class="ah-alerta" role="alert">{{ errorAcceso() }}</p>
+      }
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="auditorUsuarioId">Usuario auditor (id)</label>
+          <input id="auditorUsuarioId" type="text" [ngModel]="auditorUsuarioId()" (ngModelChange)="auditorUsuarioId.set($event)" name="auditorUsuarioId" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="inicioAcceso">Inicio</label>
+          <input id="inicioAcceso" type="datetime-local" [ngModel]="inicioAcceso()" (ngModelChange)="inicioAcceso.set($event)" name="inicioAcceso" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="finAcceso">Fin</label>
+          <input id="finAcceso" type="datetime-local" [ngModel]="finAcceso()" (ngModelChange)="finAcceso.set($event)" name="finAcceso" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="motivoAcceso">Motivo</label>
+          <input id="motivoAcceso" type="text" [ngModel]="motivoAcceso()" (ngModelChange)="motivoAcceso.set($event)" name="motivoAcceso" />
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="otorgarAcceso()" [disabled]="guardandoAcceso() || !auditorUsuarioId() || !inicioAcceso() || !finAcceso() || !motivoAcceso()">
+            Otorgar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalAcceso()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Registrar evidencia SOC2 -->
+@if (mostrarModalEvidencia()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalEvidencia()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Registrar evidencia SOC2</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalEvidencia()" aria-label="Cerrar">✕</button>
+      </div>
+      @if (errorEvidencia()) {
+        <p class="ah-alerta" role="alert">{{ errorEvidencia() }}</p>
+      }
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="controlSoc2Id">Control</label>
+          <select id="controlSoc2Id" [ngModel]="controlSoc2Id()" (ngModelChange)="controlSoc2Id.set($event)" name="controlSoc2Id">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (c of controlesSoc2(); track c.id) {
+              <option [value]="c.id">{{ c.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="periodoInicioEvidencia">Período desde</label>
+          <input id="periodoInicioEvidencia" type="date" [ngModel]="periodoInicioEvidencia()" (ngModelChange)="periodoInicioEvidencia.set($event)" name="periodoInicioEvidencia" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="periodoFinEvidencia">Período hasta</label>
+          <input id="periodoFinEvidencia" type="date" [ngModel]="periodoFinEvidencia()" (ngModelChange)="periodoFinEvidencia.set($event)" name="periodoFinEvidencia" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="rutaArtefacto">Ruta del artefacto</label>
+          <input id="rutaArtefacto" type="text" [ngModel]="rutaArtefacto()" (ngModelChange)="rutaArtefacto.set($event)" name="rutaArtefacto" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="hashArtefacto">Hash del artefacto</label>
+          <input id="hashArtefacto" type="text" [ngModel]="hashArtefacto()" (ngModelChange)="hashArtefacto.set($event)" name="hashArtefacto" />
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="registrarEvidencia()" [disabled]="guardandoEvidencia() || !controlSoc2Id() || !rutaArtefacto() || !hashArtefacto()">
+            Registrar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalEvidencia()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

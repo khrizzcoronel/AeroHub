@@ -1,0 +1,63 @@
+// Compliance Hub (Sprint S1.19) -- mismo patron que el resto de apps/web
+// desde S1.14: .ah-panel + .ah-tabla + .ah-modal, sin max-width.
+
+.consola {
+  width: 100%;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+.consola__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.consola__acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.tabla-envoltorio {
+  overflow-x: auto;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  background: #fff;
+}
+
+.tabla-envoltorio .ah-tabla {
+  min-width: 640px;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.formulario textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--ah-radius);
+  border: 1px solid var(--ah-line-200);
+  resize: vertical;
+}
+
+.modal-acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.ah-vacio--compacto {
+  padding: 0.5rem 0;
+  margin: 0;
+}

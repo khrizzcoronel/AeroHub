@@ -39,7 +39,7 @@ MODULOS: dict[str, Modulo] = {
     "M6": Modulo("M6", "Passenger Experience", None),
     "M7": Modulo("M7", "ETL & Analytics", None),
     "M8": Modulo("M8", "Observability", None),
-    "M9": Modulo("M9", "Compliance Hub", None),
+    "M9": Modulo("M9", "Compliance Hub", "/compliance/panel"),
 }
 
 # rol -> (modulos que puede operar, scopes que se emiten en su JWT)
@@ -62,8 +62,22 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         ),
     ),
     "role_sre": (
-        frozenset({"M7", "M8"}),
-        frozenset({"support:leer", "support:escribir"}),
+        frozenset({"M7", "M8", "M9"}),
+        frozenset(
+            {
+                "support:leer",
+                "support:escribir",
+                # Sprint S1.19 -- hallazgo empirico: _exigir_role_sre()
+                # (gestionar_post_mortem.py, S1.7/ADR-009) exige
+                # exactamente role_sre para post-mortems, pero este rol
+                # no tenia ningun scope compliance:* -- los 2 endpoints
+                # de post-mortem eran inalcanzables por el unico rol que
+                # el dominio autoriza (mismo patron que el hallazgo de
+                # fids:* en S1.16).
+                "compliance:leer",
+                "compliance:escribir",
+            }
+        ),
     ),
     "role_data_engineer": (
         frozenset({"M7"}),

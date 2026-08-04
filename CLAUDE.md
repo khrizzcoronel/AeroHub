@@ -106,11 +106,12 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.12 | Rediseño: `puertas/tablero` (ocupación/conflicto) + `rampa/turnaround` (desviación, tareas, incidencias) | `738a44b` |
 | S1.13 | Rediseño: `billing/facturas` (semáforo de estado) + `tenants/nuevo` + auditoría de las 8 vistas de S1.10 (1 inconsistencia real corregida en `login.scss`) | `738a44b` |
 | S1.14 | Rediseño: `fids-player/pantalla-player` (3 modos: configuración/reproducción/sin señal) -- cierra el rediseño de interfaz S1.11-S1.14 | `2285ced` |
-| S1.15 | Fase 1.5: contrato de API generado + superficie del AODB (alta de vuelo, registro de estado) + 2 endpoints huérfanos (cancelar asignación, reenviar verificación) | pendiente de commit |
-| S1.16 | Fase 1.5: administración de FIDS (plantillas, pantallas, telemetría) -- corrige además el hallazgo crítico de que ningún rol tenía scopes `fids:*` | pendiente de commit |
-| S1.17 | Fase 1.5: tarifarios (RF-T10) y conciliación de pax -- historial completo de tarifarios con conceptos, activación con aviso de inmutabilidad, conciliación con diferencia derivada | pendiente de commit |
-| S1.18 | Fase 1.5: informes operativos (familia RF-I nueva) -- 6 informes (simple+compuesto) en M1/M3/M4/M5/Tenancy/M9, primitivo `.ah-informe`, exportación CSV, auditoría de emisión en M5/M9 | pendiente de commit |
-| **S1.19** | **Fase 1.5: Compliance Hub (M9)** | **siguiente** |
+| S1.15 | Fase 1.5: contrato de API generado + superficie del AODB (alta de vuelo, registro de estado) + 2 endpoints huérfanos (cancelar asignación, reenviar verificación) | `b6fb8df` |
+| S1.16 | Fase 1.5: administración de FIDS (plantillas, pantallas, telemetría) -- corrige además el hallazgo crítico de que ningún rol tenía scopes `fids:*` | `afd9ad4` |
+| S1.17 | Fase 1.5: tarifarios (RF-T10) y conciliación de pax -- historial completo de tarifarios con conceptos, activación con aviso de inmutabilidad, conciliación con diferencia derivada | `f23bb3e` |
+| S1.18 | Fase 1.5: informes operativos (familia RF-I nueva) -- 6 informes (simple+compuesto) en M1/M3/M4/M5/Tenancy/M9, primitivo `.ah-informe`, exportación CSV, auditoría de emisión en M5/M9 | `3e066ba` |
+| S1.19 | Fase 1.5: Compliance Hub (M9) -- listados/catálogos nuevos, vista `compliance/panel`, hallazgo de scopes de `role_sre` corregido | pendiente de commit |
+| **S1.20** | **Fase 1.5: D6 Soporte (tickets con SLA, KB, changelog) -- cierra la Fase 1.5** | **retomar aquí** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
@@ -268,8 +269,8 @@ existente `test_billing_facturacion.py` sin regresiones (11/11 verde);
 build de producción de `apps/web` en verde. No verificado en navegador
 real (misma regla vigente).
 
-**S1.18 implementado** (`specs/020-informes-operativos/`, pendiente de
-commit): formaliza la familia de requisitos RF-I01-RF-I04 (informes
+**S1.18 implementado** (`specs/020-informes-operativos/`, commit
+`3e066ba`): formaliza la familia de requisitos RF-I01-RF-I04 (informes
 simples/compuestos, totales calculados en el servidor, parámetros
 declarados en el artefacto exportado, auditoría de emisión) con 6
 informes -- uno simple y uno compuesto por módulo dueño de su tabla
@@ -305,6 +306,74 @@ importar en `licencia.py`, una variable ambigua `l` en `router.py`);
 más SC-002/SC-003/RF-I04), suite `test_billing_facturacion.py` y
 `test_aplicacion_s1_1.py` sin regresiones; build de producción de
 `apps/web` en verde. No verificado en navegador real (regla vigente).
+
+**S1.19 implementado** (`specs/021-compliance-hub/`, pendiente de
+commit): superficie completa de M9 Compliance Hub, hasta ahora sin
+ninguna vista en `apps/web` (`ruta: null` en `roles_modulos.py`).
+
+1. **Hallazgo crítico** (`packages/contracts/aerohub_contracts/roles_modulos.py`):
+   `role_sre` no tenía ningún scope `compliance:*` pese a que
+   `_exigir_role_sre()` (`gestionar_post_mortem.py`, S1.7/ADR-009) exige
+   exactamente ese rol para post-mortems -- mismo patrón que el hallazgo
+   de `fids:*` en S1.16. Se agregó `M9` a sus módulos y
+   `compliance:leer`/`compliance:escribir` a sus scopes. **Verificado
+   empíricamente contra MonetDB real vía `TestClient`**: `role_sre` ya
+   puede `POST /compliance/incidentes` y `POST /compliance/post-mortems`
+   (201, antes 403). Ojo con un hallazgo *distinto* encontrado de paso,
+   **sin tocar**: `role_tenant_admin` tiene `compliance:leer`/`escribir`
+   a nivel de scope de aplicación desde S1.7, pero **no tiene ningún
+   `GRANT` de motor** sobre `compliance.*` (`db/ddl/monetdb/93_grants_compliance.sql`/
+   `99_grants_compliance_hub.sql` solo otorgan a `role_platform_admin`,
+   `role_sre`, `role_data_engineer`, `role_regulatory_auditor`,
+   `role_elt_reader`) -- cualquier query de `role_tenant_admin` sobre
+   `compliance.*` falla con `403 acceso denegado` a nivel de motor,
+   pre-existente desde S1.7, fuera de alcance de este sprint (usar
+   `role_sre`/`role_regulatory_auditor` para probar M9, nunca
+   `role_tenant_admin`).
+2. **Backend completo y verificado en verde** (`ruff`/`mypy` pasan sobre
+   `services/compliance` y `packages/contracts`): 4 listados nuevos
+   (`listar_post_mortems`, `listar_reportes_dgac`, `listar_accesos_auditor`,
+   `listar_evidencia_soc2` en `infrastructure/consultas.py`), 3 catálogos
+   nuevos (`infrastructure/consultas_catalogo.py`: tipos de incidente,
+   tipos de reporte regulatorio, controles SOC2), sus casos de uso en
+   `application/consultar.py`/`consultar_catalogos.py` (nuevo), y 7
+   endpoints GET nuevos en `api/router.py` (`/compliance/post-mortems`,
+   `/reportes-dgac`, `/accesos-auditor`, `/evidencia-soc2`,
+   `/catalogo/{tipos-incidente,tipos-reporte,controles-soc2}`). Probado
+   uno por uno con `TestClient` real (crear incidente → crear post-mortem
+   con `role_sre` → listar; emitir reporte DGAC con `role_sre` → listar
+   con hash visible; catálogos con `role_regulatory_auditor`) -- todos
+   200/201 según corresponda.
+3. **Frontend completo**: `apps/web/src/app/compliance/compliance.service.ts`
+   (11 métodos) y `apps/web/src/app/compliance/panel-compliance/`
+   (`.ts`/`.html`/`.scss`, 5 secciones: incidentes, post-mortems con
+   detalle+acciones+publicar, reportes DGAC, accesos de auditor,
+   evidencia SOC2 -- esta última con alta condicionada a
+   `puedeEscribir()`, que lee `AuthService.perfil()?.scopes`, research.md
+   Decisión 4). Ruta `compliance/panel` → `PanelCompliance` agregada en
+   `app.routes.ts`. **Hallazgo corregido en `shell.ts`**: `role_support`
+   tiene M9 en `modulos_visibles` (opera tickets, no compliance) pero
+   ningún scope `compliance:*` -- sin filtro adicional habría visto el
+   enlace del menú y cada llamada del panel habría devuelto 403 al
+   cargar. `modulosConVista` ahora excluye M9 específicamente cuando el
+   perfil no trae `compliance:leer` (exclusión por módulo, no por rol
+   completo -- distinto del mecanismo de `role_platform_admin` en S1.11,
+   que excluye TODOS los módulos).
+4. **Verificado**: `docker cp` de los 6 archivos backend + 3 frontend al
+   contenedor, `ruff check --fix`/`mypy` en verde sobre
+   `services/compliance` + `packages/contracts`; `npx nx build web
+   --configuration=production` en verde dentro de `aerohub-web` (2
+   warnings preexistentes de `informes/panel-informe`, sin relación con
+   este sprint, más el warning de presupuesto de bundle ya conocido).
+   `tests/integration/test_compliance_hub.py` nuevo (T021, 5 tests:
+   ciclo incidente→post-mortem con `role_sre`, reporte DGAC con hash
+   visible, catálogos con `role_regulatory_auditor`, evidencia SOC2
+   escrita por `role_sre`/leída por auditor, aislamiento de tenant
+   MEC/UIO) -- los 5 en verde contra MonetDB real; suites existentes
+   `test_compliance_post_mortem.py` y `test_compliance_informes.py` sin
+   regresiones (6/6 verde). No verificado en navegador real (regla
+   vigente desde S1.16 -- no probar automáticamente salvo pedido
+   explícito).
 
 ## Rediseño de interfaz (S1.11–S1.14)
 
