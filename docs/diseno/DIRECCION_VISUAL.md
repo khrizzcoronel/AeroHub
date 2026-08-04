@@ -127,6 +127,12 @@ contenido de la plantilla activa, ver `specs/016-fids-player-rediseno/research.m
 
 ### 2.4 El elemento distintivo: la tira
 
+> **⚠️ SUPERSEDIDA EL 2026-08-04 — leer §2.4.2 antes de aplicar esta sección.**
+> El usuario decidió explícitamente migrar las 5 vistas operativas de `.ah-tira` a
+> `.ah-tabla`. Esta sección se conserva como registro de la decisión original y porque
+> `fids-player` (S1.14) sí conserva el espíritu de la tira; **no describe el estado actual
+> de `apps/web`.**
+
 **Un solo componente estructural, reutilizado en los cinco módulos:**
 
 ```
@@ -153,6 +159,37 @@ cinco. No es reutilización por ahorro de código, es coherencia de lectura.
 - **`.ah-modal-fondo` / `.ah-modal`**: Diálogo superpuesto para operaciones de alta o edición sin navegación de página ni pérdida de contexto.
 - **`.ah-toast-container` / `.ah-toast`**: Notificaciones flotantes en la esquina superior derecha (`.ah-toast--exito`, `.ah-toast--error`, `.ah-toast--info`, `.ah-toast--aviso`) que confirman operaciones completadas (aprovisionamiento, actualización, borrado físico, copiado al portapapeles).
 - **`.ah-btn--peligro`**: Variante de botón destructiva (rojo) para salvaguardas y confirmación de acciones irreversibles (borrado físico).
+
+### 2.4.2 Decisión vigente (2026-08-04): la tabla reemplaza a la tira en `apps/web`
+
+Tras completar el workpanel de `tenants` y `usuarios`, el usuario decidió explícitamente —vía
+consulta directa— **migrar las 5 vistas operativas de `.ah-tira` a `.ah-tabla`**, unificándolas con
+los paneles administrativos. Registro completo de la decisión y su alcance en
+`docs/diseno/PLAN_WORKPANELS_MODULOS.md` §3.0.
+
+**Estado real de `apps/web` desde esa fecha** — el patrón único es:
+
+> `.ah-panel` (búsqueda) + `.ah-tabla` (columnas) + `.ah-pill` (estado) + `.ah-paginacion` (10 en 10)
+> + `.ah-modal` (alta / detalle), con una sola acción por fila ("Ver detalles").
+
+| Vista | Unidad estructural vigente | Semáforo |
+|:---|:---|:---|
+| `vuelos/estado-tiempo-real` (M1) | fila de `.ah-tabla` | `.ah-pill` por estado de vuelo |
+| `puertas/tablero-puertas` (M3) | fila de `.ah-tabla` | `.ah-pill` de ocupación/conflicto |
+| `rampa/panel-turnaround` (M4) | fila de `.ah-tabla` | `.ah-pill` de desviación |
+| `billing/panel-facturas` (M5) | fila de `.ah-tabla` | `.ah-pill` de estado de factura |
+| `tenants` / `usuarios` / `api-keys` / `licencias` | fila de `.ah-tabla` | `.ah-pill` |
+
+**Qué se conserva de §2.2 y §2.4** (la decisión NO fue "hacer un SaaS con aire"): la densidad,
+la tipografía mono para todo dato operacional, el semáforo de 4 tonos como único color saturado, y
+la coherencia de lectura entre módulos. Lo que cambió es **el contenedor** de esa densidad —de una
+tira con barra lateral a una fila de tabla con insignia—, no la filosofía.
+
+**Dónde sigue viva la tira**: `apps/fids-player` (S1.14) conserva el espíritu del artefacto físico
+—contenido en mono, alto contraste, sin cromo de interfaz—, que es el contexto donde la metáfora
+original tenía más sentido: una pantalla pública leída a distancia.
+
+**Regla para vistas futuras de `apps/web`: usar `.ah-tabla`, no `.ah-tira`.**
 
 ### 2.5 Autocrítica (antes de construir)
 

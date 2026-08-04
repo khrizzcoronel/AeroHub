@@ -3,13 +3,13 @@
 Mapa de continuidad entre sesiones, para no tener que re-derivar el estado
 del proyecto ni releer todo el historial cada vez que el contexto se
 reinicia. La fuente de verdad de arquitectura/requisitos sigue siendo
-`docs/PLAN_IMPLEMENTACION_v2.0.md`, `docs/srs/`, `docs/sdd/`, `docs/adr/`
+`docs/PLAN_IMPLEMENTACION_v3.0.md`, `docs/srs/`, `docs/sdd/`, `docs/adr/`
 y `docs/estrategia/` — este archivo no los duplica, apunta a ellos y
 registra lo que esos documentos no capturan (progreso real, hallazgos
 empíricos, reglas de trabajo).
 
 **Al empezar una sesión nueva**: leer este archivo primero. Si el pedido
-es "seguir con el siguiente sprint", ir directo a `docs/PLAN_IMPLEMENTACION_v2.0.md`
+es "seguir con el siguiente sprint", ir directo a `docs/PLAN_IMPLEMENTACION_v3.0.md`
 §8.`<N+1>` (la sección del sprint siguiente al último completado abajo) en
 vez de re-explorar el repo entero.
 
@@ -22,7 +22,7 @@ cada sprint -- S0.1 a S1.5 se documentaron RETROACTIVAMENTE
 
 **A partir de S1.6, todo sprint nuevo sigue el flujo Spec Kit ANTES/DURANTE
 la implementación, nunca después**: `/speckit-specify` (spec.md a partir de
-la sección correspondiente de `docs/PLAN_IMPLEMENTACION_v2.0.md` §8) →
+la sección correspondiente de `docs/PLAN_IMPLEMENTACION_v3.0.md` §8) →
 `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`. Esto es una
 regla de trabajo tan firme como "verificar contra MonetDB real" o "todo
 servicio en Docker" -- no es opcional ni se retoma "cuando convenga".
@@ -86,7 +86,7 @@ S0.1 (aislamiento fail-closed, arquitectura modular, verificación empírica,
 calidad en verde, aprobación explícita) -- no inventa reglas nuevas, y ante
 cualquier discrepancia con este archivo, la constitución prevalece.
 
-## Estado del plan (`docs/PLAN_IMPLEMENTACION_v2.0.md` §8)
+## Estado del plan (`docs/PLAN_IMPLEMENTACION_v3.0.md` §8)
 
 | Sprint | Contenido | Commit |
 |---|---|---|
@@ -105,11 +105,74 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.11 | Rediseño: sistema de diseño (tokens + primitivos `.ah-*`) + quitar JWT manual de 4 vistas/3 servicios + `vuelos/estado-tiempo-real` como vista canónica | `738a44b` |
 | S1.12 | Rediseño: `puertas/tablero` (ocupación/conflicto) + `rampa/turnaround` (desviación, tareas, incidencias) | `738a44b` |
 | S1.13 | Rediseño: `billing/facturas` (semáforo de estado) + `tenants/nuevo` + auditoría de las 8 vistas de S1.10 (1 inconsistencia real corregida en `login.scss`) | `738a44b` |
-| S1.14 | Rediseño: `fids-player/pantalla-player` (3 modos: configuración/reproducción/sin señal) -- cierra el rediseño de interfaz S1.11-S1.14 | pendiente de commit |
+| S1.14 | Rediseño: `fids-player/pantalla-player` (3 modos: configuración/reproducción/sin señal) -- cierra el rediseño de interfaz S1.11-S1.14 | `2285ced` |
+| **S1.15** | **Fase 1.5: contrato de API generado + superficie del AODB (alta de vuelo, registro de estado)** | **siguiente** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
 retomar.
+
+## Fase 1.5 -- Cierre de superficie de usuario (PLAN v3.0, §8-bis)
+
+**El plan pasó a v3.0 el 2026-08-04.** `docs/PLAN_IMPLEMENTACION_v2.0.md`
+quedó supersedido (tiene un aviso en su cabecera); la línea base vigente
+es `docs/PLAN_IMPLEMENTACION_v3.0.md`, que conserva las Fases 2-4
+textualmente y agrega la Fase 1.5.
+
+**Por qué existe esta fase**: al cerrar la Fase 1, un inventario
+automático encontró que **38 de los 83 endpoints del backend (46 %) no
+tenían ningún consumidor en el frontend**, y 12 de ellos bloqueaban
+casos de uso con actor humano confirmado. No fue un fallo de ejecución
+--cada sprint cumplió su DoD-- sino de especificación: los DoD de la v2.0
+se redactaban como criterios verificables por API, nunca como "el actor
+puede hacerlo desde la aplicación". La v3.0 corrige la DoD genérica
+(§6.5 punto 9) para que eso no vuelva a pasar.
+
+Evidencia completa en `docs/estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md`
+y `docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md` (este último tiene la
+matriz endpoint↔vista completa y el triaje de las 38 brechas en clases
+A/B/C/D).
+
+**Los 3 casos más graves** (los que motivan el orden de los sprints):
+`POST /vuelos` no existe en la UI --M1, el módulo núcleo, muestra cambios
+de estado pero no permite producirlos--; `POST /fids/pantallas` tampoco
+--el player pide un código de pantalla que ninguna interfaz crea--; y los
+3 endpoints de tarifarios tampoco, lo que vuelve inoperable a RF-T10, que
+promete "variantes de tarifario sin despliegue de código" y hoy exige un
+INSERT a mano en MonetDB.
+
+| Sprint | Contenido |
+|---|---|
+| S1.15 | Contrato: `openapi.yaml` **generado** desde FastAPI + CI que falla si difiere · superficie de M1 AODB · 2 endpoints huérfanos (cancelar asignación, reenviar verificación) |
+| S1.16 | Administración de FIDS: plantillas, pantallas, asignación, tablero de telemetría |
+| S1.17 | Tarifarios (RF-T10) y conciliación de pax |
+| S1.18 | **Informes operativos** (familia RF-I nueva): 6 informes simples + compuestos, primitivo `.ah-informe` |
+| S1.19 | M9 Compliance Hub: post-mortems, incidentes, reportes DGAC, evidencia SOC2 |
+| S1.20 | D6 Soporte: tickets con SLA, KB, changelog |
+
+**Decisiones tomadas por el usuario el 2026-08-04 (no re-preguntar)**:
+
+1. **M9 y D6 SÍ llevan interfaz** -- se descartó declararlos "solo API".
+2. **Los informes se implementan en la Fase 1.5**, no solo se especifican.
+3. **Se generó un v3 completo** en vez de enmendar v2 o hacer un anexo.
+
+**Hallazgo que bloquea a los demás sprints** (tarea R0 de
+`PLAN_REVISION_ENDPOINTS_FRONT.md`): `docs/api/openapi.yaml` tiene 60
+rutas y el backend real ~72 -- le faltan **todas** las del workpanel
+construido después del 2026-08-02. CI corre
+`spectral lint docs/api/openapi.yaml` y pasa en verde porque el archivo
+es *válido*, no porque describa la API. RF-T02 está cumplido en la forma
+y vacío en el fondo. Por eso S1.15 empieza por regenerarlo desde
+`app.openapi()` y agregar la compuerta que falla ante la divergencia.
+
+**Regla de motor para informes** (v3.0 §8-bis.0), para no romper ADR-016:
+informes de **horizonte operativo** (período en curso, necesarios para
+operar o para emitir un documento con validez) van sobre **MonetDB** en
+la Fase 1.5, amparados por la excepción textual de §3.5 del Análisis v6.0
+(OP4/facturación mensual opera sobre dato vivo); informes de **horizonte
+táctico** (comparativas multi-período, tendencias) esperan a
+**ClickHouse `ah_tactico`** en S2.4. Se divide por horizonte de la
+pregunta, no por complejidad de la consulta.
 
 ## Rediseño de interfaz (S1.11–S1.14)
 

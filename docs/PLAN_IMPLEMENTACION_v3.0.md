@@ -1,24 +1,37 @@
 # Plan de Implementación — Plataforma AeroHub
 
-> ## ⚠️ DOCUMENTO SUPERSEDIDO — 2026-08-04
->
-> **La línea base vigente es [`PLAN_IMPLEMENTACION_v3.0.md`](PLAN_IMPLEMENTACION_v3.0.md).**
->
-> Esta v2.0 se conserva como histórico. La v3.0 mantiene sus Fases 2, 3 y 4 **textualmente** y agrega: la Fase 1.5 (cierre de superficie de usuario), la familia de requisitos RF-I (informes), la condición de superficie en la DoD genérica y la métrica de cobertura de superficie.
->
-> Motivo del cambio, con evidencia: [`estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md`](estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md).
->
-> **No planificar contra este documento.**
-
 | Campo | Contenido |
 |:---|:---|
 | **Identificador de documento** | AEROHUB-PLAN-002 |
-| **Versión** | 2.0 — **supersedida por v3.0** |
-| **Fecha** | 2026-07-30 |
+| **Versión** | 3.0 — línea base única |
+| **Fecha** | 2026-08-04 |
+| **Supersede a** | v2.0 (2026-07-30), conservada como histórico en `docs/PLAN_IMPLEMENTACION_v2.0.md` |
 | **Documentos fuente** | [SRS v2.0](srs/AEROHUB-SRS-001-v2.0.md) · [SDD-DATA-001 (MonetDB)](sdd/AEROHUB-SDD-DATA-001-MonetDB-v1.0.md) · [SDD-DATA-002 (ClickHouse)](sdd/AEROHUB-SDD-DATA-002-ClickHouse-v1.0.md) · [Análisis Estratégico v6.0](estrategia/AEROHUB-ANALISIS-ESTRATEGICO-v6.0.md) |
+| **Evidencia que motiva esta versión** | [Análisis de rumbo y brechas, ago-2026](estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md) · [Plan de revisión de endpoints](diseno/PLAN_REVISION_ENDPOINTS_FRONT.md) |
 | **Metodología** | Specification-Driven Development (SDD) sobre marco ágil, sprints de 2 semanas |
 | **Marco de referencia** | ISO/IEC 12207:2017 · ISO/IEC/IEEE 29119 · IEEE 1016-2009 · ISO/IEC/IEEE 42010:2011 · ISO/IEC 25010:2011 · ISO/IEC 27001/27002:2022 · ISO/IEC 27701:2019 |
 | **Estado** | Línea base aprobada para ejecución |
+
+---
+
+## Nota de versión — qué cambia en v3.0 y por qué
+
+La v2.0 se cumplió al pie de la letra: todos los sprints de la Fase 1 cerraron con su DoD verificado. Y aun así, al terminarla, **46 % de los endpoints del backend (38 de 83) no tenía ningún consumidor en la interfaz**, y varios casos de uso con actor humano quedaron inejecutables desde la aplicación —crear un vuelo (M1), dar de alta una pantalla FIDS (M2), modificar un tarifario (M5)—.
+
+Eso **no fue un fallo de ejecución sino de especificación**: los DoD de la v2.0 se redactaron como criterios verificables por API o por test (*"la factura mensual concilia sin diferencias"*), nunca como *"el actor puede hacerlo desde la aplicación"*. Un requisito satisfecho por API con su actor sin superficie es un requisito a medias.
+
+**Los seis cambios de esta versión:**
+
+| # | Cambio | Sección |
+|:--|:---|:---|
+| 1 | **Fase 1.5 nueva — "Cierre de superficie de usuario"**: 6 sprints (S1.15–S1.20) entre la Fase 1 y la Fase 2 | §8-bis |
+| 2 | **DoD genérica corregida**: un caso de uso con actor humano no cierra sin superficie de usuario | §6.5 |
+| 3 | **Familia de requisitos RF-I (informes)** formalizada, con su regla de motor por horizonte | §8-bis.0 |
+| 4 | **S1.11–S1.14 incorporados** a la estructura de fases en vez de quedar como apéndices | §8.11–§8.14 |
+| 5 | **Cobertura de superficie** incorporada como métrica de compuerta de fin de sprint | §6.4 |
+| 6 | **Vistas de la Fase 2 desglosadas** (Acción 26 del v6, hoy implícita) | §9.4 |
+
+**Lo que NO cambia:** las Fases 2, 3 y 4 (§9–§11) se conservan **textualmente**. Sus DoD son medibles, sus pruebas negativas están mapeadas y el tratamiento de RNF-R01 en S4.2 es correcto — no había problema que corregir ahí, y modificarlas habría introducido deriva sin causa.
 
 ---
 
@@ -54,6 +67,7 @@ Toda versión anterior de la especificación, del diseño y del plan **fue elimi
 - [6. Convenciones, compuerta de pruebas y Definition of Done](#6-convenciones-compuerta-de-pruebas-y-definition-of-done)
 - [7. FASE 0 — Fundación y aislamiento verificable](#7-fase-0--fundación-y-aislamiento-verificable)
 - [8. FASE 1 — Capa operativa (RF-O\*)](#8-fase-1--capa-operativa-rf-o)
+- [8-bis. FASE 1.5 — Cierre de superficie de usuario](#8-bis-fase-15--cierre-de-superficie-de-usuario)
 - [9. FASE 2 — Capa táctica (RF-T\*)](#9-fase-2--capa-táctica-rf-t)
 - [10. FASE 3 — Capa estratégica (RF-E\*)](#10-fase-3--capa-estratégica-rf-e)
 - [11. FASE 4 — Endurecimiento y cierre de V&V](#11-fase-4--endurecimiento-y-cierre-de-vv)
@@ -174,9 +188,11 @@ Ambos riesgos **tienen ahora mecanismo asignado**. Ninguno se declara mitigado, 
 |:---|:---|:---:|:---:|:---|:---|
 | **0** | Fundación y aislamiento verificable | 2 | 1–4 | Infraestructura | Guardián *fail-closed* operando antes de la primera tabla de negocio |
 | **1** | Capa operativa (RF-O\*) | 9 | 5–22 | MonetDB | AODB, FIDS, Gates, Rampa, Billing, Compliance y continuidad sobre dato vivo |
-| **2** | Capa táctica (RF-T\*) | 6 | 23–34 | Medallion + `ah_tactico` | Pipeline gobernado, detalle histórico idempotente, ML promovible |
-| **3** | Capa estratégica (RF-E\*) | 4 | 35–42 | `ah_estrategico` | BSC reconciliado con tolerancia cero |
-| **4** | Endurecimiento y cierre de V&V | 3 | 43–48 | Transversal | PN-01…PN-15 en verde; criterios de salida de fase Sistema |
+| **1** *(ext.)* | Rediseño de interfaz | 4 | 23–26 | Angular | Sistema de diseño aplicado de punta a punta en las dos aplicaciones |
+| **1.5** | **Cierre de superficie de usuario** | **6** | **27–38** | **Angular + MonetDB** | **Todo caso de uso con actor humano es ejecutable desde la aplicación; informes operativos disponibles** |
+| **2** | Capa táctica (RF-T\*) | 6 | 39–50 | Medallion + `ah_tactico` | Pipeline gobernado, detalle histórico idempotente, ML promovible |
+| **3** | Capa estratégica (RF-E\*) | 4 | 51–58 | `ah_estrategico` | BSC reconciliado con tolerancia cero |
+| **4** | Endurecimiento y cierre de V&V | 3 | 59–64 | Transversal | PN-01…PN-15 en verde; criterios de salida de fase Sistema |
 
 ```mermaid
 gantt
@@ -184,18 +200,23 @@ gantt
     dateFormat  YYYY-MM-DD
     axisFormat  %b
     section Fase 0
-    Fundacion y aislamiento        :f0, 2026-08-03, 4w
+    Fundacion y aislamiento        :done, f0, 2026-08-03, 4w
     section Fase 1
-    Capa operativa (MonetDB)       :f1, after f0, 18w
+    Capa operativa (MonetDB)       :done, f1, after f0, 18w
+    Rediseno de interfaz           :done, f1b, after f1, 4w
+    section Fase 1.5
+    Cierre de superficie de usuario :active, f15, after f1b, 12w
     section Fase 2
-    Capa tactica (medallion + ah_tactico) :f2, after f1, 12w
+    Capa tactica (medallion + ah_tactico) :f2, after f15, 12w
     section Fase 3
     Capa estrategica (ah_estrategico)     :f3, after f2, 8w
     section Fase 4
     Endurecimiento y V&V           :f4, after f3, 6w
 ```
 
-**Regla de solape:** un sprint de Fase 2 puede iniciarse en paralelo al último de Fase 1 solo si su fuente (`ops`) está en verde. Ningún sprint de Fase 3 arranca antes de que S2.3 (carga a `ah_tactico`) haya cerrado, por P3.
+**Regla de solape:** un sprint de Fase 2 puede iniciarse en paralelo al último de Fase 1.5 solo si su fuente (`ops`) está en verde. Ningún sprint de Fase 3 arranca antes de que S2.3 (carga a `ah_tactico`) haya cerrado, por P3.
+
+**Por qué la Fase 1.5 va antes de la Fase 2 y no en paralelo** (decisión de v3.0): la Fase 2 construye el pipeline analítico *a partir de* los datos que la capa operativa produce. Si M1 no permite dar de alta un vuelo desde la interfaz, el dato operativo real sigue entrando solo por API o por seeds — y el pipeline se alimentaría de un volumen sintético que no refleja el uso real. Cerrar la superficie primero es lo que hace que la Fase 2 tenga materia prima legítima.
 
 ---
 
@@ -376,6 +397,18 @@ Todo módulo nuevo nace con los cuatro directorios de capa (§5.3), su entrada e
 
 **Salida de la compuerta:** `docs/evidencia/<sprint>/` con el informe de ejecución, la cobertura, las métricas de rendimiento medidas y el resultado de cada PN. Un sprint sin ese directorio no se acepta en la demo.
 
+#### 6.4.1 Cobertura de superficie *(incorporada en v3.0)*
+
+Métrica nueva, medida al cerrar cada sprint junto con la cobertura de pruebas:
+
+> **Cobertura de superficie = endpoints con consumidor en la interfaz / endpoints que deben tenerlo**
+
+El denominador excluye únicamente los endpoints clasificados como *sin consumidor por diseño* (procesos de fondo, herramientas externas ya adoptadas como Grafana), **documentados endpoint por endpoint** — no por categoría genérica. La clasificación vive en [`docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md`](diseno/PLAN_REVISION_ENDPOINTS_FRONT.md) §3.
+
+**Regla de compuerta:** *ningún sprint cierra dejando un endpoint nuevo con actor humano sin su superficie de usuario, o sin registrar explícitamente por qué no la lleva.* Esta regla, aplicada desde la Fase 1, habría evitado las 12 brechas que motivan la Fase 1.5.
+
+**Medición al inicio de la Fase 1.5:** 45 / 80 = **56 %**.
+
 ### 6.5 Definition of Done genérica
 
 Adicional a la DoD específica de cada sprint:
@@ -384,10 +417,11 @@ Adicional a la DoD específica de cada sprint:
 2. Compuerta de pruebas (§6.4) superada, con evidencia archivada.
 3. Toda tabla de alcance de tenant: `tenant_id` como **primer** componente de PK/índice y **alcance declarado** en el registro del guardián (ADR-019 G1).
 4. Toda mutación produce su entrada en `compliance.log_auditoria` **y** en `continuidad.journal_mutacion`, en la misma transacción (P8).
-5. Toda API nueva figura en OpenAPI 3.1 con 0 errores de Spectral.
+5. Toda API nueva figura en OpenAPI 3.1 con 0 errores de Spectral, **y el archivo publicado se genera desde el esquema real del servicio, no se mantiene a mano** *(precisión de v3.0: en la Fase 1 el `openapi.yaml` comiteado quedó 12 rutas por detrás del backend real y CI seguía en verde, porque validaba la forma del documento y no su correspondencia con la API)*.
 6. Reglas de dependencia de §5.4 en verde.
 7. Sin secretos en el repositorio; Ruff + bandit + trivy + gitleaks sin hallazgos críticos.
 8. ADR si hubo decisión estructural; runbook si hubo componente operable.
+9. **Superficie de usuario *(nuevo en v3.0)*: todo caso de uso cuyo actor sea una persona queda ejecutable desde la aplicación.** Un `RF-*` satisfecho solo por API, con su actor sin pantalla, **no cierra**: se entrega la vista en el mismo sprint o se registra en §6.4.1 la razón explícita por la que ese endpoint no lleva superficie. Esta condición se agrega porque su ausencia en la v2.0 permitió cerrar nueve sprints dejando inejecutables casos de uso confirmados.
 
 ---
 
@@ -760,6 +794,165 @@ rediseño de interfaz S1.11-S1.14 completo.
 
 ---
 
+## 8-bis. FASE 1.5 — Cierre de superficie de usuario
+
+**Semanas 27–38 · 6 sprints · D1, D3, D5, D6 · MonetDB + Angular**
+
+> **Fase nueva en v3.0.** No agrega capacidad de negocio al backend: hace **alcanzable** la que ya existe. Al cerrar la Fase 1, 38 de 83 endpoints no tenían consumidor y 12 de ellos bloqueaban casos de uso con actor humano confirmado. Evidencia completa en [`ANALISIS_RUMBO_Y_BRECHAS_2026-08.md`](estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md) y [`PLAN_REVISION_ENDPOINTS_FRONT.md`](diseno/PLAN_REVISION_ENDPOINTS_FRONT.md).
+
+### 8-bis.0 Requisitos de informes — familia RF-I *(nueva en v3.0)*
+
+El catálogo de requisitos vigente **no contempla informes**. Lo que existe son paneles operativos (filtran en memoria, no totalizan, no exportan) y un único caso especial regulatorio (`compliance.reporte_dgac`). Esta fase formaliza la capacidad.
+
+| ID | Descripción | Prioridad | Criterio de aceptación |
+|:---|:---|:---:|:---|
+| **RF-I01** | El sistema emitirá **informes simples** por módulo: una entidad principal, filtros de período y dimensión aplicados en el servidor, exportables. | M | El informe devuelve idéntico conjunto de filas que la consulta SQL equivalente sobre el mismo período; la exportación coincide con lo mostrado en pantalla. |
+| **RF-I02** | El sistema emitirá **informes compuestos**: dos o más entidades relacionadas, agrupación por dimensión, con **subtotales por grupo y total general calculados en el servidor**. | M | La suma de los subtotales iguala el total general; ningún total se calcula en el cliente. |
+| **RF-I03** | Todo informe declarará sus parámetros de emisión y su fecha de generación dentro del propio artefacto. | M | El artefacto exportado permite reconstruir exactamente qué se pidió y cuándo, sin contexto externo. |
+| **RF-I04** | La emisión de informes con validez externa (facturación, regulatorios) quedará registrada en el log de auditoría. | S | Todo informe de esa clase resuelve su entrada en `compliance.log_auditoria`. |
+
+> **Numeración:** se usa una familia propia `RF-I*` y **no** `RF-O20/21/22`, que el SRS v2.0 §Apéndice A tiene reservados (residencia de datos, retención/archivado, validación de rol contra catálogo) con advertencia explícita de no reutilizarlos. El requisito operativo confirmado más alto sigue siendo RF-O19.
+>
+> **Estado normativo:** RF-I01–RF-I04 requieren confirmación del propietario del producto para incorporarse al catálogo normativo del SRS. Hasta entonces se ejecutan bajo este plan con la misma condición que el Apéndice A impone a sus capacidades: implementables, pero sin figurar como alcance comprometido de la SRS v2.0.
+
+**Regla de motor por horizonte** — resuelve la tensión aparente con ADR-016 (§3.5 del Análisis v6.0), que reserva el análisis agregado a `ah_tactico`:
+
+| Horizonte del informe | Motor | Fase | Fundamento |
+|:---|:---|:---|:---|
+| **Operativo** — período en curso, necesario para ejecutar la operación o emitir un documento con validez | MonetDB, dentro del módulo dueño | **1.5** | Cae bajo la excepción textual de §3.5: *"OP1, OP2a, OP2b y **OP4 (facturación mensual)** operan sobre dato vivo y no pueden servirse desde la capa analítica bajo ninguna circunstancia"* |
+| **Táctico / estratégico** — comparativas multi-período, tendencias, rankings | ClickHouse `ah_tactico` | **2** (S2.4) | Es exactamente lo que §3.5 reserva a la capa analítica; construirlo en MonetDB violaría el ADR |
+
+La regla **respeta** ADR-016 en vez de excepcionarlo: divide por horizonte de la pregunta, no por complejidad de la consulta.
+
+**Patrón de implementación** — los informes no son un módulo nuevo. Cada informe vive en el módulo dueño de su tabla raíz (Principio II); si necesita una tabla ajena, redeclara su `Table()` localmente y re-registra su alcance G1, exactamente como ya hacen `gates` y `ramp` sobre `ops.vuelo`. Se agregan dos archivos por módulo: `application/informes.py` e `infrastructure/consultas_informe.py`, más una ruta `GET /<modulo>/informes/<nombre>`.
+
+Cinco reglas de diseño, para que un informe no degenere en "otro panel más":
+
+1. **Filtros en el servidor**, como *query params* traducidos a SQL — no filtrado en memoria del navegador sobre una lista completa, como hacen hoy los workpanels.
+2. **Totales calculados en el backend.** Si el navegador suma, dos personas con distinto filtro ven totales distintos del mismo dato y no hay forma de reconciliar — el mismo principio que el BSC aplica con tolerancia cero.
+3. **Respuesta con forma explícita** (`parametros` / `generado_en` / `grupos[].subtotal` / `total`): el contrato distingue fila, subtotal y total; el frontend no lo infiere.
+4. **Exportación desde el mismo endpoint** (`?formato=csv`), nunca un endpoint paralelo que pueda divergir de lo mostrado.
+5. **Un único primitivo visual nuevo**, `.ah-informe` (cabecera de parámetros, filas de subtotal y total diferenciadas, composición para impresión), reutilizando `.ah-tabla`, `.ah-panel` y `.ah-campo`.
+
+---
+
+### 8-bis.1 Sprint S1.15 — Contrato de API y superficie del AODB
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Restablecer la fuente de verdad del contrato y desbloquear el módulo núcleo: hoy la vista de M1 muestra cambios de estado pero no permite producirlos. |
+| **Acciones fuente** | Plan de revisión de endpoints, tareas R0, R1 y R3.1 |
+| **Requisitos** | RF-O02, RF-O04, RF-T02 · CU-O02 |
+
+**Entregables:** `openapi.yaml` **generado** desde el esquema real de FastAPI, con paso de CI que falla si el archivo comiteado difiere del generado —convierte el lint de Spectral, hoy verde sobre un documento 12 rutas obsoleto, en una compuerta real—; matriz endpoint↔vista versionada y regenerable, no escrita a mano; vista de alta y edición de vuelos y de registro de cambio de estado (`POST /vuelos`, `GET /vuelos/{id}`, `POST /vuelos/{id}/estados`), que `role_operations_controller` ya tiene scope para usar y ninguna pantalla donde hacerlo; botón de cancelación de asignación de puerta (`POST /puertas/asignaciones/{id}/cancelar`, endpoint huérfano en una vista existente) y reenvío de verificación de correo (`POST /auth/solicitar-verificacion`).
+
+**Compuerta de pruebas:** CI falla ante un `openapi.yaml` desactualizado, verificado introduciendo una ruta nueva sin regenerar; alta de vuelo real contra MonetDB en Docker con su id Snowflake viajando como string; cambio de estado producido desde la interfaz visible en el WebSocket de la vista de tiempo real (verificación del ciclo completo, no de las dos mitades por separado); regresión de PN.
+
+**DoD:** M1 AODB operable de punta a punta desde la aplicación; ninguna ruta del backend ausente del contrato publicado.
+
+---
+
+### 8-bis.2 Sprint S1.16 — Administración de FIDS
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Cerrar RF-T03, hoy satisfecho en backend e inalcanzable para su actor: el player exige un código de pantalla que ninguna interfaz puede crear. |
+| **Acciones fuente** | Plan de revisión de endpoints, tarea R3.2 |
+| **Requisitos** | RF-T03, RF-O07 · CU-O06 |
+
+**Entregables:** vista de diseño y publicación de plantillas FIDS (`POST /fids/plantillas`) con validación de ausencia de PII en el editor —el dominio ya la exige (RNF-S05), pero hoy el rechazo solo se ve como un 422 sin contexto—; alta de pantallas (`POST /fids/pantallas`) con generación del código que el player consume; asignación de plantilla a pantalla (`PATCH /fids/pantallas/{id}/plantilla`); tablero de telemetría de pantallas con su estado real (`en_linea`/`sin_senal`/`mantenimiento`) y última señal recibida, que complementa la detección del lado del player construida en S1.14.
+
+**Compuerta de pruebas:** ciclo completo verificado en Docker —crear plantilla, crear pantalla, asignar, y ver el contenido aparecer en `fids-player` sin recargar—; **PN-11** (rechazo de campo nominal de pasajero) ejercitada desde el editor, no solo por API; pantalla sin señal reflejada en el tablero en < 60 s (RF-O07); regresión de PN.
+
+**DoD:** una pantalla FIDS nueva se pone en producción sin tocar la base de datos ni la API por fuera de la aplicación.
+
+---
+
+### 8-bis.3 Sprint S1.17 — Tarifarios y conciliación
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Hacer cierto RF-T10, que promete *"variantes de tarifario aplicables sin despliegue de código"* y hoy exige un `INSERT` manual en MonetDB — exactamente lo que el requisito quería evitar. |
+| **Acciones fuente** | Plan de revisión de endpoints, tarea R3.3 |
+| **Requisitos** | RF-T10, RF-O15 · CU-O17 |
+
+**Entregables:** vista de tarifarios con alta de cabecera (`POST /billing/tarifarios`), gestión de conceptos (`POST /billing/tarifarios/{id}/conceptos`) y activación con vigencia (`POST /billing/tarifarios/{id}/activar`), preservando visualmente la inmutabilidad ya garantizada por el modelo —cambiar la tarifa vigente no altera cargos históricos, y la interfaz debe hacerlo evidente antes de confirmar—; vista de conciliación de pax (`POST /billing/conciliaciones`, `GET /billing/conciliaciones/{id}`, `POST /billing/conciliaciones/{id}/conciliar`) mostrando la diferencia entre conteo de aerolínea y de sistema como valor **derivado**, nunca persistido (3NF, el modelo omite `diferencia` deliberadamente).
+
+**Compuerta de pruebas:** activar un tarifario nuevo y verificar contra datos reales que los cargos y facturas anteriores no cambian; conciliación con diferencia cero sobre el período canario; segregación de funciones verificada (`role_support` sin acceso a `billing`); regresión de PN.
+
+**DoD:** una tarifa se modifica desde la aplicación, con evidencia de que el histórico permanece intacto.
+
+---
+
+### 8-bis.4 Sprint S1.18 — Informes operativos (RF-I)
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Incorporar la capacidad de informe, hoy inexistente como concepto, en su horizonte operativo. |
+| **Acciones fuente** | Análisis de brechas §2 |
+| **Requisitos** | **RF-I01, RF-I02, RF-I03, RF-I04** · RF-E02 (parte operativa, OP4) |
+
+**Entregables:** primitivo `.ah-informe` (cabecera de parámetros, filas de subtotal y total diferenciadas, composición para impresión); seis informes, cada uno en el módulo dueño de su tabla raíz:
+
+| Módulo | Informe simple | Informe compuesto |
+|:---|:---|:---|
+| M1 AODB | Vuelos del período (fecha, aerolínea, sentido, estado) | Vuelos por aerolínea × estado, con conteo y % de puntualidad, subtotal por aerolínea |
+| M3 Gates | Asignaciones del período | Ocupación por puerta × franja horaria, con % de utilización y conflictos |
+| M4 Ground Ops | Turnarounds del período | Turnarounds por tipo de tarea, con desviación media del estándar e incidencias, subtotal por severidad |
+| M5 Billing | Facturas del período por estado/aerolínea | **Facturación por aerolínea × concepto, con subtotal y total general** — cierra RF-E02 en su parte operativa |
+| Tenancy | Usuarios y tenants con filtros | Tenants por plan × estado, con conteo de usuarios y licencias vigentes |
+| M9 Compliance | Eventos de auditoría del período | Emisión de `reporte_dgac`, generalizando el caso especial ya existente en backend |
+
+Exportación CSV desde el mismo endpoint; emisión de informes de facturación y regulatorios registrada en `compliance.log_auditoria` (RF-I04).
+
+**Compuerta de pruebas:** para cada informe compuesto, **la suma de subtotales iguala el total general** verificada sobre datos reales; el informe de facturación concilia con las facturas emitidas del período sin diferencias (RF-E02); ningún total se calcula en el cliente, verificado por inspección del contrato; aislamiento por tenant en cada informe (un informe es una consulta más y el guardián G1/G2 aplica igual); regresión de PN.
+
+**DoD:** los seis informes emiten y exportan sobre datos reales, con totales reconciliables.
+
+---
+
+### 8-bis.5 Sprint S1.19 — Compliance Hub (M9)
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Dar superficie a los 11 endpoints construidos en S1.7, con actores (`role_regulatory_auditor`, `role_sre`) que tienen rol asignado y ninguna pantalla. |
+| **Acciones fuente** | Decisión de producto 2026-08-04 (construir ambas verticales) · Plan de revisión, tarea R4.1 |
+| **Requisitos** | RF-E04, RF-O13, RF-T11, RNF-S04 · CU-O13, CU-T11 |
+
+**Entregables:** vista de incidentes de seguridad (alta y consulta); vista de post-mortems con su línea de tiempo de alertas correlacionadas, gestión de acciones y publicación (`POST /compliance/post-mortems`, `PATCH`, `/acciones`, `/acciones/{id}/completar`, `/publicar`) —respetando que `post_mortem` es la **única** excepción controlada de UPDATE dentro de `compliance`, y que toda edición se audita—; emisión y descarga de reportes DGAC con verificación de `hash_contenido`; consulta de evidencia SOC 2; registro de accesos de auditor, nominal y temporal.
+
+**Compuerta de pruebas:** **PN-04 reforzada** ejercitada desde la interfaz: ninguna pantalla ofrece mutación sobre las cinco tablas append-only, y el intento directo se rechaza; integridad por hash del reporte exportado verificada tras la descarga; acceso de auditor visible con su ventana temporal y su registro; post-mortem publicable < 72 h con eventos correlacionados; regresión de PN.
+
+**DoD:** un auditor externo completa su revisión sin que nadie ejecute SQL en su nombre.
+
+---
+
+### 8-bis.6 Sprint S1.20 — Soporte D6
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Dar superficie a los 11 endpoints construidos en S1.8; cerrar la vertical de soporte que hoy existe solo como API. |
+| **Acciones fuente** | Decisión de producto 2026-08-04 · Plan de revisión, tarea R4.1 |
+| **Requisitos** | RF-O08, RF-O11, RF-O14 · CU del departamento D6 |
+
+**Entregables:** bandeja de tickets con SLA visible y su tiempo restante de primera respuesta —el dato ya se calcula (`sla_objetivo_min`, `primera_respuesta_en`) y no se mostraba en ninguna parte—; hilo de conversación del ticket (`POST /support/tickets/{id}/mensajes`); cambio de estado con transiciones válidas; base de conocimientos con búsqueda y publicación de artículos (`articulo_kb`, sin `tenant_id`: es contenido compartido, y la interfaz debe dejarlo explícito para que nadie asuma aislamiento donde no lo hay); changelog publicable a tenants. Se decide **no** construir vista para `GET /support/observabilidad/uptime`: Grafana ya lo resuelve y duplicarlo sería reconstruir una herramienta madura — se registra como *sin consumidor por diseño* en §6.4.1.
+
+**Compuerta de pruebas:** SLA de primera respuesta visible y correcto contra tickets reales (< 2 h FIDS/AODB, < 4 h rampa); artículo publicado indexado y recuperable desde la búsqueda; aislamiento verificado en tickets (de tenant) y ausencia deliberada de aislamiento en KB (compartida), ambos como casos explícitos; regresión de PN.
+
+**DoD:** un agente de soporte trabaja su jornada completa sin salir de la aplicación.
+
+---
+
+### 8-bis.7 Criterio de salida de la Fase 1.5
+
+1. **Cobertura de superficie ≥ 95 %** (§6.4.1), con cada exclusión del denominador documentada endpoint por endpoint — no por categoría.
+2. **Cero endpoints de Clase A**: ningún caso de uso con actor humano queda inejecutable desde la aplicación.
+3. `openapi.yaml` generado y verificado por CI en cada commit.
+4. Los seis informes operativos emiten, exportan y reconcilian.
+5. Regresión completa de PN-01…PN-15 en verde, incluidas **PN-04 y PN-11 ejercitadas desde la interfaz** y no solo por API — una prueba negativa que solo se ejecuta contra el endpoint no cubre la pantalla que lo consume.
+
+---
+
 ## 9. FASE 2 — Capa táctica (RF-T\*)
 
 **Semanas 23–34 · 6 sprints · D4 · Medallion (Parquet) + ClickHouse `ah_tactico`**
@@ -807,6 +1000,17 @@ rediseño de interfaz S1.11-S1.14 completo.
 **Entregables:** `CREATE ROW POLICY politica_tenant ... USING tenant_id = getSetting('SQL_tenant_actual') TO role_tenant_analyst` sobre **todos** los hechos; excepción auditada para `role_data_engineer` y `role_ml_engineer`; `role_business_viewer` **sin ningún acceso** a `ah_tactico`; `role_elt_writer` como único escritor dual; tableros tácticos en **patrón F** (KPI prioritario arriba-izquierda, métricas relacionadas contiguas, **el color codifica desviación respecto a la meta, nunca identidad de métrica**); `analytics_api` propagando el `tenant_id` del token al setting de sesión.
 
 **Compuerta de pruebas:** **PN-13** en sus dos variantes (`role_business_viewer` → denegación; `role_tenant_analyst` sobre otro tenant → **0 filas**); medición de RNF-P03; revisión de diseño de usabilidad firmada; regresión de PN.
+
+**Desglose de vistas *(explicitado en v3.0)*:** la v2.0 decía "tableros tácticos en patrón F" sin enumerarlos, y la Acción 26 del Análisis v6.0 compromete un *"dashboard Angular de BI auto-servicio para tenants sobre `ah_tactico`"* con fecha Q3 2027 que no aparecía como entregable en ningún sprint. Las vistas concretas son:
+
+| Vista | Contenido | Rol |
+|:---|:---|:---|
+| Puntualidad por ruta y período | Serie comparativa con desviación respecto a la meta | `role_tenant_analyst` |
+| Demora media por aerolínea | Ranking con evolución trimestral | `role_tenant_analyst`, `role_business_viewer` |
+| Utilización de puertas | Ocupación histórica por terminal y franja | `role_tenant_analyst` |
+| Ingresos por tenant y período | Consolidado, alimenta RF-E02 en su horizonte táctico | `role_business_viewer` |
+
+Estas cuatro son los **informes compuestos de horizonte táctico** que la Fase 1.5 dejó explícitamente fuera de MonetDB por la regla de motor de §8-bis.0 — aquí encuentran su capa correcta. Reutilizan el primitivo `.ah-informe` construido en S1.18, sobre `ah_tactico` en vez de MonetDB.
 
 ---
 
@@ -920,41 +1124,47 @@ Si las tres se cumplen, RNF-R01 se declara cerrado **con evidencia**. Si no, se 
 
 ## 12. Matriz de trazabilidad requisito → sprint
 
+> **Convención de v3.0:** cuando un requisito aparece con dos sprints separados por `·`, el primero entregó su capacidad en backend y el segundo su superficie de usuario. Un requisito con actor humano **no se considera cerrado hasta el segundo** (§6.5, punto 9).
+
 | Requisito | Descripción abreviada | Sprint |
 |:---|:---|:---|
 | RF-E01 | Tablero BSC 4 perspectivas | S3.2 |
-| RF-E02 | Consolidación de ingresos | S1.6 · S3.2 |
+| RF-E02 | Consolidación de ingresos | S1.6 · **S1.18** · S3.2 |
 | RF-E03 | Uptime de servicios críticos | S1.8 · S3.4 |
-| RF-E04 | Reportes DGAC/OACI | S3.4 |
+| RF-E04 | Reportes DGAC/OACI | **S1.19** · S3.4 |
 | RF-E05 | OKRs por departamento | S3.3 |
 | RF-E06 | eNPS interno | S3.3 |
+| **RF-I01** | **Informes simples por módulo** | **S1.18** |
+| **RF-I02** | **Informes compuestos con subtotales y total** | **S1.18** |
+| **RF-I03** | **Parámetros y fecha de emisión en el artefacto** | **S1.18** |
+| **RF-I04** | **Auditoría de informes con validez externa** | **S1.18** |
 | RF-T01 | Sandbox por tenant | S2.6 |
-| RF-T02 | API AODB bajo OpenAPI 3.1 | S1.2 |
-| RF-T03 | Plantillas FIDS | S1.3 |
+| RF-T02 | API AODB bajo OpenAPI 3.1 | S1.2 · **S1.15** |
+| RF-T03 | Plantillas FIDS | S1.3 · **S1.16** |
 | RF-T04 | Contratos de datos bronce→plata | S2.2 |
 | RF-T05 | Versiones, métricas y drift de ML | S2.5 |
 | RF-T06 | CI/CD con SAST y escaneos | S0.1 |
 | RF-T07 | Portal del desarrollador y SDKs | S2.6 |
 | RF-T08 | Costo cloud por tenant | S2.6 |
 | RF-T09 | Documentación de ADR | S0.1 (transversal) |
-| RF-T10 | Experimentación de precios | S1.6 |
-| RF-T11 | Evidencia SOC 2 automatizada | S3.4 |
+| RF-T10 | Experimentación de precios | S1.6 · **S1.17** |
+| RF-T11 | Evidencia SOC 2 automatizada | **S1.19** · S3.4 |
 | RF-T12 | Promoción entre capas medallion | S2.2 |
 | RF-O01 | Aprovisionamiento de tenants | S1.1 |
-| RF-O02 | Registro de vuelos y puertas | S1.1 · S1.4 |
+| RF-O02 | Registro de vuelos y puertas | S1.1 · S1.4 · **S1.15** |
 | RF-O03 | Ingesta diaria a bronce | S2.1 |
-| RF-O04 | Estado de vuelo en tiempo real | S1.2 |
+| RF-O04 | Estado de vuelo en tiempo real | S1.2 · **S1.15** |
 | RF-O05 | Reentrenamiento del modelo | S2.5 |
 | RF-O06 | Refresco de BI operativo | S2.4 |
-| RF-O07 | Telemetría FIDS | S1.3 |
-| RF-O08 | Tickets con SLA | S1.8 |
+| RF-O07 | Telemetría FIDS | S1.3 · **S1.16** |
+| RF-O08 | Tickets con SLA | S1.8 · **S1.20** |
 | RF-O09 | Backups y restauración | **S1.9** · S4.2 |
 | RF-O10 | Error budget y bloqueo de deploy | S1.8 |
-| RF-O11 | Changelog | S1.8 |
+| RF-O11 | Changelog | S1.8 · **S1.20** |
 | RF-O12 | Rotación de credenciales | S1.7 |
-| RF-O13 | Post-mortems | S1.7 |
-| RF-O14 | Base de conocimientos | S1.8 |
-| RF-O15 | Facturación mensual Pax/slots | S1.6 |
+| RF-O13 | Post-mortems | S1.7 · **S1.19** |
+| RF-O14 | Base de conocimientos | S1.8 · **S1.20** |
+| RF-O15 | Facturación mensual Pax/slots | S1.6 · **S1.17** |
 | RF-O16 | Incidencias de rampa | S1.5 |
 | RF-O17 | Tiempos de espera agregados | S1.6 |
 | RF-O18 | Verificación de licencia | S1.7 |
@@ -962,12 +1172,12 @@ Si las tres se cumplen, RNF-R01 se declara cerrado **con evidencia**. Si no, se 
 | RNF-S01 | Aislamiento de tenant | **S0.2 (guardián)** · S1.1 · S2.4 |
 | RNF-S02 | Aislamiento departamental | S0.2 |
 | RNF-S03 | Cifrado en tránsito y reposo | S4.1 |
-| RNF-S04 | Auditoría append-only | S1.7 |
+| RNF-S04 | Auditoría append-only | S1.7 · **S1.19** |
 | RNF-S05 | Minimización de PII | S1.3 · S1.6 · S3.3 · S4.1 |
 | RNF-R01 | RTO/RPO | **S1.9 (mecanismo)** · S4.2 (cierre) |
 | RNF-R02 | SLA de uptime | S1.8 · S3.4 |
 | RNF-R03 | Bloqueo por error budget | S1.8 |
-| RNF-R04 | Pantalla sin señal < 60 s | S1.3 |
+| RNF-R04 | Pantalla sin señal < 60 s | S1.3 · S1.14 · **S1.16** |
 | RNF-P01 | Propagación de estado < 1 s | S1.2 · S1.9 (sobrecoste) |
 | RNF-P02 | Plantilla FIDS < 1 s | S1.3 |
 | RNF-P03 | Refresco BI ≤ 5 min | S2.4 |
@@ -1126,7 +1336,8 @@ ADR-001 a ADR-011 pertenecen al registro histórico del documento fuente; los AD
 |:---|:---|:---|
 | **0** | Repositorio con las 4 fuentes vigentes en `docs/` | PN-03, PN-04, PN-08, PN-15 en verde; **guardián abortando el caso negativo**; cobertura G4 = 100 % de métodos; 0 artefactos de versiones anteriores; CI capaz de rechazar |
 | **1** | Fase 0 cerrada | PN-01, PN-02, PN-04…PN-09, PN-11 en verde; 8 esquemas operacionales en BCNF/4NF/5NF; RNF-P01, P02, P04, R04 medidos; **mecanismo de continuidad operando y publicando `aerohub_standby_lag_seconds`** (RNF-R01 abierto con métrica) |
-| **2** | Fase 1 cerrada; ≥ 2 tenants con datos representativos | PN-12, PN-13, PN-14 en verde; carga incremental < 10 min sin duplicar; MAPE ≤ 12 % en holdout; tablero F conforme a RNF-U01 |
+| **1.5** | Fase 1 cerrada (incluido el rediseño S1.11–S1.14) | **Cobertura de superficie ≥ 95 %** con exclusiones documentadas endpoint por endpoint; **cero endpoints de Clase A**; `openapi.yaml` generado y verificado por CI; los 6 informes operativos emiten, exportan y reconcilian; **PN-04 y PN-11 ejercitadas desde la interfaz**, no solo por API |
+| **2** | **Fase 1.5 cerrada**; ≥ 2 tenants con datos representativos **ingresados desde la aplicación**, no solo por seeds | PN-12, PN-13, PN-14 en verde; carga incremental < 10 min sin duplicar; MAPE ≤ 12 % en holdout; tablero F conforme a RNF-U01 |
 | **3** | Fase 2 cerrada; `ah_tactico` poblado y reconciliable | Todo KPI reproducible desde el detalle con tolerancia cero; corte ≤ 24 h; PN-08 y PN-11 en verde sobre `people` |
 | **4** | Fases 1–3 cerradas | **PN-01…PN-15 en verde en una misma ejecución**; suite cruzada al 100 % de endpoints; PN-10 como puerta de release; **RNF-R01 cerrado con evidencia sostenida o escalado por ADR**; riesgo §9.4 reportado con magnitud reducida y **no como mitigado** |
 
@@ -1142,14 +1353,15 @@ Si el tiempo se reduce, este subconjunto preserva la coherencia del sistema —u
 |:---|:---|:---|
 | 0 | S0.1 + S0.2 completos | Sin guardián *fail-closed*, el aislamiento sería una convención; la demostración perdería su tesis central |
 | 1 | S1.1, S1.2, S1.4, S1.7, **S1.9** | AODB + API + no solapamiento + auditoría + continuidad: la vertical operativa mínima con sus dos pruebas negativas más representativas (PN-01, PN-05) y el mecanismo que resuelve el riesgo mayor |
+| **1.5** | **S1.15, S1.18** | **Sin S1.15 el módulo núcleo no es operable desde la aplicación y la demostración depende de `curl`; sin S1.18 no hay ningún informe, que es la forma en que un evaluador externo verifica que el dato existe y cuadra** |
 | 2 | S2.1, S2.2, S2.3 | Las tres transiciones medallion con sus tres validaciones; sin ellas no hay `ah_tactico` que reconciliar |
 | 3 | S3.1, S3.2 | La reconciliación de tolerancia cero es la decisión de diseño más distintiva del sistema; el tablero Z la hace visible |
 | 4 | S4.1 | Las 15 pruebas negativas en verde son la evidencia de que los controles existen, no de que están descritos |
 
-**Se pospone, en este orden:** S2.5 y S2.6 → S1.3, S1.5, S1.6, S1.8 → S3.3, S3.4 → S4.2, S4.3.
+**Se pospone, en este orden:** S2.5 y S2.6 → S1.16, S1.17, S1.19, S1.20 → S1.3, S1.5, S1.6, S1.8 → S3.3, S3.4 → S4.2, S4.3.
 
 **Nunca se pospone:** los ocho principios rectores (§3), la compuerta de pruebas de fin de sprint (§6.4) y las pruebas negativas asociadas a cada sprint entregado. **Un módulo entregado sin su prueba no cuenta como entregado.**
 
 ---
 
-**Fin del documento — AEROHUB-PLAN-002 v2.0**
+**Fin del documento — AEROHUB-PLAN-002 v3.0**
