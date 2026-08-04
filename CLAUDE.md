@@ -105,7 +105,7 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.11 | Rediseño: sistema de diseño (tokens + primitivos `.ah-*`) + quitar JWT manual de 4 vistas/3 servicios + `vuelos/estado-tiempo-real` como vista canónica | `738a44b` |
 | S1.12 | Rediseño: `puertas/tablero` (ocupación/conflicto) + `rampa/turnaround` (desviación, tareas, incidencias) | `738a44b` |
 | S1.13 | Rediseño: `billing/facturas` (semáforo de estado) + `tenants/nuevo` + auditoría de las 8 vistas de S1.10 (1 inconsistencia real corregida en `login.scss`) | `738a44b` |
-| **S1.14** | **Rediseño: `fids-player/pantalla-player`** | **siguiente** |
+| S1.14 | Rediseño: `fids-player/pantalla-player` (3 modos: configuración/reproducción/sin señal) -- cierra el rediseño de interfaz S1.11-S1.14 | pendiente de commit |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
@@ -179,8 +179,37 @@ importando el archivo compartido, dejando en `login.scss` solo sus
 reglas exclusivas (el riel navy decorativo). Las otras 5 vistas y el
 shell ya estaban consistentes -- verificado por grep antes de tocar
 nada. Con S1.11+S1.12+S1.13, las 5 áreas de negocio de `apps/web` y el
-formulario de tenant comparten un mismo sistema visual de punta a punta;
-queda pendiente solo `fids-player` (S1.14, otra aplicación).
+formulario de tenant comparten un mismo sistema visual de punta a punta.
+
+**S1.14 implementado** (`specs/016-fids-player-rediseno/`, pendiente de
+commit): única vista de `apps/fids-player` (`pantalla-player`)
+reestructurada en 3 modos mutuamente excluyentes derivados de un solo
+signal `modoActual` -- `configuracion` (el formulario de código+token
+existente, sin login real: NO es deuda técnica en esta app -- no tiene
+`AuthService`, es el mecanismo real de configuración de una pantalla
+física, con composición visual propia inspirada en `apps/web/auth/login`),
+`reproduccion` (contenido de la plantilla activa en tipografía
+monoespaciada gigante vía `clamp()`, mínimo 3rem, cero
+botones/formularios/tablas visibles) y `sin_senal` (nuevo -- antes solo
+había un texto de error genérico superpuesto sobre el último contenido).
+**Hallazgo/decisión de diseño**: "sin señal" se infiere enteramente en el
+cliente, sin backend nuevo -- cierre de WebSocket con código de rechazo
+≥4000 dispara el modo de inmediato, 2 heartbeats fallidos consecutivos
+(30s en el peor caso) lo disparan por corte de red silencioso; un solo
+fallo NO alcanza, evita parpadeo ante un corte intermitente muy breve;
+recuperación automática al primer heartbeat exitoso o mensaje de
+plantilla nuevo, sin intervención manual. Tokens de color/tipografía
+(navy/semáforo/IBM Plex Sans-Mono) copiados -- no compartidos como
+paquete -- de `apps/web/src/styles.scss` a
+`apps/fids-player/src/styles.scss`, sin el paquete de primitivos de
+consola (`.ah-btn`/`.ah-tabla`, que no aplica a una pantalla sin
+interacción); fuentes enlazadas en su `index.html` (mismo hallazgo de
+S1.11 replicado en esta segunda app). Respaldo legible para
+`definicion_json` que no sigue la convención `filas: [{texto}]`,
+reemplazando el `<pre>` de JSON crudo anterior. Cero cambios en
+`pantalla.service.ts` ni en el backend. **Con S1.11+S1.12+S1.13+S1.14, no
+queda ninguna vista sin estilo en `apps/web` ni en `apps/fids-player` --
+el rediseño de interfaz queda completo.**
 
 **Extensión post-S1.13 (pedido directo del usuario, fuera de ciclo Spec
 Kit -- revisión rol por rol de accesos/vistas)**: al revisar

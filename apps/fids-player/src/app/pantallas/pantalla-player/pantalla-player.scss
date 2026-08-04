@@ -1,0 +1,204 @@
+// Sprint S1.14 -- 3 modos mutuamente excluyentes (research.md Decision 1).
+// Layout base a pantalla completa, sin scroll: esta app corre en un
+// kiosk 24/7, nunca en una ventana de navegador con barra de scroll.
+
+:host {
+  display: block;
+  height: 100vh;
+}
+
+.pantalla {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ah-navy-950);
+  color: #fff;
+}
+
+// ---------------------------------------------------------------------
+// Modo configuracion (research.md Decision 6) -- mismo lenguaje visual
+// que apps/web/auth/login: franja/fondo navy, tarjeta clara. Sin
+// .ah-campo/.ah-btn -- ese paquete no existe en esta app (Decision 4).
+// ---------------------------------------------------------------------
+
+.config {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+}
+
+.config__marca {
+  font-family: var(--ah-font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.config__card {
+  background: #fff;
+  color: var(--ah-ink-900);
+  border-radius: var(--ah-radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  padding: 2rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.config__titulo {
+  font-family: var(--ah-font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.config__ayuda {
+  font-size: 0.85rem;
+  color: var(--ah-ink-600);
+  margin: 0;
+
+  code {
+    font-family: var(--ah-font-mono);
+    background: var(--ah-paper-100);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+  }
+}
+
+.config__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ah-ink-600);
+  }
+
+  input,
+  textarea {
+    font-family: var(--ah-font-mono);
+    font-size: 0.9rem;
+    border: 1px solid var(--ah-line-200);
+    border-radius: var(--ah-radius);
+    padding: 0.5rem 0.65rem;
+    resize: vertical;
+  }
+
+  input:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--ah-blue-500);
+    box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.2);
+  }
+}
+
+.config__error {
+  color: var(--ah-danger-600);
+  background: var(--ah-danger-50);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--ah-radius);
+  margin: 0;
+}
+
+.config__boton {
+  font-family: var(--ah-font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: var(--ah-blue-500);
+  color: #fff;
+  border: none;
+  border-radius: var(--ah-radius);
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+
+  &:disabled {
+    background: var(--ah-ink-400);
+    cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--ah-blue-400);
+  }
+}
+
+// ---------------------------------------------------------------------
+// Modo reproduccion (research.md Decision 5) -- tipografia enorme,
+// escala propia (no la de las consolas administrativas). Sin ningun
+// elemento de interfaz de consola (FR-002).
+// ---------------------------------------------------------------------
+
+.reproduccion {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.75rem, 2vh, 1.5rem);
+  padding: clamp(1rem, 4vw, 4rem);
+}
+
+.reproduccion__fila {
+  font-family: var(--ah-font-mono);
+  font-weight: 600;
+  font-size: clamp(3rem, 7vw, 7rem);
+  line-height: 1.15;
+  color: #fff;
+  margin: 0;
+  text-align: center;
+  // Transicion de color en vivo (DIRECCION_VISUAL.md §2.5) -- unica
+  // animacion permitida ademas de la del login.
+  transition: color 150ms ease;
+}
+
+.reproduccion__vacio {
+  font-family: var(--ah-font-body);
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  color: var(--ah-ink-400);
+}
+
+// ---------------------------------------------------------------------
+// Modo sin señal (research.md Decision 2/3) -- composicion propia,
+// nunca un texto de error flotando sobre el contenido anterior.
+// ---------------------------------------------------------------------
+
+.sin-senal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.sin-senal__icono {
+  font-size: clamp(4rem, 10vw, 8rem);
+  color: var(--ah-estado-critico);
+}
+
+.sin-senal__texto {
+  font-family: var(--ah-font-display);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  letter-spacing: 0.06em;
+  color: var(--ah-estado-critico);
+  margin: 0;
+  transition: color 150ms ease;
+}
+
+.sin-senal__detalle {
+  font-family: var(--ah-font-mono);
+  font-size: clamp(1.25rem, 2.5vw, 2rem);
+  color: var(--ah-ink-400);
+  margin: 0;
+}

@@ -32,7 +32,7 @@ HTML sin clases, sin `styleUrl`, renderizado por defecto del navegador.
 | `rampa/panel-turnaround` | M4 Ground Ops | ❌ sin estilo | 192 | **S1.12** |
 | `billing/panel-facturas` | M5 Billing | ❌ sin estilo | 149 | **S1.13** |
 | `tenants/tenant-creation` | Tenancy | ❌ sin estilo | 98 | **S1.13** |
-| `fids-player/pantalla-player` | M2 FIDS | ❌ sin estilo | 56 | **S1.14** |
+| `fids-player/pantalla-player` | M2 FIDS | ✅ S1.14 | 56 → 3 modos | S1.14 |
 
 ### Hallazgo que amplía el alcance (decisión 2 aprobada)
 
@@ -117,6 +117,13 @@ estético.
 
 **Layout:** rejilla de 4 px, escala `4/8/12/16/24/32/48`. Alto de fila: 40 px. Ancho máximo: sin límite
 en vistas de tabla (aprovechan el ancho real), 480 px en formularios.
+
+**Adenda S1.14 — escala tipográfica propia de `fids-player`:** los tokens de color y familia
+tipográfica de esta sección se copian tal cual a `apps/fids-player` (sin `@use` del paquete de
+primitivos de consola, que no aplica a una pantalla sin interacción), pero la *escala de tamaño* NO
+se reutiliza — está pensada para consolas leídas de cerca (40-60cm), no para una pantalla pública
+leída a 3+ metros. `fids-player` define su propio tamaño vía `clamp()` con mínimo ≥ 3rem para el
+contenido de la plantilla activa, ver `specs/016-fids-player-rediseno/research.md` Decisión 5.
 
 ### 2.4 El elemento distintivo: la tira
 

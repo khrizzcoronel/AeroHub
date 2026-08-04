@@ -1,56 +1,73 @@
-<h1>Reproductor FIDS</h1>
+<div class="pantalla" [class]="'pantalla--' + modoActual()">
+  @if (modoActual() === 'configuracion') {
+    <div class="config">
+      <div class="config__marca">AeroHub FIDS</div>
+      <div class="config__card">
+        <h1 class="config__titulo">Configurar pantalla</h1>
+        <p class="config__ayuda">
+          Código de la pantalla física y token de acceso (scopes
+          <code>fids:leer</code>, <code>fids:heartbeat</code>).
+        </p>
 
-<div>
-  <label for="codigo">Codigo de pantalla</label>
-  <input
-    id="codigo"
-    type="text"
-    [ngModel]="codigo()"
-    (ngModelChange)="codigo.set($event)"
-    [disabled]="conectado()"
-    name="codigo"
-  />
-</div>
+        <div class="config__campo">
+          <label for="codigo">Código de pantalla</label>
+          <input
+            id="codigo"
+            type="text"
+            [ngModel]="codigo()"
+            (ngModelChange)="codigo.set($event)"
+            name="codigo"
+          />
+        </div>
 
-<div>
-  <label for="tokenJwt">Token JWT (scopes fids:leer, fids:heartbeat)</label>
-  <textarea
-    id="tokenJwt"
-    rows="3"
-    [ngModel]="tokenJwt()"
-    (ngModelChange)="tokenJwt.set($event)"
-    [disabled]="conectado()"
-    name="tokenJwt"
-  ></textarea>
-</div>
+        <div class="config__campo">
+          <label for="tokenJwt">Token de acceso</label>
+          <textarea
+            id="tokenJwt"
+            rows="3"
+            [ngModel]="tokenJwt()"
+            (ngModelChange)="tokenJwt.set($event)"
+            name="tokenJwt"
+          ></textarea>
+        </div>
 
-<button type="button" (click)="conectar()" [disabled]="conectado() || !codigo() || !tokenJwt()">
-  Conectar
-</button>
-<button type="button" (click)="desconectar()" [disabled]="!conectado()">Desconectar</button>
+        @if (error()) {
+          <p class="config__error" role="alert">{{ error() }}</p>
+        }
 
-<p>Estado: {{ conectado() ? 'conectado' : 'desconectado' }}</p>
-
-@if (error()) {
-  <p role="alert">Error: {{ error() }}</p>
-}
-
-@if (pantalla()) {
-  <p>Pantalla {{ pantalla()!.codigo }} -- estado registrado: {{ pantalla()!.estado }}</p>
-}
-
-@if (ultimaActualizacion()) {
-  <p>Ultima actualizacion recibida: {{ ultimaActualizacion() }}</p>
-}
-
-<section class="pantalla-fids">
-  @if (!definicionJson()) {
-    <p>Sin plantilla cargada todavia.</p>
-  } @else if (filasDeTexto(); as filas) {
-    @for (texto of filas; track $index) {
-      <p class="fila">{{ texto }}</p>
-    }
+        <button
+          type="button"
+          class="config__boton"
+          (click)="conectar()"
+          [disabled]="!codigo() || !tokenJwt()"
+        >
+          Conectar
+        </button>
+      </div>
+    </div>
+  } @else if (modoActual() === 'reproduccion') {
+    <div class="reproduccion">
+      @if (filasDeTexto(); as filas) {
+        @if (filas.length === 0) {
+          <p class="reproduccion__vacio">Sin contenido en esta plantilla</p>
+        } @else {
+          @for (texto of filas; track $index) {
+            <p class="reproduccion__fila">{{ texto }}</p>
+          }
+        }
+      } @else if (definicionJson()) {
+        <p class="reproduccion__vacio">Contenido no disponible en este formato</p>
+      } @else {
+        <p class="reproduccion__vacio">Sin plantilla cargada todavía</p>
+      }
+    </div>
   } @else {
-    <pre>{{ definicionJson() | json }}</pre>
+    <div class="sin-senal">
+      <div class="sin-senal__icono">⚠</div>
+      <p class="sin-senal__texto">SIN SEÑAL</p>
+      @if (pantalla(); as p) {
+        <p class="sin-senal__detalle">Pantalla {{ p.codigo }}</p>
+      }
+    </div>
   }
-</section>
+</div>

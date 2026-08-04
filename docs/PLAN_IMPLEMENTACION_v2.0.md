@@ -718,6 +718,38 @@ tenant se leen como un mismo sistema visual de punta a punta.
 
 ---
 
+### 8.14 Sprint S1.14 — FIDS player
+
+| Elemento | Contenido |
+|:---|:---|
+| **Objetivo** | Cuarto y último sprint de rediseño de interfaz: aplicar el sistema de diseño a la única vista de `apps/fids-player`, con las restricciones propias de una pantalla pública 24/7 sin interacción (legible a 3+ metros, cero elementos de consola). |
+| **Acciones fuente** | Rediseño de interfaz aprobado con el usuario — `specs/016-fids-player-rediseno/`. |
+| **Requisitos** | Sin requisitos RF-/RNF- nuevos — sprint de presentación, sin cambios de backend ni de contrato HTTP/WS. |
+
+**Entregables:** `pantalla-player` reestructurada en 3 modos mutuamente excluyentes derivados de un solo signal
+`modoActual` — `configuracion` (formulario de código+token existente, sin login real: NO es deuda técnica en esta app,
+que no tiene `AuthService`, es el mecanismo real de configuración de una pantalla física, con composición visual propia
+inspirada en `apps/web/auth/login`), `reproduccion` (contenido de la plantilla activa en tipografía monoespaciada
+gigante, escala propia vía `clamp()` con mínimo ≥3rem para legibilidad a distancia, cero botones/formularios/tablas
+visibles) y `sin_senal` (nuevo — antes solo había un texto de error genérico superpuesto; ahora se infiere en el
+cliente sin backend nuevo: cierre de WebSocket con código de rechazo ≥4000, o 2 heartbeats fallidos consecutivos —30s
+en el peor caso—, con recuperación automática al primer heartbeat exitoso o mensaje nuevo, sin intervención manual).
+Tokens de color/tipografía (navy/semáforo/IBM Plex Sans-Mono) copiados de `apps/web/src/styles.scss` a
+`apps/fids-player/src/styles.scss` — sin `@use` del paquete de primitivos de consola (`.ah-btn`/`.ah-tabla`), que no
+aplica a una pantalla sin interacción; fuentes enlazadas en `index.html` (mismo hallazgo de S1.11 replicado aquí).
+Respaldo legible para `definicion_json` que no sigue la convención `filas: [{texto}]`, reemplazando el `<pre>` de JSON
+crudo anterior.
+
+**Compuerta de pruebas:** verificado contra el gateway real en Docker — plantilla real legible en modo reproducción;
+corte de WebSocket/heartbeat real (deteniendo el contenedor `gateway`) dispara el modo `sin_senal` dentro de la
+ventana esperada y se recupera automáticamente al restablecer la conexión; un corte más breve que un ciclo de
+heartbeat no llega a mostrarse (sin parpadeo); build de producción de `fids-player` en verde.
+
+**DoD:** con este sprint cerrado, no queda ninguna vista sin estilo en `apps/web` ni en `apps/fids-player` —
+rediseño de interfaz S1.11-S1.14 completo.
+
+---
+
 ## 9. FASE 2 — Capa táctica (RF-T\*)
 
 **Semanas 23–34 · 6 sprints · D4 · Medallion (Parquet) + ClickHouse `ah_tactico`**

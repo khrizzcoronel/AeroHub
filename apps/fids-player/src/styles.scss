@@ -1,1 +1,62 @@
-/* You can add global styles to this file, and also import other style files */
+/* AeroHub FIDS Player -- tokens copiados de apps/web/src/styles.scss
+   (Sprint S1.14, research.md Decision 4). Se copian, no se comparten
+   como paquete: no existe una libreria de diseno compartida entre las
+   dos apps Angular del monorepo, y crear una esta fuera de alcance de
+   un sprint de presentacion. Sin @use de primitivos de consola
+   (.ah-btn/.ah-tabla/etc.) -- esta app no muestra ningun elemento de
+   interfaz de consola en su modo de reproduccion (FR-002). */
+
+:root {
+  --ah-navy-950: #0a1830;
+  --ah-navy-900: #0e2142;
+  --ah-navy-800: #16305c;
+  --ah-blue-500: #2f6fed;
+  --ah-blue-400: #5a8ff5;
+  --ah-amber-500: #f5a623;
+  --ah-paper-50: #f7f8fa;
+  --ah-paper-100: #eef0f4;
+  --ah-line-200: #dfe3ea;
+  --ah-ink-900: #10182b;
+  --ah-ink-600: #4b5768;
+  --ah-ink-400: #8791a1;
+  --ah-danger-600: #c8372f;
+  --ah-danger-50: #fdecea;
+
+  // Semaforo operacional -- el UNICO lugar donde entra color saturado.
+  --ah-estado-ok: #2f9e44;
+  --ah-estado-atencion: #f5a623;
+  --ah-estado-critico: #d64545;
+  --ah-estado-neutro: #8791a1;
+
+  --ah-font-display: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --ah-font-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --ah-font-mono: 'IBM Plex Mono', 'Cascadia Code', ui-monospace, monospace;
+
+  --ah-radius: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--ah-font-body);
+  color: var(--ah-ink-900);
+  background: var(--ah-navy-950);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
