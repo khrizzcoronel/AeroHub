@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import insert, update
+from sqlalchemy import delete, insert, update
 from sqlalchemy.engine import Connection
 
 from .tablas import intento_acceso, invitacion, sesion, token_acceso, usuario, usuario_rol
@@ -193,3 +193,30 @@ def insertar_usuario_rol(
             usuario_id=usuario_id, rol_id=rol_id, otorgado_por=otorgado_por, otorgado_en=otorgado_en
         )
     )
+
+
+def reasignar_rol_usuario(
+    conn: Connection,
+    *,
+    usuario_id: int,
+    rol_id_nuevo: int,
+    otorgado_por: int | None,
+    otorgado_en: datetime,
+) -> None:
+    """Reemplaza el rol vigente del usuario -- se asume un solo rol activo
+    por usuario en la practica (ver docstring de consultas_identidad.py::
+    listar_roles_vigentes_del_usuario), aunque el esquema (PK compuesta
+    usuario_id+rol_id) permitiria varios."""
+    conn.execute(delete(usuario_rol).where(usuario_rol.c.usuario_id == usuario_id))
+    conn.execute(
+        insert(usuario_rol).values(
+            usuario_id=usuario_id,
+            rol_id=rol_id_nuevo,
+            otorgado_por=otorgado_por,
+            otorgado_en=otorgado_en,
+        )
+    )
+
+
+def actualizar_estado_usuario(conn: Connection, *, id: int, estado_nuevo: str) -> None:
+    conn.execute(update(usuario).where(usuario.c.id == id).values(estado=estado_nuevo))

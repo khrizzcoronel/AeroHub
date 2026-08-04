@@ -1,4 +1,6 @@
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 
@@ -29,8 +31,25 @@ const CLASE_SEMAFORO: Record<string, 'ok' | 'atencion' | 'critico'> = {
 
 function claseDeEstado(codigoEstado: string): string {
   const clase = CLASE_SEMAFORO[codigoEstado.toLowerCase()];
-  return clase ? `ah-tira--${clase}` : '';
+  return clase ? `ah-pill--${clase}` : '';
 }
+
+// Etiqueta legible -- mapeo exhaustivo sobre los 6 valores reales de
+// catalogo.estado_vuelo_catalogo (db/seeds/generate.py::ESTADOS_VUELO).
+const ETIQUETAS_ESTADO: Record<string, string> = {
+  programado: 'Programado',
+  embarcando: 'Embarcando',
+  en_vuelo: 'En vuelo',
+  aterrizado: 'Aterrizado',
+  cancelado: 'Cancelado',
+  desviado: 'Desviado',
+};
+
+function etiquetaEstado(codigoEstado: string): string {
+  return ETIQUETAS_ESTADO[codigoEstado.toLowerCase()] ?? codigoEstado;
+}
+
+const TAMANO_PAGINA = 10;
 
 // Sprint S1.11 (research.md Decision 3): el WebSocket nativo no pasa por
 // HttpClient, asi que authInterceptor no puede agregarle el token -- se
@@ -39,7 +58,7 @@ function claseDeEstado(codigoEstado: string): string {
 // textarea.
 @Component({
   selector: 'app-estado-tiempo-real',
-  imports: [],
+  imports: [CommonModule, FormsModule],
   templateUrl: './estado-tiempo-real.html',
   styleUrl: './estado-tiempo-real.scss',
 })
@@ -49,14 +68,45 @@ export class EstadoTiempoReal implements OnDestroy {
 
   protected readonly conectado = signal(false);
   protected readonly error = signal<string | null>(null);
-  // Posicion fija, mas reciente primero -- glanceability (RF-O04): no hace
-  // falta desplazarse para ver el ultimo cambio, que es el dato relevante
-  // de un vistazo. Se limita el historial visible, no es un log completo.
+  // Mas reciente primero -- historial capado a 20 (RF-O04, glanceability).
+  // Post S1.14: se le agrega tabla + filtro + paginacion (pedido directo del
+  // usuario, reabre la excepcion que este plan proponia originalmente para
+  // esta vista) -- la pagina 1 sigue siendo la mas reciente.
   protected readonly eventos = signal<EventoEstadoVuelo[]>([]);
 
   private socket: WebSocket | null = null;
 
   protected readonly claseDeEstado = claseDeEstado;
+  protected readonly etiquetaEstado = etiquetaEstado;
+
+  protected readonly filtroVuelo = signal('');
+  protected readonly eventosFiltrados = computed(() => {
+    const q = this.filtroVuelo().trim().toLowerCase();
+    if (!q) return this.eventos();
+    return this.eventos().filter((e) => e.vuelo_id.toLowerCase().includes(q));
+  });
+
+  protected readonly paginaActual = signal(1);
+  protected readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.eventosFiltrados().length / TAMANO_PAGINA)),
+  );
+  protected readonly eventosPagina = computed(() => {
+    const inicio = (this.paginaActual() - 1) * TAMANO_PAGINA;
+    return this.eventosFiltrados().slice(inicio, inicio + TAMANO_PAGINA);
+  });
+
+  protected actualizarFiltroVuelo(valor: string): void {
+    this.filtroVuelo.set(valor);
+    this.paginaActual.set(1);
+  }
+
+  protected paginaAnterior(): void {
+    this.paginaActual.update((p) => Math.max(1, p - 1));
+  }
+
+  protected paginaSiguiente(): void {
+    this.paginaActual.update((p) => Math.min(this.totalPaginas(), p + 1));
+  }
 
   protected conectar(): void {
     const token = this.auth.token();

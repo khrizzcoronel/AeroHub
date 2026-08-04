@@ -41,14 +41,19 @@ export class Shell {
     return scopes.includes('tenants:crear') || scopes.includes('tenants:administrar');
   });
 
+  // role_platform_admin tiene los scopes usuarios:administrar/api-keys:administrar
+  // pero para SU rol -- no tiene tenant propio (tenant_id NULL), asi que
+  // /usuarios y /api-keys (ambos filtrados por contexto_tenant_id()) le
+  // devuelven 500 (ContextoTenantAusente sin capturar). Excluido explicitamente.
   protected readonly puedeVerUsuarios = computed(() => {
     const rol = this.perfil()?.rol_codigo;
-    return rol === 'role_tenant_admin' || rol === 'role_platform_admin';
+    return rol === 'role_tenant_admin';
   });
 
   protected readonly puedeVerApiKeys = computed(() => {
+    const rol = this.perfil()?.rol_codigo;
     const scopes = this.perfil()?.scopes ?? [];
-    return scopes.includes('api-keys:administrar');
+    return rol !== 'role_platform_admin' && scopes.includes('api-keys:administrar');
   });
 
   protected readonly puedeVerLicencias = computed(() => {

@@ -1,12 +1,12 @@
 :host {
   display: block;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .shell {
   display: grid;
   grid-template-columns: 240px 1fr;
-  min-height: 100vh;
+  height: 100vh;
 
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
@@ -21,6 +21,12 @@
   flex-direction: column;
   padding: 1.5rem 1rem;
   gap: 1.5rem;
+  height: 100vh;
+  overflow-y: auto;
+
+  @media (max-width: 720px) {
+    height: auto;
+  }
 }
 
 .side__mark {
@@ -104,6 +110,8 @@
 
 .content {
   padding: 2rem;
+  height: 100vh;
+  overflow-y: auto;
   overflow-x: auto;
 }
 

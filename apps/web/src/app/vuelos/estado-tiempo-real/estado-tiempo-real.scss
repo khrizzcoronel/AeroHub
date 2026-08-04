@@ -1,14 +1,16 @@
-// Vista canonica del sistema de diseno (Sprint S1.11) -- consola densa,
-// no tarjetas con aire (DIRECCION_VISUAL.md §2.2). Primer consumidor real
-// de .ah-tira/.ah-vacio/.ah-alerta/.ah-btn.
+// Vista canonica del sistema de diseno (Sprint S1.11), migrada a tabla en
+// S1.14 (pedido directo del usuario, reabre "densidad, no aire" de
+// DIRECCION_VISUAL.md §2.2 -- ver PLAN_WORKPANELS_MODULOS.md §3.0).
 
 .consola {
-  max-width: 960px;
-  margin: 0 auto;
+  // Sin max-width, mismo criterio que tenants/usuarios (§3.0): ocupa el
+  // 100% del area de contenido del shell.
+  width: 100%;
   padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  box-sizing: border-box;
 }
 
 .consola__cabecera {
@@ -29,15 +31,13 @@
   gap: 0.6rem;
 }
 
-.consola__lista {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.tabla-envoltorio {
+  overflow-x: auto;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  background: #fff;
 }
 
-@media (max-width: 640px) {
-  .ah-tira__cuerpo {
-    gap: 0.15rem 0.75rem;
-    font-size: 0.8rem;
-  }
+.tabla-envoltorio .ah-tabla {
+  min-width: 480px;
 }

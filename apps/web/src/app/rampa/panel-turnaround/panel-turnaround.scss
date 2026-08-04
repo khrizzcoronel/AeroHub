@@ -1,13 +1,13 @@
-// Panel de turnaround (Sprint S1.12) -- mismo ritmo que
-// vuelos/estado-tiempo-real.scss y tablero-puertas.scss.
+// Panel de turnaround (Sprint S1.12), migrado a tabla en S1.14 (pedido
+// directo del usuario -- ver PLAN_WORKPANELS_MODULOS.md §3.0).
 
 .consola {
-  max-width: 960px;
-  margin: 0 auto;
+  width: 100%;
   padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  box-sizing: border-box;
 }
 
 .consola__cabecera {
@@ -24,37 +24,40 @@
   flex-wrap: wrap;
 }
 
-.consola__lista {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.tabla-envoltorio {
+  overflow-x: auto;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  background: #fff;
+}
+
+.tabla-envoltorio .ah-tabla {
+  min-width: 640px;
 }
 
 .formulario {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.75rem;
-  align-items: flex-end;
-  max-width: 100%;
 }
 
-.formulario .ah-campo {
-  min-width: 160px;
+.modal-acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
-.turnaround-tira--seleccionado {
-  border-color: var(--ah-blue-500);
-  box-shadow: 0 0 0 1px var(--ah-blue-500);
+.modal-titulo-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-@media (max-width: 640px) {
-  .formulario {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.modal-titulo-grupo h2 {
+  margin: 0;
+}
 
-  .ah-tira__cuerpo {
-    gap: 0.15rem 0.75rem;
-    font-size: 0.8rem;
-  }
+.modal-separador {
+  border-top: 1px solid var(--ah-line-200);
+  margin: 0.25rem 0;
 }

@@ -1,19 +1,40 @@
 <section class="consola">
   <div class="consola__cabecera">
     <h1>Tablero de puertas</h1>
-    <div class="consola__acciones">
-      <button type="button" class="ah-btn" (click)="cargarTablero()" [disabled]="cargando()">
-        Cargar tablero
-      </button>
-      <button
-        type="button"
-        class="ah-btn ah-btn--secundario"
-        (click)="ejecutarAutomatica()"
-        [disabled]="cargando()"
-      >
-        Ejecutar asignacion automatica
-      </button>
+  </div>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar puerta</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroPuerta">Codigo o tipo</label>
+        <input
+          id="filtroPuerta"
+          type="text"
+          placeholder="Ej. A12"
+          [ngModel]="filtroPuerta()"
+          (ngModelChange)="actualizarFiltroPuerta($event)"
+          name="filtroPuerta"
+        />
+      </div>
     </div>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn" (click)="cargarTablero()" [disabled]="cargando()">
+      Cargar tablero
+    </button>
+    <button type="button" class="ah-btn" (click)="abrirModalAsignar()">
+      Asignar puerta manualmente
+    </button>
+    <button
+      type="button"
+      class="ah-btn ah-btn--secundario"
+      (click)="ejecutarAutomatica()"
+      [disabled]="cargando()"
+    >
+      Ejecutar asignacion automatica
+    </button>
   </div>
 
   @if (error()) {
@@ -27,87 +48,151 @@
     </p>
   }
 
-  <h2>Asignar puerta manualmente</h2>
-  <div class="formulario">
-    <div class="ah-campo">
-      <label class="ah-campo__etiqueta" for="vueloId">Vuelo id</label>
-      <input id="vueloId" type="text" [ngModel]="vueloId()" (ngModelChange)="vueloId.set($event)" name="vueloId" />
-    </div>
-    <div class="ah-campo">
-      <label class="ah-campo__etiqueta" for="puertaId">Puerta id</label>
-      <input id="puertaId" type="text" [ngModel]="puertaId()" (ngModelChange)="puertaId.set($event)" name="puertaId" />
-    </div>
-    <div class="ah-campo">
-      <label class="ah-campo__etiqueta" for="inicioPrevisto">Inicio previsto (UTC)</label>
-      <input
-        id="inicioPrevisto"
-        type="datetime-local"
-        [ngModel]="inicioPrevisto()"
-        (ngModelChange)="inicioPrevisto.set($event)"
-        name="inicioPrevisto"
-      />
-    </div>
-    <div class="ah-campo">
-      <label class="ah-campo__etiqueta" for="finPrevisto">Fin previsto (UTC)</label>
-      <input
-        id="finPrevisto"
-        type="datetime-local"
-        [ngModel]="finPrevisto()"
-        (ngModelChange)="finPrevisto.set($event)"
-        name="finPrevisto"
-      />
-    </div>
-    <button
-      type="button"
-      class="ah-btn"
-      (click)="asignar()"
-      [disabled]="asignando() || !vueloId() || !puertaId() || !inicioPrevisto() || !finPrevisto()"
-    >
-      Asignar
-    </button>
-  </div>
-
-  <h2>Puertas</h2>
   @if (puertas().length === 0) {
     <p class="ah-vacio">Sin puertas cargadas todavia.</p>
+  } @else if (puertasFiltradas().length === 0) {
+    <p class="ah-vacio">Ninguna puerta coincide con la busqueda.</p>
   } @else {
-    <div class="consola__lista">
-      @for (puerta of puertas(); track puerta.id) {
-        @let asignacionesDeEsta = asignacionesPorPuerta().get(puerta.id) ?? [];
-        <div class="ah-tira" [class]="claseOcupacionPuerta(asignacionesDeEsta)">
-          <div class="ah-tira__barra"></div>
-          <div class="ah-tira__cuerpo ah-tira__cuerpo--puerta">
-            <span class="ah-tira__dato">{{ puerta.codigo }}</span>
-            <span class="ah-tira__dato ah-tira__dato--secundario">{{ puerta.tipo }}</span>
-            <span class="ah-tira__dato ah-tira__dato--secundario">max {{ puerta.envergadura_max_m }}m</span>
-            <span class="ah-tira__estado">
-              {{ asignacionesDeEsta.length === 0 ? 'libre' : asignacionesDeEsta.length + ' asignacion(es)' }}
-            </span>
-          </div>
-          @if (asignacionesDeEsta.length > 0) {
-            <table class="ah-tabla ah-tira__detalle">
-              <thead>
-                <tr>
-                  <th>Vuelo</th>
-                  <th>Inicio previsto</th>
-                  <th>Fin previsto</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (asignacion of asignacionesDeEsta; track asignacion.id) {
-                  <tr>
-                    <td>{{ asignacion.numero_vuelo }}</td>
-                    <td>{{ asignacion.inicio_previsto }}</td>
-                    <td>{{ asignacion.fin_previsto }}</td>
-                    <td>{{ asignacion.estado }}</td>
-                  </tr>
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Codigo</th>
+            <th>Tipo</th>
+            <th>Envergadura max</th>
+            <th>Ocupacion</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (puerta of puertasPagina(); track puerta.id) {
+            @let asignacionesDeEsta = asignacionesPorPuerta().get(puerta.id) ?? [];
+            <tr>
+              <td>{{ puerta.codigo }}</td>
+              <td>{{ puerta.tipo }}</td>
+              <td>{{ puerta.envergadura_max_m }}m</td>
+              <td>
+                @if (asignacionesDeEsta.length === 0) {
+                  <span class="ah-pill">Libre</span>
+                } @else {
+                  <span class="ah-pill" [class]="claseOcupacionPuerta(asignacionesDeEsta)">
+                    {{ asignacionesDeEsta.length }} asignacion(es)
+                  </span>
                 }
-              </tbody>
-            </table>
+              </td>
+              <td>
+                @if (asignacionesDeEsta.length > 0) {
+                  <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verAsignaciones(puerta)">
+                    Ver asignaciones
+                  </button>
+                } @else {
+                  <span class="accion-inactiva">Sin asignaciones</span>
+                }
+              </td>
+            </tr>
           }
-        </div>
-      }
+        </tbody>
+      </table>
     </div>
+
+    @if (totalPaginas() > 1) {
+      <div class="ah-paginacion">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnterior()" [disabled]="paginaActual() === 1">
+          Anterior
+        </button>
+        <span class="ah-paginacion__estado">Pagina {{ paginaActual() }} de {{ totalPaginas() }}</span>
+        <button
+          type="button"
+          class="ah-btn ah-btn--secundario"
+          (click)="paginaSiguiente()"
+          [disabled]="paginaActual() === totalPaginas()"
+        >
+          Siguiente
+        </button>
+      </div>
+    }
   }
 </section>
+
+@if (mostrarModalAsignar()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalAsignar()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Asignar puerta manualmente</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalAsignar()" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="vueloId">Vuelo id</label>
+          <input id="vueloId" type="text" [ngModel]="vueloId()" (ngModelChange)="vueloId.set($event)" name="vueloId" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="puertaId">Puerta id</label>
+          <input id="puertaId" type="text" [ngModel]="puertaId()" (ngModelChange)="puertaId.set($event)" name="puertaId" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="inicioPrevisto">Inicio previsto (UTC)</label>
+          <input
+            id="inicioPrevisto"
+            type="datetime-local"
+            [ngModel]="inicioPrevisto()"
+            (ngModelChange)="inicioPrevisto.set($event)"
+            name="inicioPrevisto"
+          />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="finPrevisto">Fin previsto (UTC)</label>
+          <input
+            id="finPrevisto"
+            type="datetime-local"
+            [ngModel]="finPrevisto()"
+            (ngModelChange)="finPrevisto.set($event)"
+            name="finPrevisto"
+          />
+        </div>
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="asignar()"
+            [disabled]="asignando() || !vueloId() || !puertaId() || !inicioPrevisto() || !finPrevisto()"
+          >
+            Asignar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalAsignar()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@if (puertaViendo(); as p) {
+  <div class="ah-modal-fondo" (click)="cerrarModalAsignaciones()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Asignaciones de {{ p.codigo }}</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalAsignaciones()" aria-label="Cerrar">✕</button>
+      </div>
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Vuelo</th>
+            <th>Inicio previsto</th>
+            <th>Fin previsto</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (asignacion of asignacionesPorPuerta().get(p.id) ?? []; track asignacion.id) {
+            <tr>
+              <td>{{ asignacion.numero_vuelo }}</td>
+              <td>{{ asignacion.inicio_previsto }}</td>
+              <td>{{ asignacion.fin_previsto }}</td>
+              <td>{{ asignacion.estado }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

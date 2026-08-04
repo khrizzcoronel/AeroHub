@@ -27,22 +27,70 @@
     <p class="ah-alerta" role="alert">{{ error() }}</p>
   }
 
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar por vuelo</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroVuelo">Vuelo id</label>
+        <input
+          id="filtroVuelo"
+          type="text"
+          placeholder="Ej. 7291234567890123"
+          [ngModel]="filtroVuelo()"
+          (ngModelChange)="actualizarFiltroVuelo($event)"
+          name="filtroVuelo"
+        />
+      </div>
+    </div>
+  </div>
+
   <h2>Ultimos cambios de estado</h2>
 
   @if (eventos().length === 0) {
     <p class="ah-vacio">Sin eventos todavia.</p>
+  } @else if (eventosFiltrados().length === 0) {
+    <p class="ah-vacio">Ningun evento coincide con la busqueda.</p>
   } @else {
-    <div class="consola__lista">
-      @for (evento of eventos(); track evento.vuelo_estado_id) {
-        <div class="ah-tira" [class]="claseDeEstado(evento.codigo_estado)">
-          <div class="ah-tira__barra"></div>
-          <div class="ah-tira__cuerpo">
-            <span class="ah-tira__dato">{{ evento.vuelo_id }}</span>
-            <span class="ah-tira__dato ah-tira__dato--secundario">{{ evento.ocurrido_en }}</span>
-            <span class="ah-tira__estado">{{ evento.codigo_estado }}</span>
-          </div>
-        </div>
-      }
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Vuelo</th>
+            <th>Ocurrido en</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (evento of eventosPagina(); track evento.vuelo_estado_id) {
+            <tr>
+              <td>{{ evento.vuelo_id }}</td>
+              <td>{{ evento.ocurrido_en }}</td>
+              <td>
+                <span class="ah-pill" [class]="claseDeEstado(evento.codigo_estado)">
+                  {{ etiquetaEstado(evento.codigo_estado) }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
+
+    @if (totalPaginas() > 1) {
+      <div class="ah-paginacion">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnterior()" [disabled]="paginaActual() === 1">
+          Anterior
+        </button>
+        <span class="ah-paginacion__estado">Pagina {{ paginaActual() }} de {{ totalPaginas() }}</span>
+        <button
+          type="button"
+          class="ah-btn ah-btn--secundario"
+          (click)="paginaSiguiente()"
+          [disabled]="paginaActual() === totalPaginas()"
+        >
+          Siguiente
+        </button>
+      </div>
+    }
   }
 </section>

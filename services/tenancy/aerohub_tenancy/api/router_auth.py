@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from aerohub_contracts import EnvioDeCorreoFallo, emitir_jwt_sesion, requiere_scope, sesion_id_de_jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..application import (
     CorreoYaRegistrado,
@@ -22,8 +22,11 @@ from ..application import (
     PasswordActualIncorrecta,
     RecuperacionTokenInvalido,
     RolDestinoInvalido,
+    UsuarioDelTenantNoEncontrado,
     VerificacionTokenInvalido,
     aceptar_invitacion,
+    actualizar_rol_usuario,
+    cambiar_estado_usuario,
     cambiar_password,
     cerrar_sesion,
     consultar_mi_perfil,
@@ -31,12 +34,13 @@ from ..application import (
     consultar_usuarios_del_tenant,
     iniciar_sesion,
     invitar_usuario,
+    obtener_usuario_del_tenant,
     restablecer_password,
     solicitar_recuperacion,
     solicitar_verificacion,
     verificar_correo,
 )
-from ..domain import PasswordInvalida
+from ..domain import ESTADOS_VALIDOS_USUARIO, PasswordInvalida, TransicionUsuarioInvalida
 
 router_auth = APIRouter(tags=["auth"])
 
@@ -301,3 +305,78 @@ def listar_usuarios() -> list[UsuarioResumenResponse]:
         )
         for u in usuarios
     ]
+
+
+class UsuarioDetalleResponse(BaseModel):
+    id: str
+    email: str
+    nombre: str
+    estado: str
+    rol_codigo: str | None
+    rol_nombre: str | None
+
+
+def _detalle_a_response(d) -> UsuarioDetalleResponse:  # noqa: ANN001
+    return UsuarioDetalleResponse(
+        id=str(d.id),
+        email=d.email,
+        nombre=d.nombre,
+        estado=d.estado,
+        rol_codigo=d.rol_codigo,
+        rol_nombre=d.rol_nombre,
+    )
+
+
+@router_auth.get(
+    "/usuarios/{usuario_id}",
+    response_model=UsuarioDetalleResponse,
+    dependencies=[Depends(requiere_scope("usuarios:administrar"))],
+)
+def obtener_usuario_endpoint(usuario_id: int) -> UsuarioDetalleResponse:
+    try:
+        return _detalle_a_response(obtener_usuario_del_tenant(usuario_id))
+    except UsuarioDelTenantNoEncontrado as exc:
+        # PN-01: 404, nunca 403 -- no confirmar que el usuario ajeno existe.
+        raise HTTPException(status_code=404, detail="usuario no encontrado") from exc
+
+
+class UsuarioActualizarRolRequest(BaseModel):
+    rol_codigo: str
+
+
+@router_auth.patch(
+    "/usuarios/{usuario_id}",
+    response_model=UsuarioDetalleResponse,
+    dependencies=[Depends(requiere_scope("usuarios:administrar"))],
+)
+def actualizar_usuario_endpoint(
+    usuario_id: int, cuerpo: UsuarioActualizarRolRequest
+) -> UsuarioDetalleResponse:
+    try:
+        resultado = actualizar_rol_usuario(usuario_id=usuario_id, rol_codigo=cuerpo.rol_codigo)
+    except UsuarioDelTenantNoEncontrado as exc:
+        raise HTTPException(status_code=404, detail="usuario no encontrado") from exc
+    except RolDestinoInvalido as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _detalle_a_response(resultado)
+
+
+class UsuarioCambiarEstadoRequest(BaseModel):
+    estado_nuevo: str = Field(description=f"uno de: {', '.join(ESTADOS_VALIDOS_USUARIO)}")
+
+
+@router_auth.post(
+    "/usuarios/{usuario_id}/estado",
+    response_model=UsuarioDetalleResponse,
+    dependencies=[Depends(requiere_scope("usuarios:administrar"))],
+)
+def cambiar_estado_usuario_endpoint(
+    usuario_id: int, cuerpo: UsuarioCambiarEstadoRequest
+) -> UsuarioDetalleResponse:
+    try:
+        resultado = cambiar_estado_usuario(usuario_id=usuario_id, estado_nuevo=cuerpo.estado_nuevo)
+    except UsuarioDelTenantNoEncontrado as exc:
+        raise HTTPException(status_code=404, detail="usuario no encontrado") from exc
+    except TransicionUsuarioInvalida as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _detalle_a_response(resultado)

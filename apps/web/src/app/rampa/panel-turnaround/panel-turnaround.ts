@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Incidencia, RampaService, Tarea, Turnaround } from '../rampa.service';
@@ -12,16 +12,18 @@ import { Incidencia, RampaService, Tarea, Turnaround } from '../rampa.service';
 // backend, que hoy no expone esa granularidad).
 export function claseEstadoTurnaround(t: Turnaround, ahora: Date): string {
   if (t.estado === 'interrumpido') {
-    return 'ah-tira--critico';
+    return 'ah-pill--critico';
   }
   if (t.estado === 'en_curso') {
-    return new Date(t.fin_previsto) < ahora ? 'ah-tira--atencion' : 'ah-tira--ok';
+    return new Date(t.fin_previsto) < ahora ? 'ah-pill--atencion' : 'ah-pill--ok';
   }
   if (t.estado === 'completado') {
-    return 'ah-tira--ok';
+    return 'ah-pill--ok';
   }
   return ''; // 'planificado' -- neutro
 }
+
+const TAMANO_PAGINA = 10;
 
 // Severidad de incidencia (research.md Decision 3) -- mapeo exhaustivo
 // de los 4 valores de chk_incidencia_rampa_severidad. Devuelve la clase
@@ -79,6 +81,34 @@ export class PanelTurnaround {
   protected readonly puntoEstadoTarea = puntoEstadoTarea;
   protected readonly ahora = new Date();
 
+  // Panel de busqueda + paginacion (S1.14, §3.0) -- filtra por numero de
+  // vuelo de llegada o salida, sobre la lista ya cargada.
+  protected readonly filtroTurnaround = signal('');
+  protected readonly turnaroundsFiltrados = computed(() => {
+    const q = this.filtroTurnaround().trim().toLowerCase();
+    if (!q) return this.turnarounds();
+    return this.turnarounds().filter(
+      (t) =>
+        t.numero_vuelo_llegada.toLowerCase().includes(q) ||
+        t.numero_vuelo_salida.toLowerCase().includes(q),
+    );
+  });
+  protected readonly paginaActual = signal(1);
+  protected readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.turnaroundsFiltrados().length / TAMANO_PAGINA)),
+  );
+  protected readonly turnaroundsPagina = computed(() => {
+    const inicio = (this.paginaActual() - 1) * TAMANO_PAGINA;
+    return this.turnaroundsFiltrados().slice(inicio, inicio + TAMANO_PAGINA);
+  });
+
+  // Modal de creacion -- reemplaza el formulario inline (S1.14, §3.0).
+  protected readonly mostrarModalCrear = signal(false);
+
+  // Modal "Ver detalles" de un turnaround puntual -- tareas + acciones,
+  // reemplaza la seccion que se desplegaba debajo de la tira.
+  protected readonly turnaroundViendo = signal<Turnaround | null>(null);
+
   private readonly rampaService = inject(RampaService);
 
   protected cargarTurnarounds(): void {
@@ -102,6 +132,7 @@ export class PanelTurnaround {
       .subscribe({
         next: () => {
           this.cargando.set(false);
+          this.mostrarModalCrear.set(false);
           this.cargarTurnarounds();
         },
         error: (err: HttpErrorResponse) => {
@@ -109,6 +140,39 @@ export class PanelTurnaround {
           this.cargando.set(false);
         },
       });
+  }
+
+  protected actualizarFiltroTurnaround(valor: string): void {
+    this.filtroTurnaround.set(valor);
+    this.paginaActual.set(1);
+  }
+
+  protected paginaAnterior(): void {
+    this.paginaActual.update((p) => Math.max(1, p - 1));
+  }
+
+  protected paginaSiguiente(): void {
+    this.paginaActual.update((p) => Math.min(this.totalPaginas(), p + 1));
+  }
+
+  protected abrirModalCrear(): void {
+    this.error.set(null);
+    this.mostrarModalCrear.set(true);
+  }
+
+  protected cerrarModalCrear(): void {
+    this.mostrarModalCrear.set(false);
+  }
+
+  protected verDetalles(t: Turnaround): void {
+    this.turnaroundViendo.set(t);
+    this.seleccionarTurnaround(t.id);
+  }
+
+  protected cerrarModalDetalles(): void {
+    this.turnaroundViendo.set(null);
+    this.turnaroundSeleccionadoId.set(null);
+    this.tareas.set([]);
   }
 
   protected seleccionarTurnaround(turnaroundId: string): void {

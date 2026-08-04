@@ -1,141 +1,233 @@
 <section class="consola">
   <div class="consola__cabecera">
     <h1>Panel de facturas (billing)</h1>
-    <div class="consola__acciones">
-      <button type="button" class="ah-btn" (click)="cargarFacturas()">Cargar facturas</button>
+  </div>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar facturas</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroAerolinea">Aerolinea</label>
+        <input
+          id="filtroAerolinea"
+          type="text"
+          placeholder="Ej. AH"
+          [ngModel]="filtroAerolinea()"
+          (ngModelChange)="actualizarFiltroAerolinea($event)"
+          name="filtroAerolinea"
+        />
+      </div>
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroEstado">Estado</label>
+        <select
+          id="filtroEstado"
+          [ngModel]="filtroEstado()"
+          (ngModelChange)="actualizarFiltroEstado($event)"
+          name="filtroEstado"
+        >
+          <option value="">Todos</option>
+          @for (estado of ESTADOS_FACTURA; track estado) {
+            <option [value]="estado">{{ estado }}</option>
+          }
+        </select>
+      </div>
     </div>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn" (click)="cargarFacturas()">Cargar facturas</button>
+    <button type="button" class="ah-btn" (click)="abrirModalCalcular()">Calcular facturacion</button>
   </div>
 
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
   }
 
-  <h2>Calcular facturacion del periodo</h2>
-  <div class="formulario">
-    <div class="ah-campo">
-      <label class="ah-campo__etiqueta" for="aerolineaId">Aerolinea id</label>
-      <input
-        id="aerolineaId"
-        type="text"
-        [ngModel]="aerolineaId()"
-        (ngModelChange)="aerolineaId.set($event)"
-        name="aerolineaId"
-      />
-    </div>
-    <div class="ah-campo">
-      <label class="ah-campo__etiqueta" for="periodoInicio">Periodo inicio</label>
-      <input
-        id="periodoInicio"
-        type="date"
-        [ngModel]="periodoInicio()"
-        (ngModelChange)="periodoInicio.set($event)"
-        name="periodoInicio"
-      />
-    </div>
-    <div class="ah-campo">
-      <label class="ah-campo__etiqueta" for="periodoFin">Periodo fin</label>
-      <input
-        id="periodoFin"
-        type="date"
-        [ngModel]="periodoFin()"
-        (ngModelChange)="periodoFin.set($event)"
-        name="periodoFin"
-      />
-    </div>
-    <button type="button" class="ah-btn" (click)="calcularFacturacion()" [disabled]="cargando()">
-      Calcular facturacion
-    </button>
-  </div>
-  @if (ultimoCalculo()) {
-    <p class="ah-alerta ah-alerta--aviso">{{ ultimoCalculo() }}</p>
-  }
-
-  <h2>Facturas</h2>
   @if (facturas().length === 0) {
     <p class="ah-vacio">Sin facturas cargadas todavia.</p>
+  } @else if (facturasFiltradas().length === 0) {
+    <p class="ah-vacio">Ninguna factura coincide con la busqueda.</p>
   } @else {
-    <div class="consola__lista">
-      @for (factura of facturas(); track factura.id) {
-        <div class="ah-tira" [class]="claseEstadoFactura(factura.estado)">
-          <div class="ah-tira__barra"></div>
-          <div class="ah-tira__cuerpo">
-            <span class="ah-tira__dato">{{ factura.id }}</span>
-            <span class="ah-tira__dato ah-tira__dato--secundario">{{ factura.aerolinea_id }}</span>
-            <span class="ah-tira__dato ah-tira__dato--secundario">
-              {{ factura.periodo_inicio }} &ndash; {{ factura.periodo_fin }}
-            </span>
-            <span class="ah-tira__dato columna-monto">{{ factura.moneda }} {{ factura.total }}</span>
-            <span class="ah-tira__estado">{{ factura.estado }}</span>
-            <button type="button" class="ah-btn ah-btn--secundario" (click)="verDetalle(factura.id)">
-              Ver detalle
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-  }
-
-  @if (detalle(); as d) {
-    <h2>Factura {{ d.factura.id }}</h2>
-    <p>
-      Aerolinea {{ d.factura.aerolinea_id }} &middot; periodo {{ d.factura.periodo_inicio }}
-      &ndash; {{ d.factura.periodo_fin }} &middot; estado {{ d.factura.estado }}
-    </p>
-
-    <table class="ah-tabla">
-      <thead>
-        <tr>
-          <th>Concepto</th>
-          <th class="columna-monto">Cantidad</th>
-          <th class="columna-monto">Precio unitario</th>
-          <th class="columna-monto">Monto</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (linea of d.lineas; track linea.id) {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
           <tr>
-            <td>{{ linea.descripcion }}</td>
-            <td class="columna-monto">{{ linea.cantidad }}</td>
-            <td class="columna-monto">{{ linea.precio_unitario }}</td>
-            <td class="columna-monto">{{ linea.monto }}</td>
+            <th>Id</th>
+            <th>Aerolinea</th>
+            <th>Periodo</th>
+            <th class="columna-monto">Total</th>
+            <th>Estado</th>
+            <th>Acciones</th>
           </tr>
-        }
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3">Total</td>
-          <td class="columna-monto">{{ d.factura.moneda }} {{ d.factura.total }}</td>
-        </tr>
-      </tfoot>
-    </table>
+        </thead>
+        <tbody>
+          @for (factura of facturasPagina(); track factura.id) {
+            <tr>
+              <td>{{ factura.id }}</td>
+              <td>{{ factura.aerolinea_id }}</td>
+              <td>{{ factura.periodo_inicio }} &ndash; {{ factura.periodo_fin }}</td>
+              <td class="columna-monto">{{ factura.moneda }} {{ factura.total }}</td>
+              <td>
+                <span class="ah-pill" [class]="claseEstadoFactura(factura.estado)">{{ factura.estado }}</span>
+              </td>
+              <td>
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalle(factura.id)">
+                  Ver detalle
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
 
-    @if (d.factura.estado === 'borrador') {
-      <button type="button" class="ah-btn" (click)="emitirFactura(d.factura.id)" [disabled]="cargando()">
-        Emitir factura
-      </button>
-    }
-
-    @if (d.factura.estado === 'emitida') {
-      <div class="formulario">
-        <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="motivoDisputa">Motivo de la disputa</label>
-          <input
-            id="motivoDisputa"
-            type="text"
-            [ngModel]="motivoDisputa()"
-            (ngModelChange)="motivoDisputa.set($event)"
-            name="motivoDisputa"
-          />
-        </div>
+    @if (totalPaginas() > 1) {
+      <div class="ah-paginacion">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnterior()" [disabled]="paginaActual() === 1">
+          Anterior
+        </button>
+        <span class="ah-paginacion__estado">Pagina {{ paginaActual() }} de {{ totalPaginas() }}</span>
         <button
           type="button"
-          class="ah-btn"
-          (click)="disputarFactura(d.factura.id)"
-          [disabled]="cargando() || !motivoDisputa()"
+          class="ah-btn ah-btn--secundario"
+          (click)="paginaSiguiente()"
+          [disabled]="paginaActual() === totalPaginas()"
         >
-          Disputar factura
+          Siguiente
         </button>
       </div>
     }
   }
 </section>
+
+@if (mostrarModalCalcular()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalCalcular()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Calcular facturacion del periodo</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalCalcular()" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="aerolineaId">Aerolinea id</label>
+          <input
+            id="aerolineaId"
+            type="text"
+            [ngModel]="aerolineaId()"
+            (ngModelChange)="aerolineaId.set($event)"
+            name="aerolineaId"
+          />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="periodoInicio">Periodo inicio</label>
+          <input
+            id="periodoInicio"
+            type="date"
+            [ngModel]="periodoInicio()"
+            (ngModelChange)="periodoInicio.set($event)"
+            name="periodoInicio"
+          />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="periodoFin">Periodo fin</label>
+          <input
+            id="periodoFin"
+            type="date"
+            [ngModel]="periodoFin()"
+            (ngModelChange)="periodoFin.set($event)"
+            name="periodoFin"
+          />
+        </div>
+        @if (ultimoCalculo()) {
+          <p class="ah-alerta ah-alerta--aviso">{{ ultimoCalculo() }}</p>
+        }
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="calcularFacturacion()" [disabled]="cargando()">
+            Calcular facturacion
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalCalcular()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@if (detalle(); as d) {
+  <div class="ah-modal-fondo" (click)="cerrarModalDetalle()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <div class="modal-titulo-grupo">
+          <h2>Factura {{ d.factura.id }}</h2>
+          <span class="ah-pill" [class]="claseEstadoFactura(d.factura.estado)">{{ d.factura.estado }}</span>
+        </div>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalDetalle()" aria-label="Cerrar">✕</button>
+      </div>
+      <p>
+        Aerolinea {{ d.factura.aerolinea_id }} &middot; periodo {{ d.factura.periodo_inicio }}
+        &ndash; {{ d.factura.periodo_fin }}
+      </p>
+
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th class="columna-monto">Cantidad</th>
+            <th class="columna-monto">Precio unitario</th>
+            <th class="columna-monto">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (linea of d.lineas; track linea.id) {
+            <tr>
+              <td>{{ linea.descripcion }}</td>
+              <td class="columna-monto">{{ linea.cantidad }}</td>
+              <td class="columna-monto">{{ linea.precio_unitario }}</td>
+              <td class="columna-monto">{{ linea.monto }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Total</td>
+            <td class="columna-monto">{{ d.factura.moneda }} {{ d.factura.total }}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      @if (d.factura.estado === 'borrador') {
+        <div class="modal-separador"></div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="emitirFactura(d.factura.id)" [disabled]="cargando()">
+            Emitir factura
+          </button>
+        </div>
+      }
+
+      @if (d.factura.estado === 'emitida') {
+        <div class="modal-separador"></div>
+        <div class="formulario">
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="motivoDisputa">Motivo de la disputa</label>
+            <input
+              id="motivoDisputa"
+              type="text"
+              [ngModel]="motivoDisputa()"
+              (ngModelChange)="motivoDisputa.set($event)"
+              name="motivoDisputa"
+            />
+          </div>
+          <div class="modal-acciones">
+            <button
+              type="button"
+              class="ah-btn"
+              (click)="disputarFactura(d.factura.id)"
+              [disabled]="cargando() || !motivoDisputa()"
+            >
+              Disputar factura
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

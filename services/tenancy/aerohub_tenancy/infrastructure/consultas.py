@@ -19,7 +19,7 @@ from aerohub_repository.contexto import contexto_tenant_id
 from sqlalchemy import select
 from sqlalchemy.engine import Connection, Row
 
-from .tablas import api_key, usuario
+from .tablas import api_key, rol, usuario, usuario_rol
 
 
 def obtener_usuario_por_id(conn: Connection, usuario_id: int) -> Row | None:
@@ -34,6 +34,31 @@ def obtener_usuario_por_id(conn: Connection, usuario_id: int) -> Row | None:
         usuario.c.estado,
         usuario.c.mfa_habilitado,
     ).where(usuario.c.tenant_id == contexto_tenant_id(), usuario.c.id == usuario_id)
+    return conn.execute(stmt).first()
+
+
+def obtener_usuario_con_rol_por_id(conn: Connection, usuario_id: int) -> Row | None:
+    """Version de detalle de `obtener_usuario_por_id`, con el rol vigente
+    incluido -- misma indistincion "no existe" vs. "es de otro tenant"
+    (PN-01, ver docstring del modulo)."""
+    stmt = (
+        select(
+            usuario.c.id,
+            usuario.c.email,
+            usuario.c.nombre,
+            usuario.c.estado,
+            usuario.c.creado_en,
+            usuario.c.ultimo_acceso_en,
+            rol.c.codigo.label("rol_codigo"),
+            rol.c.nombre.label("rol_nombre"),
+        )
+        .select_from(
+            usuario.outerjoin(usuario_rol, usuario_rol.c.usuario_id == usuario.c.id).outerjoin(
+                rol, rol.c.id == usuario_rol.c.rol_id
+            )
+        )
+        .where(usuario.c.tenant_id == contexto_tenant_id(), usuario.c.id == usuario_id)
+    )
     return conn.execute(stmt).first()
 
 

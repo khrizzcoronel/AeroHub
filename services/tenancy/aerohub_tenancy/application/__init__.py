@@ -54,6 +54,13 @@ from .validar_disponibilidad import (
 from .eliminar_tenant import eliminar_tenant_fisico
 from .consultar_usuarios import UsuarioResumen, consultar_usuarios_del_tenant
 from .consultar_licencias import LicenciaResumen, consultar_licencias_del_tenant
+from .actualizar_usuario import (
+    UsuarioDelTenantNoEncontrado,
+    UsuarioDetalle,
+    actualizar_rol_usuario,
+    cambiar_estado_usuario,
+    obtener_usuario_del_tenant,
+)
 
 __all__ = [
     "aprovisionar_tenant",
@@ -107,4 +114,9 @@ __all__ = [
     "UsuarioResumen",
     "consultar_licencias_del_tenant",
     "LicenciaResumen",
+    "obtener_usuario_del_tenant",
+    "actualizar_rol_usuario",
+    "cambiar_estado_usuario",
+    "UsuarioDetalle",
+    "UsuarioDelTenantNoEncontrado",
 ]

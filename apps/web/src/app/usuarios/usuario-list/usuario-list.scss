@@ -31,3 +31,32 @@
 .tabla-envoltorio .ah-tabla {
   min-width: 600px;
 }
+
+// Modal "Ver detalles" -- mismo patron que tenants/tenant-list.scss
+// (workpanel de tenants, referencia de este patron).
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.modal-titulo-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.modal-titulo-grupo h2 {
+  margin: 0;
+}
+
+.modal-separador {
+  border-top: 1px solid var(--ah-line-200);
+  margin: 0.25rem 0;
+}

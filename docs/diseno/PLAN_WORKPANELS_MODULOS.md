@@ -2,10 +2,10 @@
 
 | Campo | Contenido |
 |:---|:---|
-| **Estado** | Plan — sin empezar |
-| **Origen** | `tenants/tenant-list` (post S1.13, commit `44457f4`), iterado en 4 rondas directas con el usuario |
-| **Alcance** | `vuelos/estado-tiempo-real`, `puertas/tablero-puertas`, `rampa/panel-turnaround`, `billing/panel-facturas` |
-| **Depende de** | Nada nuevo — todos los primitivos que este plan usa ya existen en `apps/web/src/app/_primitivos.scss` |
+| **Estado** | **Implementado (2026-08-04, pendiente de commit)** — `usuarios/usuario-list` (§4.1) y las 4 vistas operativas (§3.0/§4) ya tienen el patrón completo aplicado en código. |
+| **Origen** | `tenants/tenant-list` (post S1.13, commit `44457f4`), iterado en 4 rondas directas con el usuario; la novena iteración (workpanels de `role_tenant_admin`: `usuarios`, `api-keys`, `licencias`) reusó los primitivos pero NO el patrón completo de modal de detalle/edición |
+| **Alcance** | Vistas operativas: `vuelos/estado-tiempo-real`, `puertas/tablero-puertas`, `rampa/panel-turnaround`, `billing/panel-facturas`. Workpanels administrativos: `usuarios/usuario-list`, `apiKeys/api-key-list`, `licencias/licencia-list` |
+| **Depende de** | Para las 4 vistas operativas y `api-keys`/`licencias`: nada nuevo, todos los primitivos ya existen en `apps/web/src/app/_primitivos.scss`. Para `usuarios/usuario-list`: SÍ requiere backend nuevo — ver §2.1 |
 
 Este documento no rediseña nada por su cuenta: **cataloga** las características
 que `tenants/tenant-list` terminó teniendo tras 4 iteraciones directas con el
@@ -70,9 +70,11 @@ ver punto 3), `.ah-pill`, `.ah-modal-fondo`/`.ah-modal`, `.ah-paginacion`,
 
 ---
 
-## 2. Qué tiene hoy cada vista, y qué le falta
+## 2. Qué tenía cada vista antes de §3.0/§4 (estado histórico, ya resuelto)
 
-Verificado por lectura directa del código actual (no supuesto):
+Estado ANTES de la implementación del 2026-08-04 — se conserva como
+referencia de "de dónde venía cada vista", no como estado actual (ver §2.2
+para el estado actual):
 
 | Vista | Tira | Tabla anidada | Búsqueda | Paginación | Modal crear/detalle | Etiqueta de estado |
 |:---|:---|:---|:---|:---|:---|:---|
@@ -81,9 +83,78 @@ Verificado por lectura directa del código actual (no supuesto):
 | `rampa/panel-turnaround` | ✅ `.ah-tira` por turnaround | ✅ `.ah-tabla` de tareas e incidencias | ❌ | ❌ | ❌ (creación y detalle de tareas son inline) | ❌ texto crudo (`t.estado`, `tarea.estado`) |
 | `billing/panel-facturas` | ✅ `.ah-tira` por factura | ✅ `.ah-tabla` de líneas de cargo | ❌ | ❌ | ❌ (cálculo/emitir/disputar son inline) | ❌ texto crudo (`factura.estado`) |
 
-Ninguna de las 4 tiene panel de búsqueda, paginación, ni modal — las 4 heredan
-el patrón de "todo inline en la misma página" de S1.11/S1.12/S1.13, anterior
-a que el workpanel de tenants lo iterara.
+Ninguna de las 4 tenía panel de búsqueda, paginación, ni modal — las 4
+heredaban el patrón de "todo inline en la misma página" de S1.11/S1.12/S1.13,
+anterior a que el workpanel de tenants lo iterara.
+
+### 2.2 Estado actual (post 2026-08-04) — las 4 vistas ya tienen el patrón completo
+
+| Vista | Estructura | Búsqueda | Paginación | Modal crear/detalle | Etiqueta de estado |
+|:---|:---|:---|:---|:---|:---|
+| `vuelos/estado-tiempo-real` | ✅ `.ah-tabla` por evento | ✅ por vuelo id | ✅ 10 en 10 | N/A (sigue de solo lectura, sin creación) | ✅ `etiquetaEstado()`, 6 valores |
+| `puertas/tablero-puertas` | ✅ `.ah-tabla` por puerta | ✅ por código/tipo | ✅ 10 en 10 | ✅ modal "Asignar puerta" + modal "Ver asignaciones" por fila | `.ah-pill` de ocupación (libre/ok/crítico) |
+| `rampa/panel-turnaround` | ✅ `.ah-tabla` por turnaround | ✅ por número de vuelo | ✅ 10 en 10 | ✅ modal "Crear turnaround" + modal "Ver detalles" (tareas) por fila | `.ah-pill` de estado (reusa `claseEstadoTurnaround`) |
+| `billing/panel-facturas` | ✅ `.ah-tabla` por factura | ✅ por aerolínea + estado | ✅ 10 en 10 | ✅ modal "Calcular facturación" + modal "Ver detalle" (líneas, emitir/disputar) por fila | `.ah-pill` de estado (reusa `claseEstadoFactura`) |
+
+Incidencias (subtabla de `rampa`) se deja igual que estaba — ya era
+`.ah-tabla`, nunca fue tira, y no tiene mutación propia desde este panel
+(mismo criterio que `licencias` en §2.1).
+
+### 2.1 Workpanels administrativos de `role_tenant_admin` (novena iteración, mismo día que `tenant-list`)
+
+Estos tres SÍ construyeron panel de búsqueda + paginación (puntos 1-2, 8) desde
+el principio — la brecha real es el modal de "Ver detalles" (puntos 6-7):
+
+| Vista | Tabla | Búsqueda | Paginación | Modal ver/editar | Acciones por fila |
+|:---|:---|:---|:---|:---|:---|
+| `usuarios/usuario-list` | ✅ `.ah-tabla` | ✅ texto + rol | ✅ 10 en 10 | ❌ **falta — pedido directo del usuario, 2026-08-04** | ninguna (solo lectura hoy) |
+| `api-keys/api-key-list` | ✅ `.ah-tabla` | ✅ por prefijo | ✅ 10 en 10 | ❌ (deliberado, ver nota abajo) | `Rotar` / `Revocar` inline, solo si `estado === 'activa'` |
+| `licencias/licencia-list` | ✅ `.ah-tabla` | ❌ (catálogo M1-M9 cerrado, no justifica filtro) | ❌ (nunca son más de 9 filas) | ❌ (no aplica — solo lectura, sin mutación posible desde este panel) | ninguna |
+
+**`api-keys` NO adopta el modal "Ver detalles" a propósito**: sus acciones
+(`Rotar`, `Revocar`) son operaciones irreversibles de un solo paso, no una
+edición de campos — forzarlas a un modal de detalle sería agregar un clic sin
+beneficio. Esto es la misma lógica que ya distingue tenants (registro con
+campos editables + transiciones de estado) de billing/facturas (acciones de
+flujo, no edición). No se traslada el patrón aquí — es una diferencia real de
+naturaleza de la vista, no un gap.
+
+**`licencias` no tiene mutación posible desde este panel** (las licencias se
+otorgan al aprovisionar/actualizar el tenant, no desde la vista del propio
+tenant admin) — correctamente de solo lectura, sin acciones. Nada que agregar.
+
+**`usuarios` SÍ es el mismo tipo de entidad que `tenants`** (registro
+administrable con campos editables — rol — y transiciones de estado
+`activo`/`suspendido`/`eliminado_logicamente`) y hoy es puramente de lectura:
+sin acción de fila, sin forma de editar el rol de un usuario ni de
+suspenderlo/reactivarlo desde la UI. Esta es la brecha que este plan cierra
+en §4.1.
+
+---
+
+## 3.0 Decisión final confirmada (2026-08-04)
+
+El usuario confirmó explícitamente, reabriendo la decisión estética de
+S1.11/S1.12:
+
+- **Tira → tabla en las 4 vistas** (`vuelos`, `puertas`, `rampa`, `billing`):
+  se reemplaza `.ah-tira` por `.ah-tabla` de columnas, mismo criterio visual
+  que `tenants`/`usuarios`. Esto SÍ reabre y reemplaza la decisión de
+  "densidad, no aire" de `DIRECCION_VISUAL.md` §2.2 para estas 4 vistas —
+  documentar el cambio ahí también al cerrar.
+- **Panel de búsqueda en las 4**, incluyendo `vuelos` (el usuario pidió
+  explícitamente "todas", no solo las 3 previstas en el plan original).
+- **Paginación (10 en 10) en las 4**, incluyendo `vuelos` — se retira la
+  excepción que este plan proponía por RF-O04 (historial de 20 eventos);
+  el usuario prefirió aplicar el mismo patrón sin excepción.
+- **Formularios inline → modal** en `puertas`/`rampa`/`billing`, mismo
+  patrón que `TenantCreation` (componente embebible con `@Output() cerrar`,
+  sin cambiar la URL).
+
+Esto deja las 4 vistas operativas con el mismo patrón completo que
+`tenants`/`usuarios`: tabla + panel de búsqueda + paginación + modal. Las
+tareas de §4 (abajo) se actualizan para reflejar esto — ya no hay tareas
+condicionadas a "evaluar con el usuario", todas están confirmadas.
 
 ---
 
@@ -131,66 +202,151 @@ tira vs. tabla** de lo que sí la reabre:
 
 ---
 
-## 4. Tareas concretas por vista (una vez confirmado el alcance de §3.2)
+## 4. Tareas concretas por vista — todas implementadas (2026-08-04, pendiente de commit)
 
-### `vuelos/estado-tiempo-real`
+### 4.1 `usuarios/usuario-list` — cerrado
 
-- [ ] `claseDeEstado` (ya existe) gana un vecino `etiquetaEstado(codigo)` —
-  mapeo sobre `catalogo.estado_vuelo_catalogo` (6 valores reales, ver
-  `services/aodb`).
-- [ ] Quitar `max-width` de `.consola`.
-- [ ] Sin paginación (RF-O04 ya limita el historial a 20).
-- [ ] Sin modal (vista de solo lectura, sin creación ni edición).
+Backend (`services/tenancy/aerohub_tenancy`):
+- [x] `GET /usuarios/{usuario_id}` — `obtener_usuario_endpoint`, PN-01 (404).
+- [x] `PATCH /usuarios/{usuario_id}` — solo `rol_codigo` (único campo
+  administrable decidido; `nombre` lo fija la invitación, no se edita).
+  Nuevo `application/actualizar_usuario.py`.
+- [x] `POST /usuarios/{usuario_id}/estado` — `domain/usuario.py` nuevo, con
+  `ESTADOS_VALIDOS_USUARIO` y `validar_transicion_estado_usuario` (sí
+  ameritó función de dominio propia, misma máquina de estados que tenant).
+- [x] Los 3 bajo `requiere_scope("usuarios:administrar")`.
 
-### `puertas/tablero-puertas`
+Frontend (`apps/web/src/app/usuarios`):
+- [x] `UsuarioService`: `obtenerUsuario`, `actualizarRolUsuario`, `cambiarEstadoUsuario`.
+- [x] Columna "Acciones" con botón único "Ver detalles".
+- [x] Modal con pill de estado, editor de rol (`<select>`), transiciones de
+  estado disponibles (`transicionesDisponibles`, espejo de tenants).
+- [x] Sin zona de peligro/borrado físico (confirmado, no pedido).
+- [x] Toast de confirmación al guardar/cambiar estado.
+- Extra no listado originalmente: se corrigió `claseEstado()` para que
+  `eliminado_logicamente` sea crítico/rojo (terminal) en vez de ámbar —
+  inconsistencia notada al implementar las transiciones reales.
 
-- [ ] Formulario de "Asignar puerta manualmente" pasa de inline a modal
-  (mismo patrón que `TenantCreation`: componente embebible con
-  `@Output() cerrar`).
-- [ ] `table-layout: auto` ya global, sin cambio de código en esta vista.
-- [ ] Quitar `max-width` de `.consola`.
-- [ ] Evaluar con el usuario: ¿panel de búsqueda por código de puerta o
-  tipo? ¿paginación si hay muchas puertas?
+### `vuelos/estado-tiempo-real` — cerrado
 
-### `rampa/panel-turnaround`
+- [x] `etiquetaEstado(codigo)` — mapeo sobre los 6 valores reales de
+  `catalogo.estado_vuelo_catalogo` (`db/seeds/generate.py::ESTADOS_VUELO`).
+- [x] Quitado `max-width` de `.consola`.
+- [x] **Paginación SÍ agregada** (10 en 10) — el usuario, al confirmar §3.0,
+  pidió explícitamente "todas" incluyendo vuelos, retirando la excepción
+  RF-O04 que este plan proponía originalmente. El historial sigue capado a
+  20 eventos por el WebSocket (`eventos.update(...).slice(0, 20)`), así que
+  en la práctica son máximo 2 páginas.
+- [x] Panel de búsqueda por vuelo id (nuevo, también fuera del alcance
+  original de este plan, mismo pedido explícito).
+- [x] Migrado de `.ah-tira` a `.ah-tabla` — decisión reabierta y confirmada
+  en §3.0 (no aplica solo a puertas/rampa/billing como preveía este plan).
+- N/A modal: sigue de solo lectura, sin creación ni edición.
 
-- [ ] `claseEstadoTurnaround`/`puntoEstadoTarea`/`puntoSeveridadIncidencia`
-  (ya existen) ganan sus `etiqueta*()` correspondientes — 3 catálogos
-  distintos (`estado` de turnaround, `estado` de tarea, `severidad` de
-  incidencia), 3 mapeos separados.
-- [ ] Formulario de "Crear turnaround" e "Iniciar/finalizar tarea" pasan de
-  inline a modal.
-- [ ] Quitar `max-width` de `.consola`.
-- [ ] Evaluar con el usuario: panel de búsqueda por vuelo/aeronave,
-  paginación de turnarounds si la lista crece.
+### `puertas/tablero-puertas` — cerrado
 
-### `billing/panel-facturas`
+- [x] Formulario de "Asignar puerta manualmente" pasado a modal (bloque
+  inline dentro del mismo componente, no un componente embebible aparte
+  como `TenantCreation` — se evaluó que no ameritaba esa separación para un
+  formulario de 4 campos sin lógica propia de validación compleja).
+- [x] Nuevo modal "Ver asignaciones" por puerta (reemplaza la tabla anidada
+  dentro de la tira).
+- [x] Migrado de `.ah-tira` a `.ah-tabla`.
+- [x] Quitado `max-width` de `.consola`.
+- [x] Panel de búsqueda por código/tipo de puerta.
+- [x] Paginación (10 en 10).
 
-- [ ] `claseEstadoFactura` (ya existe) gana `etiquetaEstadoFactura()` — 5
-  valores reales (`borrador`/`emitida`/`pagada`/`vencida`/`disputada`).
-- [ ] Formulario de "Calcular facturación" y las acciones de
-  emitir/disputar pasan de inline a modal (el detalle de factura con sus
-  líneas se queda como está, o se lleva al mismo modal — a decidir).
-- [ ] Quitar `max-width` de `.consola`.
-- [ ] Evaluar con el usuario: panel de búsqueda por aerolínea/estado,
-  paginación si el volumen de facturas lo justifica.
+### `rampa/panel-turnaround` — cerrado
+
+- [x] `puntoEstadoTarea`/`puntoSeveridadIncidencia` se mantienen sin cambio
+  (siguen siendo `.ah-punto` dentro de la tabla de tareas/incidencias, que
+  ya era tabla desde S1.12 — no aplicaba el mismo `etiqueta*()` que a
+  `claseEstadoTurnaround`, que sí pasó a alimentar un `.ah-pill`).
+- [x] Formulario de "Crear turnaround" pasado a modal.
+- [x] Selección de turnaround ("Ver tareas") pasada a modal "Ver detalles"
+  (incluye el formulario de iniciar/finalizar tarea, que se queda inline
+  DENTRO de ese modal, no en un tercer nivel de modal).
+- [x] Migrado de `.ah-tira` a `.ah-tabla` para turnarounds. La subtabla de
+  incidencias no cambió (ya era `.ah-tabla`, sin mutación propia).
+- [x] Quitado `max-width` de `.consola`.
+- [x] Panel de búsqueda por número de vuelo (llegada o salida).
+- [x] Paginación de turnarounds (10 en 10).
+
+### `billing/panel-facturas` — cerrado
+
+- [x] `etiquetaEstadoFactura` no se creó como función aparte — el pill
+  reusa directamente el valor crudo del backend (`borrador`/`emitida`/
+  `pagada`/`vencida`/`disputada`), ya son palabras legibles en español, a
+  diferencia de `en_onboarding`/`eliminado_logicamente` que sí necesitaban
+  traducción.
+- [x] Formulario de "Calcular facturación" pasado a modal.
+- [x] "Ver detalle" (líneas + emitir/disputar) pasado a modal, decisión
+  tomada: SÍ se llevó al mismo modal (no quedó separado).
+- [x] Migrado de `.ah-tira` a `.ah-tabla`.
+- [x] Quitado `max-width` de `.consola`.
+- [x] Panel de búsqueda por aerolínea + `<select>` de estado.
+- [x] Paginación (10 en 10).
 
 ---
 
-## 5. Orden sugerido
+## 5. Orden ejecutado (2026-08-04)
 
-1. **Confirmar §3.2** con el usuario, vista por vista (puede ser una sola
-   conversación, no 4 separadas).
-2. Aplicar primero lo de §3.1 a las 4 vistas — es mecánico, de bajo riesgo,
-   y dejaría las 4 ya mejoradas aunque §3.2 tarde en confirmarse.
-3. Aplicar §3.2 vista por vista, empezando por la que el usuario use con más
-   frecuencia (a determinar).
-4. Verificación en navegador real contra el backend en Docker en cada vista
-   (Principio III), igual que en cada iteración de `tenant-list`.
-5. Documentar en `CLAUDE.md` al cerrar, mismo formato usado para las 4
-   iteraciones del workpanel de tenants.
+Completado en este orden: (0) `usuarios/usuario-list` primero, sin depender
+de nada más; luego se preguntó §3.2 con `AskUserQuestion` (tira→tabla en las
+4, búsqueda+paginación en las 4 incluyendo vuelos, modal confirmado en
+puertas/rampa/billing) y se implementó de una vez, sin dividir por vista.
 
-## 6. Fuera de alcance de este plan
+**Pendiente, no ejecutado en esta ronda**:
+- Verificación en navegador real (Principio III) — el usuario pidió el
+  2026-08-04 dejar de verificar automáticamente en el navegador; se
+  verificó en su lugar que el backend pasa ruff/mypy/bandit y que el
+  frontend compila sin errores (`nx serve` en Docker, sin errores TS), pero
+  NO se probó clic a clic contra datos reales. Coordinar con el usuario
+  antes de darlo por cerrado end-to-end.
+- Commit — todo el trabajo de este plan (usuarios + las 4 vistas
+  operativas) sigue sin commitear a la fecha de este documento.
+- Documentar el cierre en `CLAUDE.md` (tabla de sprints + sección de
+  rediseño), mismo formato usado para las iteraciones del workpanel de
+  tenants — pendiente hasta confirmar que el usuario da esto por cerrado.
+
+## 6. Auditoría completa por rol (2026-08-04)
+
+Las 9 vistas de `apps/web` (ver `app.routes.ts`) son todo el universo posible
+— no hay ninguna vista fuera de este documento. Tabla de qué rol opera cada
+una y el veredicto final del patrón:
+
+| Vista | Rol(es) que la usan | Naturaleza | Veredicto |
+|:---|:---|:---|:---|
+| `tenants/tenant-list` | `role_platform_admin` | Registro administrable (CRUD) | ✅ Referencia — patrón completo desde antes |
+| `usuarios/usuario-list` | `role_tenant_admin` | Registro administrable (CRUD) | ✅ Cerrado (§4.1) — backend nuevo + modal implementados |
+| `api-keys/api-key-list` | `role_tenant_admin` | Operaciones de un paso (rotar/revocar) | ✔️ No aplica el modal — decisión de diseño, no gap (§2.1) |
+| `licencias/licencia-list` | `role_tenant_admin` | Solo lectura, sin mutación posible | ✔️ No aplica — nada que agregar (§2.1) |
+| `vuelos/estado-tiempo-real` | `role_operations_controller`, `role_airline_coordinator`, `role_tenant_analyst`, `role_implementation` | Antes: log de solo lectura. Ahora: tabla + búsqueda + paginación (decisión del usuario, §3.0) | ✅ Cerrado |
+| `puertas/tablero-puertas` | `role_operations_controller`, `role_implementation`, `role_tenant_analyst` | Tablero operativo, ahora tabla administrable | ✅ Cerrado (§3.0/§4) |
+| `rampa/panel-turnaround` | `role_ramp_agent`, `role_operations_controller`, `role_implementation`, `role_tenant_analyst` | Tablero operativo, ahora tabla administrable | ✅ Cerrado (§3.0/§4) |
+| `billing/panel-facturas` | `role_billing_officer`, `role_implementation`, `role_tenant_analyst`, `role_business_viewer` (solo lectura) | Tablero operativo, ahora tabla administrable | ✅ Cerrado (§3.0/§4) |
+
+**Roles sin ninguna vista propia** (confirmado ya en CLAUDE.md, no es un
+hallazgo nuevo de esta auditoría): `role_sre`, `role_support`,
+`role_data_engineer`, `role_ml_engineer`, `role_elt_reader`,
+`role_people_viewer`, `role_regulatory_auditor` — todos mapean a M6/M7/M8/M9,
+que tienen backend pero ningún panel Angular (decisión ya tomada, fuera de
+alcance).
+
+### 6.1 Priorización — ejecutada en este orden
+
+1. **`usuarios/usuario-list`** (§4.1) — hecho.
+2. **Confirmación de §3.2** vía `AskUserQuestion` — el usuario reabrió la
+   decisión tira/tabla y pidió aplicar el patrón completo sin excepciones.
+3. **Las 4 vistas operativas** (§3.0/§4) — hecho, todas de una vez.
+4. `api-keys` y `licencias` siguen sin tareas pendientes de este patrón.
+
+Pendiente real: commit, verificación en navegador (coordinar con el
+usuario) y documentar el cierre en `CLAUDE.md` — ver §5.
+
+---
+
+## 7. Fuera de alcance de este plan
 
 - M6/M8/M9 sin vista Angular — decisión ya tomada, sigue sin tocarse.
 - `fids-player/pantalla-player` (S1.14) — otra aplicación, otras

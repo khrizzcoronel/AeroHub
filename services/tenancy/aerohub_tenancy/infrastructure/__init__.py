@@ -15,6 +15,7 @@ from aerohub_repository.contexto import (
 from . import alcances as _alcances  # noqa: F401 -- side effect: registra G1 de tenants.*
 from .comandos_api_key import actualizar_estado_api_key, insertar_api_key, marcar_api_key_rotada
 from .comandos_identidad import (
+    actualizar_estado_usuario,
     actualizar_ultimo_acceso,
     consumir_token,
     fijar_bloqueo,
@@ -28,6 +29,7 @@ from .comandos_identidad import (
     marcar_correo_verificado,
     marcar_invitacion_aceptada,
     marcar_password_cambiada,
+    reasignar_rol_usuario,
     revocar_sesion,
     revocar_sesiones_del_usuario,
 )
@@ -39,6 +41,7 @@ from .comandos_tenant import (
 from .consultas import (
     listar_api_keys_del_tenant,
     obtener_api_key_por_id,
+    obtener_usuario_con_rol_por_id,
     obtener_usuario_por_id,
 )
 from .consultas_catalogo import listar_aeropuertos, listar_planes
@@ -72,6 +75,7 @@ from .provisionamiento import insertar_tenant, insertar_usuario_admin
 # paquete transversal directamente.
 __all__ = [
     "obtener_usuario_por_id",
+    "obtener_usuario_con_rol_por_id",
     "obtener_api_key_por_id",
     "insertar_tenant",
     "insertar_usuario_admin",
@@ -112,6 +116,8 @@ __all__ = [
     "marcar_invitacion_aceptada",
     "insertar_usuario_invitado",
     "insertar_usuario_rol",
+    "reasignar_rol_usuario",
+    "actualizar_estado_usuario",
     "existe_licencia_vigente",
     "enviar_correo",
     "configurar_adaptador_correo",

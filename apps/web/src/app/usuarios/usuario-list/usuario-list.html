@@ -67,6 +67,7 @@
             <th>Rol</th>
             <th>Estado</th>
             <th>Fecha de registro</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -76,9 +77,14 @@
               <td>{{ u.email }}</td>
               <td>{{ etiquetaRol(u.rol_codigo) }}</td>
               <td>
-                <span class="ah-pill" [class]="claseEstado(u.estado)">{{ u.estado }}</span>
+                <span class="ah-pill" [class]="claseEstado(u.estado)">{{ etiquetaEstadoUsuario(u.estado) }}</span>
               </td>
               <td>{{ u.creado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalles(u)">
+                  Ver detalles
+                </button>
+              </td>
             </tr>
           }
         </tbody>
@@ -112,6 +118,57 @@
         <button type="button" class="ah-modal__cerrar" (click)="cerrarModalInvitar()" aria-label="Cerrar">✕</button>
       </div>
       <app-invitar (cerrar)="cerrarModalInvitar()" (enviado)="alEnviarInvitacion()" />
+    </div>
+  </div>
+}
+
+@if (usuarioEditando(); as u) {
+  <div class="ah-modal-fondo" (click)="cerrarModalEditar()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <div class="modal-titulo-grupo">
+          <h2>{{ u.nombre }}</h2>
+          <span class="ah-pill" [class]="claseEstado(u.estado)">{{ etiquetaEstadoUsuario(u.estado) }}</span>
+        </div>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalEditar()" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="formulario">
+        <p class="ah-campo__etiqueta">{{ u.email }}</p>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="rolIdEdit">Rol</label>
+          <select
+            id="rolIdEdit"
+            [ngModel]="rolIdEdit()"
+            (ngModelChange)="rolIdEdit.set($event)"
+            name="rolIdEdit"
+          >
+            @for (op of rolesOpcionesEdicion; track op.value) {
+              <option [value]="op.value">{{ op.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="guardarEdicion()">Guardar</button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalEditar()">Cancelar</button>
+        </div>
+
+        @if (transicionesDisponibles(u.estado).length > 0) {
+          <div class="modal-separador"></div>
+          <p class="ah-campo__etiqueta">Cambiar estado</p>
+          <div class="modal-acciones">
+            @for (estadoNuevo of transicionesDisponibles(u.estado); track estadoNuevo) {
+              <button
+                type="button"
+                class="ah-btn ah-btn--secundario"
+                (click)="cambiarEstadoDesdeModal(u.id, estadoNuevo)"
+              >
+                {{ etiquetaEstadoUsuario(estadoNuevo) }}
+              </button>
+            }
+          </div>
+        }
+      </div>
     </div>
   </div>
 }

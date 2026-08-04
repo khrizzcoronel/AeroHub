@@ -20,11 +20,13 @@ export function claseOcupacionPuerta(asignaciones: AsignacionTablero[]): string 
   }
   for (let i = 1; i < asignaciones.length; i++) {
     if (asignaciones[i - 1].fin_previsto > asignaciones[i].inicio_previsto) {
-      return 'ah-tira--critico';
+      return 'ah-pill--critico';
     }
   }
-  return 'ah-tira--ok';
+  return 'ah-pill--ok';
 }
+
+const TAMANO_PAGINA = 10;
 
 // Sprint S1.11: ya no pide el JWT a mano -- authInterceptor (S1.10) lo
 // agrega automaticamente a toda peticion HTTP.
@@ -48,6 +50,33 @@ export class TableroPuertas {
   protected readonly asignando = signal(false);
 
   protected readonly claseOcupacionPuerta = claseOcupacionPuerta;
+
+  // Panel de busqueda + paginacion (S1.14, §3.0) -- mismo criterio
+  // client-side que tenants/usuarios: sobre la lista ya cargada.
+  protected readonly filtroPuerta = signal('');
+  protected readonly puertasFiltradas = computed(() => {
+    const q = this.filtroPuerta().trim().toLowerCase();
+    if (!q) return this.puertas();
+    return this.puertas().filter(
+      (p) => p.codigo.toLowerCase().includes(q) || p.tipo.toLowerCase().includes(q),
+    );
+  });
+  protected readonly paginaActual = signal(1);
+  protected readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.puertasFiltradas().length / TAMANO_PAGINA)),
+  );
+  protected readonly puertasPagina = computed(() => {
+    const inicio = (this.paginaActual() - 1) * TAMANO_PAGINA;
+    return this.puertasFiltradas().slice(inicio, inicio + TAMANO_PAGINA);
+  });
+
+  // Modal de asignacion manual -- reemplaza el formulario inline (S1.14,
+  // §3.0), mismo criterio que TenantCreation.
+  protected readonly mostrarModalAsignar = signal(false);
+
+  // Modal "Ver asignaciones" de una puerta puntual -- reemplaza la tabla
+  // anidada dentro de la tira.
+  protected readonly puertaViendo = signal<PuertaTablero | null>(null);
 
   protected readonly asignacionesPorPuerta = computed(() => {
     const mapa = new Map<string, AsignacionTablero[]>();
@@ -93,6 +122,7 @@ export class TableroPuertas {
       .subscribe({
         next: () => {
           this.asignando.set(false);
+          this.mostrarModalAsignar.set(false);
           this.cargarTablero();
         },
         error: (err: HttpErrorResponse) => {
@@ -103,6 +133,36 @@ export class TableroPuertas {
           this.asignando.set(false);
         },
       });
+  }
+
+  protected actualizarFiltroPuerta(valor: string): void {
+    this.filtroPuerta.set(valor);
+    this.paginaActual.set(1);
+  }
+
+  protected paginaAnterior(): void {
+    this.paginaActual.update((p) => Math.max(1, p - 1));
+  }
+
+  protected paginaSiguiente(): void {
+    this.paginaActual.update((p) => Math.min(this.totalPaginas(), p + 1));
+  }
+
+  protected abrirModalAsignar(): void {
+    this.error.set(null);
+    this.mostrarModalAsignar.set(true);
+  }
+
+  protected cerrarModalAsignar(): void {
+    this.mostrarModalAsignar.set(false);
+  }
+
+  protected verAsignaciones(p: PuertaTablero): void {
+    this.puertaViendo.set(p);
+  }
+
+  protected cerrarModalAsignaciones(): void {
+    this.puertaViendo.set(null);
   }
 
   protected ejecutarAutomatica(): void {

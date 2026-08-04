@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { BillingService, Factura, FacturaDetalle } from '../billing.service';
@@ -8,16 +8,19 @@ import { BillingService, Factura, FacturaDetalle } from '../billing.service';
 // mapeo exhaustivo de los 5 valores de chk_factura_estado.
 export function claseEstadoFactura(estado: string): string {
   if (estado === 'vencida' || estado === 'disputada') {
-    return 'ah-tira--critico';
+    return 'ah-pill--critico';
   }
   if (estado === 'emitida') {
-    return 'ah-tira--atencion';
+    return 'ah-pill--atencion';
   }
   if (estado === 'pagada') {
-    return 'ah-tira--ok';
+    return 'ah-pill--ok';
   }
   return ''; // 'borrador' -- neutro
 }
+
+const ESTADOS_FACTURA = ['borrador', 'emitida', 'pagada', 'vencida', 'disputada'] as const;
+const TAMANO_PAGINA = 10;
 
 @Component({
   selector: 'app-panel-facturas',
@@ -40,6 +43,33 @@ export class PanelFacturas {
   protected readonly motivoDisputa = signal('');
 
   protected readonly claseEstadoFactura = claseEstadoFactura;
+  protected readonly ESTADOS_FACTURA = ESTADOS_FACTURA;
+
+  // Panel de busqueda + paginacion (S1.14, §3.0) -- sobre la lista ya
+  // cargada, mismo criterio que tenants/usuarios.
+  protected readonly filtroAerolinea = signal('');
+  protected readonly filtroEstado = signal('');
+  protected readonly facturasFiltradas = computed(() => {
+    const q = this.filtroAerolinea().trim().toLowerCase();
+    const estado = this.filtroEstado();
+    return this.facturas().filter((f) => {
+      const coincideAerolinea = !q || f.aerolinea_id.toLowerCase().includes(q);
+      const coincideEstado = !estado || f.estado === estado;
+      return coincideAerolinea && coincideEstado;
+    });
+  });
+  protected readonly paginaActual = signal(1);
+  protected readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.facturasFiltradas().length / TAMANO_PAGINA)),
+  );
+  protected readonly facturasPagina = computed(() => {
+    const inicio = (this.paginaActual() - 1) * TAMANO_PAGINA;
+    return this.facturasFiltradas().slice(inicio, inicio + TAMANO_PAGINA);
+  });
+
+  // Modal de calculo de facturacion -- reemplaza el formulario inline
+  // (S1.14, §3.0).
+  protected readonly mostrarModalCalcular = signal(false);
 
   private readonly billingService = inject(BillingService);
 
@@ -73,6 +103,7 @@ export class PanelFacturas {
               `Factura ${respuesta.factura_id}: ${respuesta.cargos_calculados} cargo(s) nuevo(s), ` +
                 `${respuesta.cargos_ya_existentes} ya facturado(s) antes.`,
             );
+            this.mostrarModalCalcular.set(false);
           }
           this.cargarFacturas();
         },
@@ -83,12 +114,45 @@ export class PanelFacturas {
       });
   }
 
+  protected actualizarFiltroAerolinea(valor: string): void {
+    this.filtroAerolinea.set(valor);
+    this.paginaActual.set(1);
+  }
+
+  protected actualizarFiltroEstado(valor: string): void {
+    this.filtroEstado.set(valor);
+    this.paginaActual.set(1);
+  }
+
+  protected paginaAnterior(): void {
+    this.paginaActual.update((p) => Math.max(1, p - 1));
+  }
+
+  protected paginaSiguiente(): void {
+    this.paginaActual.update((p) => Math.min(this.totalPaginas(), p + 1));
+  }
+
+  protected abrirModalCalcular(): void {
+    this.error.set(null);
+    this.ultimoCalculo.set(null);
+    this.mostrarModalCalcular.set(true);
+  }
+
+  protected cerrarModalCalcular(): void {
+    this.mostrarModalCalcular.set(false);
+  }
+
   protected verDetalle(facturaId: string): void {
     this.error.set(null);
     this.billingService.obtenerFactura(facturaId).subscribe({
       next: (respuesta) => this.detalle.set(respuesta),
       error: (err: HttpErrorResponse) => this.error.set(this.mensajeDeError(err)),
     });
+  }
+
+  protected cerrarModalDetalle(): void {
+    this.detalle.set(null);
+    this.motivoDisputa.set('');
   }
 
   protected emitirFactura(facturaId: string): void {
