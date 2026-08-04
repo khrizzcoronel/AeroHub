@@ -46,6 +46,56 @@ def obtener_ultima_version_plantilla(conn: Connection, nombre: str) -> int | Non
     return conn.execute(stmt).scalar()
 
 
+def listar_plantillas(conn: Connection) -> list[Row]:
+    """Sprint S1.16 -- solo la ultima version de cada `nombre` (research.md
+    Decision 2): `publicar_plantilla` nunca actualiza, cada publicacion es
+    un INSERT inmutable con `version` autoincremental por nombre -- listar
+    todas mostraria filas casi identicas sin indicar cual es la vigente
+    para asignar a una pantalla nueva.
+
+    Anti-join (NOT EXISTS) en vez de JOIN contra un GROUP BY/subquery:
+    hallazgo empirico contra MonetDB real (verificado con
+    tests/integration/test_fids_administracion.py) -- el patron
+    "JOIN (SELECT nombre, max(version) ... GROUP BY nombre)" es rechazado
+    con `42000!SELECT: cannot use non GROUP BY column ... without an
+    aggregate function`, aunque el GROUP BY vive enteramente dentro de la
+    subconsulta. El anti-join es ademas mas portable entre motores.
+    """
+    otra = plantilla_fids.alias("otra_version")
+    existe_version_mas_nueva = (
+        select(otra.c.id)
+        .where(
+            otra.c.tenant_id == plantilla_fids.c.tenant_id,
+            otra.c.nombre == plantilla_fids.c.nombre,
+            otra.c.version > plantilla_fids.c.version,
+        )
+        .exists()
+    )
+    stmt = (
+        select(plantilla_fids)
+        .where(
+            plantilla_fids.c.tenant_id == contexto_tenant_id(),
+            ~existe_version_mas_nueva,
+        )
+        .order_by(plantilla_fids.c.nombre)
+    )
+    return list(conn.execute(stmt))
+
+
+def listar_pantallas(conn: Connection) -> list[Row]:
+    """Sprint S1.16 -- tablero de telemetria: expone `estado` y
+    `ultima_senal_en` tal como el backend ya los mantiene (registrar_heartbeat
+    / marcar_pantalla_sin_senal), sin recalcular nada (research.md
+    Decision 3).
+    """
+    stmt = (
+        select(pantalla_fids)
+        .where(pantalla_fids.c.tenant_id == contexto_tenant_id())
+        .order_by(pantalla_fids.c.codigo)
+    )
+    return list(conn.execute(stmt))
+
+
 def listar_pantallas_para_monitoreo(conn: Connection) -> list[Row]:
     """SIN filtro de tenant -- uso exclusivo del monitor de senal
     (RNF-R04), que debe evaluar TODAS las pantallas de TODOS los tenants

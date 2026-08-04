@@ -21,6 +21,9 @@ from ..application import (
     UsuarioNoIdentificado,
     asignar_plantilla,
     consultar_pantalla_por_codigo,
+    consultar_pantallas,
+    consultar_plantillas,
+    consultar_terminales,
     contexto_de_pantalla_ws,
     desuscribir_de_plantilla_pantalla,
     publicar_plantilla,
@@ -95,6 +98,88 @@ def registrar_pantalla_endpoint(cuerpo: PantallaRegistrarRequest) -> PantallaReg
         version_firmware=cuerpo.version_firmware,
     )
     return PantallaRegistrarResponse(pantalla_id=str(resultado.pantalla_id))
+
+
+class PlantillaResumenResponse(BaseModel):
+    id: str
+    nombre: str
+    definicion_json: dict
+    version: int
+    vigente_desde: str
+
+
+@router.get(
+    "/plantillas",
+    response_model=list[PlantillaResumenResponse],
+    dependencies=[Depends(requiere_scope("fids:leer"))],
+)
+def listar_plantillas_endpoint() -> list[PlantillaResumenResponse]:
+    """Listado de plantillas -- solo la ultima version de cada nombre
+    (Sprint S1.16, research.md Decision 2)."""
+    return [
+        PlantillaResumenResponse(
+            id=str(p.id),
+            nombre=p.nombre,
+            definicion_json=p.definicion_json,
+            version=p.version,
+            vigente_desde=p.vigente_desde.isoformat(),
+        )
+        for p in consultar_plantillas()
+    ]
+
+
+class PantallaResumenResponse(BaseModel):
+    id: str
+    terminal_id: str
+    codigo: str
+    plantilla_id: str
+    ubicacion_descripcion: str | None
+    estado: str
+    ultima_senal_en: str | None
+    version_firmware: str | None
+
+
+@router.get(
+    "/pantallas",
+    response_model=list[PantallaResumenResponse],
+    dependencies=[Depends(requiere_scope("fids:leer"))],
+)
+def listar_pantallas_endpoint() -> list[PantallaResumenResponse]:
+    """Tablero de telemetria: pantallas del tenant con su estado y ultima
+    senal (Sprint S1.16, research.md Decision 3)."""
+    return [
+        PantallaResumenResponse(
+            id=str(p.id),
+            terminal_id=str(p.terminal_id),
+            codigo=p.codigo,
+            plantilla_id=str(p.plantilla_id),
+            ubicacion_descripcion=p.ubicacion_descripcion,
+            estado=p.estado,
+            ultima_senal_en=p.ultima_senal_en.isoformat() if p.ultima_senal_en else None,
+            version_firmware=p.version_firmware,
+        )
+        for p in consultar_pantallas()
+    ]
+
+
+class TerminalResponse(BaseModel):
+    id: str
+    codigo: str
+    nombre: str
+
+
+@router.get(
+    "/catalogo/terminales",
+    response_model=list[TerminalResponse],
+    dependencies=[Depends(requiere_scope("fids:leer"))],
+)
+def listar_terminales_endpoint() -> list[TerminalResponse]:
+    """Catalogo de terminales del tenant, para el select del formulario
+    de registro de pantalla (Sprint S1.16, research.md Decision 4)."""
+    return [
+        TerminalResponse(id=str(t.id), codigo=t.codigo, nombre=t.nombre)
+        for t in consultar_terminales()
+    ]
 
 
 class AsignarPlantillaRequest(BaseModel):

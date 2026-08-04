@@ -107,7 +107,8 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.13 | Rediseño: `billing/facturas` (semáforo de estado) + `tenants/nuevo` + auditoría de las 8 vistas de S1.10 (1 inconsistencia real corregida en `login.scss`) | `738a44b` |
 | S1.14 | Rediseño: `fids-player/pantalla-player` (3 modos: configuración/reproducción/sin señal) -- cierra el rediseño de interfaz S1.11-S1.14 | `2285ced` |
 | S1.15 | Fase 1.5: contrato de API generado + superficie del AODB (alta de vuelo, registro de estado) + 2 endpoints huérfanos (cancelar asignación, reenviar verificación) | pendiente de commit |
-| **S1.16** | **Fase 1.5: administración de FIDS (plantillas, pantallas, telemetría)** | **siguiente** |
+| S1.16 | Fase 1.5: administración de FIDS (plantillas, pantallas, telemetría) -- corrige además el hallazgo crítico de que ningún rol tenía scopes `fids:*` | pendiente de commit |
+| **S1.17** | **Fase 1.5: tarifarios (RF-T10) y conciliación de pax** | **siguiente** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
@@ -202,6 +203,38 @@ y esa vista es alcanzable sin sesión. Verificado: ruff/mypy/bandit/
 import-linter en verde sobre `aerohub_aodb`; 3 tests de integración
 nuevos contra MonetDB real (`tests/integration/test_aodb_catalogos.py`);
 build de producción de `apps/web` en verde.
+
+**S1.16 implementado** (`specs/018-administracion-fids/`, pendiente de
+commit): superficie completa de M2 FIDS, hasta ahora sin ninguna vista en
+`apps/web` (`ruta: null` en `roles_modulos.py`). **Hallazgo crítico**:
+ningún rol tenía ningún scope `fids:*` -- los 3 endpoints de escritura de
+S1.3 eran literalmente inalcanzables por cualquier sesión humana desde
+que se construyeron; corregido agregando `fids:leer`/`fids:administrar` a
+`role_tenant_admin`. 3 endpoints GET nuevos en `aerohub_fids`
+(`/fids/plantillas`, `/fids/pantallas`, `/fids/catalogo/terminales`,
+todos `fids:leer`, tenant-scoped) que no existían -- antes solo había
+altas/heartbeat, ningún listado. Vista nueva `fids/pantalla-list`
+(`/fids/pantallas`) con dos tablas (plantillas, pantallas) en el mismo
+componente -- `modulosConVista` asigna una ruta por módulo y M2 es un
+solo módulo; alta de plantilla, alta de pantalla (con selects reales de
+terminal/plantilla, nunca ids pegados a mano), acción "Asignar plantilla"
+por fila, y el código de pantalla recién registrada en un aviso copiable
+(mismo patrón que la contraseña temporal de `tenant-creation`). Catálogo
+de terminales (`ops.terminal`) redeclarado en `aerohub_fids/infrastructure/`
+-- a diferencia de los catálogos globales de S1.15, este SÍ es
+tenant-scoped (tiene `tenant_id` real); riesgo de datos conocido: nunca
+se sembró formalmente en `db/seeds/generate.py`, los datos actuales son
+artefactos de tests de integración anteriores (fuera de alcance de este
+sprint). **Hallazgo empírico de MonetDB** (ver también la sección de
+hallazgos más abajo): `listar_plantillas` (última versión por nombre)
+falló como `JOIN` contra una subconsulta `GROUP BY` -- reescrito como
+anti-join `NOT EXISTS`. Verificado: ruff/mypy/bandit/import-linter en
+verde sobre `aerohub_fids` (contra la imagen reconstruida, no solo el
+contenedor parcheado en caliente); 3 tests de integración nuevos contra
+MonetDB real (`tests/integration/test_fids_administracion.py`); build de
+producción de `apps/web` en verde. **No verificado en navegador real**
+(regla vigente desde esta sesión: no probar automáticamente en el
+navegador salvo pedido explícito) -- pendiente si el usuario lo solicita.
 
 ## Rediseño de interfaz (S1.11–S1.14)
 
@@ -545,6 +578,14 @@ Referencia más completa y reciente: `services/ramp/aerohub_ramp/` (S1.5).
   explícito al rol en MonetDB. Si falta, la base de datos lanza `access denied`
   (que en FastAPI llega como un `OperationalError` de SQLAlchemy y se traduce
   a `403 acceso denegado`).
+- `JOIN` contra una subconsulta con `GROUP BY` (patrón "última fila por
+  grupo": `JOIN (SELECT col, max(version) ... GROUP BY col)`) es rechazado
+  con `42000!SELECT: cannot use non GROUP BY column ... without an
+  aggregate function`, aunque el `GROUP BY` vive enteramente dentro de la
+  subconsulta. Usar un anti-join `NOT EXISTS` correlacionado contra un
+  alias de la misma tabla en su lugar (funciona en MonetDB y es más
+  portable entre motores). Encontrado en
+  `aerohub_fids/infrastructure/consultas.py::listar_plantillas` (S1.16).
 
 ## Entorno de desarrollo
 

@@ -1,0 +1,279 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>FIDS Management</h1>
+    <div class="consola__acciones">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTodo()" [disabled]="cargando()">
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
+
+  @if (codigoRecienRegistrado(); as codigo) {
+    <div class="ah-alerta ah-alerta--aviso aviso-codigo">
+      <span>Pantalla registrada. Código para el reproductor: <code>{{ codigo }}</code></span>
+      <div class="aviso-codigo__acciones">
+        <button type="button" class="ah-btn ah-btn--sm" (click)="copiarCodigo(codigo)">Copiar</button>
+        <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="cerrarAvisoCodigo()">Cerrar</button>
+      </div>
+    </div>
+  }
+
+  <!-- ============ Sección Plantillas (US2) ============ -->
+  <h2>Plantillas</h2>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar plantilla</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroPlantilla">Nombre</label>
+        <input
+          id="filtroPlantilla"
+          type="text"
+          [ngModel]="filtroPlantilla()"
+          (ngModelChange)="actualizarFiltroPlantilla($event)"
+          name="filtroPlantilla"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn" (click)="abrirModalPlantilla()">Nueva plantilla</button>
+  </div>
+
+  @if (plantillas().length === 0) {
+    <p class="ah-vacio">Sin plantillas publicadas todavía.</p>
+  } @else if (plantillasFiltradas().length === 0) {
+    <p class="ah-vacio">Ninguna plantilla coincide con la búsqueda.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Versión</th>
+            <th>Vigente desde</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of plantillasFiltradas(); track p.id) {
+            <tr>
+              <td>{{ p.nombre }}</td>
+              <td>{{ p.version }}</td>
+              <td>{{ p.vigente_desde | date: 'dd/MM/yyyy HH:mm' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ============ Sección Pantallas (US1) ============ -->
+  <h2>Pantallas</h2>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar pantalla</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroPantalla">Código</label>
+        <input
+          id="filtroPantalla"
+          type="text"
+          [ngModel]="filtroPantalla()"
+          (ngModelChange)="actualizarFiltroPantalla($event)"
+          name="filtroPantalla"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn" (click)="abrirModalRegistrar()" [disabled]="plantillas().length === 0">
+      Nueva pantalla
+    </button>
+    @if (plantillas().length === 0) {
+      <span class="aviso-inline">Publicá al menos una plantilla antes de registrar una pantalla.</span>
+    }
+  </div>
+
+  @if (pantallas().length === 0) {
+    <p class="ah-vacio">Sin pantallas registradas todavía.</p>
+  } @else if (pantallasFiltradas().length === 0) {
+    <p class="ah-vacio">Ninguna pantalla coincide con la búsqueda.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Terminal</th>
+            <th>Plantilla vigente</th>
+            <th>Estado</th>
+            <th>Última señal</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of pantallasFiltradas(); track p.id) {
+            <tr>
+              <td>{{ p.codigo }}</td>
+              <td>{{ codigoTerminalDe(p.terminal_id) }}</td>
+              <td>{{ nombrePlantillaDe(p.plantilla_id) }}</td>
+              <td>
+                <span class="ah-pill" [class]="claseEstadoPantalla(p.estado)">{{ etiquetaEstadoPantalla(p.estado) }}</span>
+              </td>
+              <td>{{ p.ultima_senal_en ? (p.ultima_senal_en | date: 'dd/MM/yyyy HH:mm') : 'Nunca' }}</td>
+              <td>
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalReasignar(p)">
+                  Asignar plantilla
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<!-- Modal: Nueva plantilla -->
+@if (mostrarModalPlantilla()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalPlantilla()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Nueva plantilla</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalPlantilla()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorFormularioPlantilla()) {
+        <p class="ah-alerta" role="alert">{{ errorFormularioPlantilla() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="nombrePlantilla">Nombre</label>
+          <input id="nombrePlantilla" type="text" [ngModel]="nombrePlantilla()" (ngModelChange)="nombrePlantilla.set($event)" name="nombrePlantilla" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="definicionJson">Contenido (JSON)</label>
+          <textarea
+            id="definicionJson"
+            rows="6"
+            placeholder='{"filas": [{"texto": "AH 214  Puerta 12  ABORDANDO"}]}'
+            [ngModel]="definicionJsonTexto()"
+            (ngModelChange)="definicionJsonTexto.set($event)"
+            name="definicionJson"
+          ></textarea>
+        </div>
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="publicarPlantilla()"
+            [disabled]="guardandoPlantilla() || !nombrePlantilla() || !definicionJsonTexto()"
+          >
+            Publicar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalPlantilla()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Nueva pantalla -->
+@if (mostrarModalRegistrar()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalRegistrar()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Nueva pantalla</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalRegistrar()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorFormularioPantalla()) {
+        <p class="ah-alerta" role="alert">{{ errorFormularioPantalla() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="terminalId">Terminal</label>
+          @if (terminales().length === 0) {
+            <p class="ah-vacio ah-vacio--compacto">Sin terminales disponibles en este tenant todavía.</p>
+          } @else {
+            <select id="terminalId" [ngModel]="terminalId()" (ngModelChange)="terminalId.set($event)" name="terminalId">
+              <option value="" disabled selected>Seleccionar...</option>
+              @for (t of terminales(); track t.id) {
+                <option [value]="t.id">{{ t.nombre }} ({{ t.codigo }})</option>
+              }
+            </select>
+          }
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="codigoPantalla">Código de pantalla</label>
+          <input id="codigoPantalla" type="text" [ngModel]="codigoPantalla()" (ngModelChange)="codigoPantalla.set($event)" name="codigoPantalla" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="plantillaIdRegistro">Plantilla inicial</label>
+          <select id="plantillaIdRegistro" [ngModel]="plantillaIdRegistro()" (ngModelChange)="plantillaIdRegistro.set($event)" name="plantillaIdRegistro">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (p of plantillas(); track p.id) {
+              <option [value]="p.id">{{ p.nombre }} (v{{ p.version }})</option>
+            }
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="ubicacionDescripcion">Ubicación (opcional)</label>
+          <input id="ubicacionDescripcion" type="text" [ngModel]="ubicacionDescripcion()" (ngModelChange)="ubicacionDescripcion.set($event)" name="ubicacionDescripcion" />
+        </div>
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="registrarPantalla()"
+            [disabled]="guardandoPantalla() || !terminalId() || !codigoPantalla() || !plantillaIdRegistro()"
+          >
+            Registrar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalRegistrar()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Asignar plantilla (US3) -->
+@if (pantallaReasignando(); as p) {
+  <div class="ah-modal-fondo" (click)="cerrarModalReasignar()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Asignar plantilla — {{ p.codigo }}</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalReasignar()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorReasignar()) {
+        <p class="ah-alerta" role="alert">{{ errorReasignar() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="plantillaIdNueva">Nueva plantilla</label>
+          <select id="plantillaIdNueva" [ngModel]="plantillaIdNueva()" (ngModelChange)="plantillaIdNueva.set($event)" name="plantillaIdNueva">
+            @for (pl of plantillas(); track pl.id) {
+              <option [value]="pl.id">{{ pl.nombre }} (v{{ pl.version }})</option>
+            }
+          </select>
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="confirmarReasignacion()" [disabled]="reasignando()">
+            Asignar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalReasignar()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

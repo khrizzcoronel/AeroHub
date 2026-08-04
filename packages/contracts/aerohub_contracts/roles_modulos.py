@@ -31,7 +31,8 @@ class Modulo:
 
 MODULOS: dict[str, Modulo] = {
     "M1": Modulo("M1", "AODB", "/vuelos/tiempo-real"),
-    "M2": Modulo("M2", "FIDS Management", None),
+    # S1.16 -- antes sin vista en apps/web
+    "M2": Modulo("M2", "FIDS Management", "/fids/pantallas"),
     "M3": Modulo("M3", "Terminal & Gate Manager", "/puertas/tablero"),
     "M4": Modulo("M4", "Ground Operations", "/rampa/turnaround"),
     "M5": Modulo("M5", "Revenue & Billing", "/billing/facturas"),
@@ -98,6 +99,15 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
             {
                 "vuelos:leer",
                 "vuelos:escribir",
+                # Sprint S1.16 -- hallazgo empirico: M2 ya estaba en el
+                # conjunto de modulos de este rol (arriba), pero ningun
+                # scope fids:* existia en NINGUN rol del sistema. Los 3
+                # endpoints de escritura de S1.3 eran inalcanzables por
+                # cualquier sesion humana desde que se construyeron
+                # (apps/fids-player nunca lo necesito: no autentica como
+                # rol humano, pega un JWT a mano).
+                "fids:leer",
+                "fids:administrar",
                 "puertas:leer",
                 "puertas:escribir",
                 "rampa:leer",

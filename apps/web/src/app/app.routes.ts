@@ -17,6 +17,7 @@ import { ApiKeyList } from './api-keys/api-key-list/api-key-list';
 import { LicenciaList } from './licencias/licencia-list/licencia-list';
 import { EstadoTiempoReal } from './vuelos/estado-tiempo-real/estado-tiempo-real';
 import { InicioComponent } from './inicio.component';
+import { PantallaList } from './fids/pantalla-list/pantalla-list';
 
 export const appRoutes: Route[] = [
   // Publicas -- sin sesion, mismo criterio que RUTAS_EXENTAS del gateway.
@@ -47,6 +48,7 @@ export const appRoutes: Route[] = [
         component: EstadoTiempoReal,
         data: { title: 'AODB · Estado de vuelos' },
       },
+      { path: 'fids/pantallas', component: PantallaList, data: { title: 'FIDS Management' } },
       { path: 'puertas/tablero', component: TableroPuertas, data: { title: 'Terminal & Gate Manager' } },
       { path: 'rampa/turnaround', component: PanelTurnaround, data: { title: 'Ground Operations' } },
       { path: 'billing/facturas', component: PanelFacturas, data: { title: 'Revenue & Billing' } },

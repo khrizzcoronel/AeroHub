@@ -17,12 +17,15 @@ from .comandos import (
     registrar_heartbeat,
 )
 from .consultas import (
+    listar_pantallas,
     listar_pantallas_para_monitoreo,
+    listar_plantillas,
     obtener_pantalla_por_codigo,
     obtener_pantalla_por_id,
     obtener_plantilla_por_id,
     obtener_ultima_version_plantilla,
 )
+from .consultas_catalogo import listar_terminales
 from .contexto_ws import limpiar_contexto_ws, poblar_contexto_ws
 from .eventos import EventoPlantillaPantalla, broadcaster_global
 
@@ -41,6 +44,9 @@ __all__ = [
     "obtener_pantalla_por_codigo",
     "obtener_ultima_version_plantilla",
     "listar_pantallas_para_monitoreo",
+    "listar_plantillas",
+    "listar_pantallas",
+    "listar_terminales",
     "broadcaster_global",
     "EventoPlantillaPantalla",
     "sesion",
