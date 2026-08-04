@@ -92,7 +92,7 @@ _RUTA_CAMBIAR_PASSWORD = "/auth/cambiar-password"
 
 class AutenticacionJWTMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if request.url.path in RUTAS_EXENTAS:
+        if request.method == "OPTIONS" or request.url.path in RUTAS_EXENTAS:
             return await call_next(request)
         try:
             identidad = self._autenticar(request)

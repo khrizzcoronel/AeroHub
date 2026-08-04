@@ -31,13 +31,22 @@ from .comandos_identidad import (
     revocar_sesion,
     revocar_sesiones_del_usuario,
 )
-from .comandos_tenant import actualizar_tenant, cambiar_estado_tenant
-from .consultas import obtener_api_key_por_id, obtener_usuario_por_id
+from .comandos_tenant import (
+    actualizar_tenant,
+    cambiar_estado_tenant,
+    eliminar_tenant_y_relaciones_db,
+)
+from .consultas import (
+    listar_api_keys_del_tenant,
+    obtener_api_key_por_id,
+    obtener_usuario_por_id,
+)
 from .consultas_catalogo import listar_aeropuertos, listar_planes
 from .consultas_identidad import (
     contar_intentos_fallidos_recientes,
     listar_roles_vigentes_del_usuario,
     listar_tokens_previos_no_consumidos,
+    listar_usuarios_del_tenant,
     obtener_invitacion_por_token_id,
     obtener_rol_por_codigo,
     obtener_sesion_por_id,
@@ -46,10 +55,15 @@ from .consultas_identidad import (
     obtener_usuario_por_email,
     obtener_usuario_por_id_global,
 )
-from .consultas_tenant import listar_tenants, obtener_tenant_por_id
+from .consultas_tenant import (
+    existe_tenant_codigo,
+    existe_usuario_email,
+    listar_tenants,
+    obtener_tenant_por_id,
+)
 from .correo_registro import configurar_adaptador_correo, enviar_correo
 from .correo_smtp import crear_adaptador_smtp_desde_entorno
-from .licencia import existe_licencia_vigente
+from .licencia import existe_licencia_vigente, listar_licencias_del_tenant
 from .provisionamiento import insertar_tenant, insertar_usuario_admin
 
 # Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
@@ -108,4 +122,10 @@ __all__ = [
     "obtener_tenant_por_id",
     "actualizar_tenant",
     "cambiar_estado_tenant",
+    "eliminar_tenant_y_relaciones_db",
+    "existe_tenant_codigo",
+    "existe_usuario_email",
+    "listar_usuarios_del_tenant",
+    "listar_api_keys_del_tenant",
+    "listar_licencias_del_tenant",
 ]

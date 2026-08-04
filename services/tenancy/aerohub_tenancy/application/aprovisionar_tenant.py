@@ -13,12 +13,14 @@ from __future__ import annotations
 import secrets
 from dataclasses import dataclass
 
+from aerohub_contracts import EnvioDeCorreoFallo
 from aerohub_kernel import ahora_utc, generar_id
 from aerohub_kernel import hash_credencial as _hash_credencial
 
 from ..domain import Tenant, TenantInvalido
 from ..infrastructure import (
     alcance_global,
+    enviar_correo,
     escribir_journal,
     insertar_tenant,
     insertar_usuario_admin,
@@ -28,6 +30,7 @@ from ..infrastructure import (
     reintentar_en_conflicto,
     sesion,
 )
+from .plantillas_correo import mensaje_bienvenida_tenant
 
 _MOTIVO_ALCANCE_GLOBAL = "aprovisionamiento_tenant"
 _ROL_APROVISIONAMIENTO = "role_platform_admin"
@@ -162,6 +165,28 @@ def aprovisionar_tenant(
             valores_nuevos={"rol_id": rol_admin.id, "rol_codigo": _ROL_ADMIN_DEL_TENANT},
             tenant_id=tenant_id,
         )
+
+    # Envio de correo DESPUES de que la transaccion confirma -- mismo
+    # criterio que P8 para eventos de dominio ("se publican despues de
+    # que la transaccion confirma"). A diferencia de invitar_usuario
+    # (S1.10), que envia el correo ANTES de persistir porque el correo
+    # ES la entrega principal de esa operacion, aca el tenant y su admin
+    # YA son el valor entregado -- un fallo de SMTP no debe destruir un
+    # aprovisionamiento que de verdad ocurrio. Se degrada en silencio a
+    # "solo pantalla" (que ya mostraba la contrasena desde S1.1) en vez
+    # de propagar un 502 que le ocultaria password_temporal a quien crea
+    # el tenant si justo el correo fallo.
+    try:
+        enviar_correo(
+            mensaje_bienvenida_tenant(
+                destinatario=email_admin,
+                nombre_admin=nombre_admin,
+                tenant_razon_social=razon_social,
+                password_temporal=password_temporal,
+            )
+        )
+    except (EnvioDeCorreoFallo, Exception):
+        pass
 
     return ResultadoAprovisionamiento(
         tenant_id=tenant_id,

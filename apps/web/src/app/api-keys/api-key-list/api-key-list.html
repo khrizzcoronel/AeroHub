@@ -1,0 +1,119 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>API Keys e Integraciones</h1>
+  </div>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar por prefijo</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroPrefijo">Prefijo</label>
+        <input
+          id="filtroPrefijo"
+          type="text"
+          placeholder="Ej. a8b9"
+          [ngModel]="filtroPrefijo()"
+          (ngModelChange)="filtroPrefijo.set($event)"
+          name="filtroPrefijo"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn" (click)="crearNuevaApiKey()" [disabled]="procesando()">
+      {{ procesando() ? 'Generando...' : 'Generar API Key' }}
+    </button>
+    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarApiKeys()" [disabled]="cargando()">
+      Actualizar
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
+
+  @if (apiKeys().length === 0) {
+    <p class="ah-vacio">Sin API Keys generadas todavía.</p>
+  } @else if (apiKeysFiltradas().length === 0) {
+    <p class="ah-vacio">Ninguna API Key coincide con la búsqueda.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Prefijo</th>
+            <th>Estado</th>
+            <th>Fecha creación</th>
+            <th>Última rotación</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (k of apiKeysPagina(); track k.id) {
+            <tr>
+              <td><code>{{ k.prefijo }}</code></td>
+              <td>
+                <span class="ah-pill" [class]="claseEstado(k.estado)">{{ k.estado }}</span>
+              </td>
+              <td>{{ k.creada_en | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ k.rotada_en ? (k.rotada_en | date: 'dd/MM/yyyy HH:mm') : '-' }}</td>
+              <td>
+                @if (k.estado === 'activa') {
+                  <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="rotar(k)" [disabled]="procesando()">
+                    Rotar
+                  </button>
+                  <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm btn-revocar" (click)="revocar(k)" [disabled]="procesando()">
+                    Revocar
+                  </button>
+                } @else {
+                  <span class="accion-inactiva">Sin acciones</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (totalPaginas() > 1) {
+      <div class="ah-paginacion">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnterior()" [disabled]="paginaActual() === 1">
+          Anterior
+        </button>
+        <span class="ah-paginacion__estado">Página {{ paginaActual() }} de {{ totalPaginas() }}</span>
+        <button
+          type="button"
+          class="ah-btn ah-btn--secundario"
+          (click)="paginaSiguiente()"
+          [disabled]="paginaActual() === totalPaginas()"
+        >
+          Siguiente
+        </button>
+      </div>
+    }
+  }
+</section>
+
+@if (secretoGenerado(); as secreto) {
+  <div class="ah-modal-fondo" (click)="cerrarModalSecreto()">
+    <div class="ah-modal modal-secreto" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Secreto de API Key Generado</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalSecreto()" aria-label="Cerrar">✕</button>
+      </div>
+      <p class="secreto-aviso">
+        Copia este secreto ahora. Por seguridad, <strong>no se volverá a mostrar nunca más</strong>.
+      </p>
+      <div class="secreto-caja">
+        <code class="secreto-texto">{{ secreto }}</code>
+        <button type="button" class="ah-btn ah-btn--sm" (click)="copiarAlPortapapeles(secreto)">
+          Copiar
+        </button>
+      </div>
+      <div class="modal-acciones">
+        <button type="button" class="ah-btn" (click)="cerrarModalSecreto()">Entendido y Copiado</button>
+      </div>
+    </div>
+  </div>
+}

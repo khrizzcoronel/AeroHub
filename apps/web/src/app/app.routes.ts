@@ -12,7 +12,11 @@ import { PanelTurnaround } from './rampa/panel-turnaround/panel-turnaround';
 import { Shell } from './shell/shell';
 import { TenantList } from './tenants/tenant-list/tenant-list';
 import { Invitar } from './usuarios/invitar/invitar';
+import { UsuarioList } from './usuarios/usuario-list/usuario-list';
+import { ApiKeyList } from './api-keys/api-key-list/api-key-list';
+import { LicenciaList } from './licencias/licencia-list/licencia-list';
 import { EstadoTiempoReal } from './vuelos/estado-tiempo-real/estado-tiempo-real';
+import { InicioComponent } from './inicio.component';
 
 export const appRoutes: Route[] = [
   // Publicas -- sin sesion, mismo criterio que RUTAS_EXENTAS del gateway.
@@ -31,11 +35,12 @@ export const appRoutes: Route[] = [
     component: Shell,
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'tenants' },
+      { path: '', pathMatch: 'full', component: InicioComponent },
       { path: 'cambiar-password', component: CambiarPassword, data: { title: 'Cambiar contraseña' } },
+      { path: 'usuarios', component: UsuarioList, data: { title: 'Usuarios y Equipo' } },
       { path: 'usuarios/invitar', component: Invitar, data: { title: 'Invitar usuario' } },
-      // 'tenants/nuevo' ya no es una ruta -- crear tenant es un modal
-      // dentro de TenantList (pedido explicito: no navegar de pagina).
+      { path: 'api-keys', component: ApiKeyList, data: { title: 'API Keys e Integraciones' } },
+      { path: 'licencias', component: LicenciaList, data: { title: 'Licencias y Módulos' } },
       { path: 'tenants', component: TenantList, data: { title: 'Tenants' } },
       {
         path: 'vuelos/tiempo-real',

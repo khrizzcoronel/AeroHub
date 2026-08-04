@@ -56,6 +56,7 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "tenants:crear",
                 "tenants:administrar",
                 "api-keys:administrar",
+                "usuarios:administrar",
             }
         ),
     ),
@@ -109,6 +110,7 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "support:leer",
                 "support:escribir",
                 "api-keys:administrar",
+                "usuarios:administrar",
             }
         ),
     ),

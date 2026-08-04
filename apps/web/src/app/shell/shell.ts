@@ -10,6 +10,7 @@ import {
 } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-shell',
@@ -21,7 +22,9 @@ export class Shell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
+  protected readonly toastService = inject(ToastService);
 
+  protected readonly toasts = this.toastService.toasts;
   protected readonly perfil = this.auth.perfil;
   // Solo modulos con vista propia en apps/web -- el resto (M2/M7/M8/M9)
   // se opera desde otros paneles (contracts/perfil-acceso.md, FR-028: el
@@ -36,6 +39,21 @@ export class Shell {
   protected readonly puedeVerTenants = computed(() => {
     const scopes = this.perfil()?.scopes ?? [];
     return scopes.includes('tenants:crear') || scopes.includes('tenants:administrar');
+  });
+
+  protected readonly puedeVerUsuarios = computed(() => {
+    const rol = this.perfil()?.rol_codigo;
+    return rol === 'role_tenant_admin' || rol === 'role_platform_admin';
+  });
+
+  protected readonly puedeVerApiKeys = computed(() => {
+    const scopes = this.perfil()?.scopes ?? [];
+    return scopes.includes('api-keys:administrar');
+  });
+
+  protected readonly puedeVerLicencias = computed(() => {
+    const tenantId = this.perfil()?.tenant_id;
+    return !!tenantId;
   });
 
   // Titulo de la vista actual (post S1.13): antes la barra lateral no

@@ -24,6 +24,7 @@ modulo = Table(
     _metadata,
     Column("id", BigInteger, primary_key=True),
     Column("codigo", String(4)),
+    Column("nombre", String(100)),
     schema="catalogo",
 )
 
@@ -53,3 +54,19 @@ def existe_licencia_vigente(
         )
     )
     return conn.execute(stmt).first() is not None
+
+
+def listar_licencias_del_tenant(conn: Connection, tenant_id: int) -> list[Row]:
+    stmt = (
+        select(
+            licencia.c.id,
+            licencia.c.activa_desde,
+            licencia.c.activa_hasta,
+            modulo.c.codigo.label("modulo_codigo"),
+            modulo.c.nombre.label("modulo_nombre"),
+        )
+        .select_from(licencia.join(modulo, modulo.c.id == licencia.c.modulo_id))
+        .where(licencia.c.tenant_id == tenant_id)
+        .order_by(modulo.c.codigo.asc())
+    )
+    return list(conn.execute(stmt).fetchall())

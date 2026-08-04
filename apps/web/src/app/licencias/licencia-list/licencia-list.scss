@@ -1,0 +1,42 @@
+.consola {
+  width: 100%;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+.consola__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.consola__acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.tabla-envoltorio {
+  overflow-x: auto;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  background: #fff;
+}
+
+.tabla-envoltorio .ah-tabla {
+  min-width: 600px;
+
+  code {
+    font-family: var(--ah-font-mono);
+    background: #f1f5f9;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #0f172a;
+  }
+}

@@ -82,6 +82,13 @@ export function etiquetaEstadoTenant(estado: string): string {
   return ETIQUETAS_ESTADO[estado] ?? estado;
 }
 
+export interface ValidarDisponibilidadResponse {
+  codigo_disponible: boolean;
+  codigo_mensaje: string | null;
+  email_disponible: boolean;
+  email_mensaje: string | null;
+}
+
 // Workpanel de tenants (post S1.13): antes solo existia crearTenant --
 // ni listar, ni ver detalle, ni editar, ni dar de baja.
 @Injectable({ providedIn: 'root' })
@@ -92,6 +99,13 @@ export class TenantService {
     // S1.10: el token ya no viaja por parametro -- lo agrega
     // authInterceptor a partir de la sesion real (FR-029).
     return this.http.post<CrearTenantResponse>(`${API_BASE_URL}/tenants`, peticion);
+  }
+
+  validarDisponibilidad(codigo?: string, emailAdmin?: string): Observable<ValidarDisponibilidadResponse> {
+    const params: Record<string, string> = {};
+    if (codigo) params['codigo'] = codigo;
+    if (emailAdmin) params['email_admin'] = emailAdmin;
+    return this.http.get<ValidarDisponibilidadResponse>(`${API_BASE_URL}/tenants/validar`, { params });
   }
 
   listarAeropuertos(): Observable<Aeropuerto[]> {
@@ -118,5 +132,9 @@ export class TenantService {
     return this.http.post<TenantResumen>(`${API_BASE_URL}/tenants/${tenantId}/estado`, {
       estado_nuevo: estadoNuevo,
     });
+  }
+
+  eliminarTenantFisico(tenantId: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/tenants/${tenantId}`);
   }
 }

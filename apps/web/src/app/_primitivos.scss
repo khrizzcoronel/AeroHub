@@ -382,3 +382,75 @@
   font-size: 0.85rem;
   color: var(--ah-ink-600);
 }
+
+// -- .ah-toast -- notificaciones flotantes de feedback general (Sprint S1.14)
+.ah-toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.ah-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-family: var(--ah-font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #ffffff;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  animation: ah-toast-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &__icono {
+    font-weight: bold;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  &__cerrar {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    margin-left: auto;
+    padding: 0 0.2rem;
+
+    &:hover {
+      color: #ffffff;
+    }
+  }
+
+  &--exito {
+    background-color: #059669;
+  }
+  &--error {
+    background-color: #dc2626;
+  }
+  &--aviso {
+    background-color: #d97706;
+  }
+  &--info {
+    background-color: #0284c7;
+  }
+}
+
+@keyframes ah-toast-slide-in {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

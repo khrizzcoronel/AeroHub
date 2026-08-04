@@ -11,6 +11,9 @@ import {
   etiquetaEstadoTenant,
 } from '../tenant.service';
 
+import { ToastService } from '../../shared/toast.service';
+import { mensajeDeError } from '../../auth/auth.service';
+
 // Transiciones validas -- espejo de domain/tenant.py::_TRANSICIONES_VALIDAS
 // (services/tenancy/aerohub_tenancy/domain/tenant.py). Se repite aqui
 // SOLO para no ofrecer en el UI un boton que el backend va a rechazar
@@ -98,6 +101,7 @@ export class TenantList {
   protected readonly esSandboxEdit = signal(false);
 
   private readonly tenantService = inject(TenantService);
+  private readonly toast = inject(ToastService);
 
   constructor() {
     this.cargarTenants();
@@ -114,7 +118,7 @@ export class TenantList {
         this.cargando.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.error.set(this.mensajeDeError(err));
+        this.error.set(mensajeDeError(err));
         this.cargando.set(false);
       },
     });
@@ -176,34 +180,57 @@ export class TenantList {
         next: () => {
           this.tenantEditando.set(null);
           this.cargarTenants();
+          this.toast.mostrar('Organización actualizada con éxito', 'exito');
         },
-        error: (err: HttpErrorResponse) => this.error.set(this.mensajeDeError(err)),
+        error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
       });
   }
 
-  // Se llama desde dentro del modal de "Ver detalles" -- unico lugar
-  // desde donde ahora se cambia el estado (pedido explicito: un solo
-  // boton por fila, todo lo demas vive en el modal). Cierra el modal
-  // porque `t` (el snapshot con el que se abrio) queda desactualizado en
-  // cuanto el estado cambia.
+  protected readonly tenantAEliminar = signal<TenantResumen | null>(null);
+  protected readonly eliminando = signal(false);
+
   protected cambiarEstadoDesdeModal(tenantId: string, estadoNuevo: string): void {
     this.error.set(null);
     this.tenantService.cambiarEstadoTenant(tenantId, estadoNuevo).subscribe({
       next: () => {
         this.tenantEditando.set(null);
         this.cargarTenants();
+        this.toast.mostrar(`Estado actualizado a: ${etiquetaEstadoTenant(estadoNuevo)}`, 'exito');
       },
-      error: (err: HttpErrorResponse) => this.error.set(this.mensajeDeError(err)),
+      error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
+    });
+  }
+
+  protected solicitarEliminacionFisica(t: TenantResumen): void {
+    this.tenantEditando.set(null);
+    this.tenantAEliminar.set(t);
+  }
+
+  protected cancelarEliminacionFisica(): void {
+    this.tenantAEliminar.set(null);
+  }
+
+  protected confirmarEliminacionFisica(): void {
+    const t = this.tenantAEliminar();
+    if (!t) return;
+    this.eliminando.set(true);
+    this.error.set(null);
+    this.tenantService.eliminarTenantFisico(t.id).subscribe({
+      next: () => {
+        this.eliminando.set(false);
+        this.tenantAEliminar.set(null);
+        this.cargarTenants();
+        this.toast.mostrar(`Organización '${t.codigo}' eliminada permanentemente de la base de datos`, 'exito');
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(mensajeDeError(err));
+        this.eliminando.set(false);
+      },
     });
   }
 
   protected nombrePlan(planId: string): string {
-    return this.planes().find((p) => p.id === planId)?.nombre ?? planId;
-  }
-
-  private mensajeDeError(err: HttpErrorResponse): string {
-    return typeof err.error?.detail === 'string'
-      ? err.error.detail
-      : `Error ${err.status}: ${err.message}`;
+    const p = this.planes().find((item) => item.id === planId);
+    return p ? p.nombre : planId;
   }
 }

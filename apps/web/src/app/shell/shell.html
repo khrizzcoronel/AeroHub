@@ -10,6 +10,27 @@
           </a>
         </li>
       }
+      @if (puedeVerUsuarios()) {
+        <li>
+          <a routerLink="/usuarios" routerLinkActive="side__link--activo" class="side__link">
+            Usuarios y Equipo
+          </a>
+        </li>
+      }
+      @if (puedeVerApiKeys()) {
+        <li>
+          <a routerLink="/api-keys" routerLinkActive="side__link--activo" class="side__link">
+            API Keys
+          </a>
+        </li>
+      }
+      @if (puedeVerLicencias()) {
+        <li>
+          <a routerLink="/licencias" routerLinkActive="side__link--activo" class="side__link">
+            Licencias
+          </a>
+        </li>
+      }
       @for (modulo of modulosConVista(); track modulo.codigo) {
         <li>
           <a [routerLink]="modulo.ruta" routerLinkActive="side__link--activo" class="side__link">
@@ -36,4 +57,19 @@
     }
     <router-outlet />
   </main>
+
+  <div class="ah-toast-container">
+    @for (t of toasts(); track t.id) {
+      <div class="ah-toast" [class]="'ah-toast--' + t.tipo">
+        <span class="ah-toast__icono">
+          @if (t.tipo === 'exito') { ✓ }
+          @else if (t.tipo === 'error') { ✕ }
+          @else if (t.tipo === 'aviso') { ⚠ }
+          @else { ℹ }
+        </span>
+        <span>{{ t.mensaje }}</span>
+        <button type="button" class="ah-toast__cerrar" (click)="toastService.quitar(t.id)">×</button>
+      </div>
+    }
+  </div>
 </div>

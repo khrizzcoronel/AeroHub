@@ -1,18 +1,50 @@
-<h2>Aprovisionar tenant (CU-O18)</h2>
+<h2>Aprovisionar tenant</h2>
 
 @if (resultado(); as r) {
-  <div class="ah-alerta ah-alerta--aviso resultado">
-    <p class="resultado__titulo">Tenant creado.</p>
-    <dl class="resultado__lista">
-      <dt>tenant_id</dt>
-      <dd>{{ r.tenant_id }}</dd>
-      <dt>usuario_admin_id</dt>
-      <dd>{{ r.usuario_admin_id }}</dd>
-      <dt>password_temporal</dt>
-      <dd>{{ r.password_temporal }}</dd>
-    </dl>
+  <div class="resultado-card">
+    <div class="resultado-card__cabecera">
+      <div class="resultado-card__badge-icono">✓</div>
+      <div>
+        <h3 class="resultado-card__titulo">Organización aprovisionada con éxito</h3>
+        <p class="resultado-card__subtitulo">Credenciales del Administrador de Plataforma</p>
+      </div>
+    </div>
+
+    <div class="resultado-card__datos">
+      <div class="resultado-card__item">
+        <span class="resultado-card__etiqueta">ID de Organización (Tenant)</span>
+        <span class="resultado-card__valor ah-mono">{{ r.tenant_id }}</span>
+      </div>
+
+      <div class="resultado-card__item">
+        <span class="resultado-card__etiqueta">ID Usuario Administrador</span>
+        <span class="resultado-card__valor ah-mono">{{ r.usuario_admin_id }}</span>
+      </div>
+
+      <div class="resultado-card__item resultado-card__item--destacado">
+        <span class="resultado-card__etiqueta">Contraseña Temporal de Acceso</span>
+        <div class="resultado-card__password-box">
+          <code class="resultado-card__valor ah-mono password-texto">{{ r.password_temporal }}</code>
+          <button
+            type="button"
+            class="ah-btn ah-btn--sm"
+            [class.ah-btn--secundario]="copiado()"
+            (click)="copiarPassword()"
+          >
+            {{ copiado() ? '✓ Copiado' : 'Copiar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="resultado-card__aviso">
+      <strong>Aviso de seguridad:</strong> Esta contraseña temporal se muestra una sola vez. Se ha enviado una notificación por correo al administrador registrado.
+    </div>
+
+    <div class="modal-acciones">
+      <button type="button" class="ah-btn" (click)="cerrar.emit()">Entendido, cerrar</button>
+    </div>
   </div>
-  <button type="button" class="ah-btn" (click)="cerrar.emit()">Cerrar</button>
 } @else {
   <form class="formulario" (ngSubmit)="enviar()">
     <div class="ah-campo">
@@ -21,10 +53,18 @@
         id="codigo"
         type="text"
         required
+        style="text-transform: uppercase;"
+        placeholder="EJ: UIO"
+        [class.ah-campo__input--error]="errorCodigo()"
         [ngModel]="codigo()"
-        (ngModelChange)="codigo.set($event)"
+        (ngModelChange)="onCodigoInput($event)"
         name="codigo"
       />
+      @if (validandoCodigo()) {
+        <span class="campo-indicador campo-indicador--cargando">Verificando disponibilidad...</span>
+      } @else if (errorCodigo()) {
+        <span class="campo-indicador campo-indicador--error">{{ errorCodigo() }}</span>
+      }
     </div>
 
     <div class="ah-campo">
@@ -77,10 +117,16 @@
         id="emailAdmin"
         type="email"
         required
+        [class.ah-campo__input--error]="errorEmail()"
         [ngModel]="emailAdmin()"
-        (ngModelChange)="emailAdmin.set($event)"
+        (ngModelChange)="onEmailInput($event)"
         name="emailAdmin"
       />
+      @if (validandoEmail()) {
+        <span class="campo-indicador campo-indicador--cargando">Verificando disponibilidad...</span>
+      } @else if (errorEmail()) {
+        <span class="campo-indicador campo-indicador--error">{{ errorEmail() }}</span>
+      }
     </div>
 
     <div class="ah-campo">
@@ -100,7 +146,7 @@
     }
 
     <div class="modal-acciones">
-      <button type="submit" class="ah-btn" [disabled]="enviando()">
+      <button type="submit" class="ah-btn" [disabled]="enviando() || !!errorCodigo() || !!errorEmail()">
         {{ enviando() ? 'Enviando...' : 'Crear tenant' }}
       </button>
       <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrar.emit()">Cancelar</button>

@@ -39,12 +39,24 @@ interface SesionAlmacenada {
   perfil: Perfil;
 }
 
-/** Mismo patron que en el resto de apps/web: `err.error?.detail`
- * primero, mensaje generico despues -- nunca "undefined" en pantalla. */
+/** Traduce mensajes de error técnicos y nombres de campos de la BD a lenguaje claro en español */
 export function mensajeDeError(err: HttpErrorResponse): string {
-  return typeof err.error?.detail === 'string'
+  let msg = typeof err.error?.detail === 'string'
     ? err.error.detail
     : `Error ${err.status}: ${err.message}`;
+
+  msg = msg.replace(/aeropuerto_id y plan_id son obligatorios/gi, 'Debe seleccionar un aeropuerto y un plan válidos de la lista.');
+  msg = msg.replace(/aeropuerto_id/gi, 'aeropuerto');
+  msg = msg.replace(/plan_id/gi, 'plan');
+  msg = msg.replace(/email_admin/gi, 'correo del administrador');
+  msg = msg.replace(/nombre_admin/gi, 'nombre del administrador');
+  msg = msg.replace(/password_actual/gi, 'contraseña actual');
+  msg = msg.replace(/password_nueva/gi, 'contraseña nueva');
+  msg = msg.replace(/contrasena actual incorrecta/gi, 'La contraseña temporal ingresada es incorrecta.');
+  msg = msg.replace(/la contrasena debe tener al menos/gi, 'La contraseña debe tener al menos');
+  msg = msg.replace(/la contrasena debe incluir/gi, 'La contraseña debe incluir');
+
+  return msg;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -77,10 +89,15 @@ export class AuthService {
   cambiarPassword(passwordActual: string, passwordNueva: string): Observable<unknown> {
     return this.http
       .post(`${API_BASE_URL}/auth/cambiar-password`, {
-        password_actual: passwordActual,
+        password_actual: passwordActual.trim(),
         password_nueva: passwordNueva,
       })
-      .pipe(tap(() => this.marcarPasswordCambiada()));
+      .pipe(
+        tap(() => {
+          this.marcarPasswordCambiada();
+          this.refrescarPerfil().subscribe({ error: () => undefined });
+        }),
+      );
   }
 
   solicitarRecuperacion(email: string): Observable<unknown> {

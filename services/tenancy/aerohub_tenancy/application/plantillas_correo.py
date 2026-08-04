@@ -58,6 +58,40 @@ def mensaje_verificacion(*, destinatario: str, token_en_claro: str) -> Mensaje:
     )
 
 
+def mensaje_bienvenida_tenant(
+    *, destinatario: str, nombre_admin: str, tenant_razon_social: str, password_temporal: str
+) -> Mensaje:
+    """Credenciales del primer usuario administrador de un tenant nuevo
+    (pedido directo del usuario, post S1.13): antes solo se mostraban una
+    vez en la pantalla de resultado de `POST /tenants` -- si quien crea el
+    tenant no las copia ahi, se pierden sin recuperacion posible. El envio
+    por correo es un CANAL ADICIONAL, no reemplaza la pantalla (que sigue
+    mostrandolas, ver tenant-creation.html) -- ver aprovisionar_tenant.py
+    para por que un fallo de envio no bloquea la creacion del tenant."""
+    enlace = f"{_url_base()}/login"
+    return Mensaje(
+        destinatario=destinatario,
+        asunto=f"Tu acceso a {tenant_razon_social} en AeroHub",
+        cuerpo_texto=(
+            f"Hola {nombre_admin},\n\n"
+            f"Se creo tu cuenta de administrador para {tenant_razon_social} en AeroHub.\n\n"
+            f"Correo: {destinatario}\n"
+            f"Contrasena temporal: {password_temporal}\n\n"
+            f"Inicia sesion aqui: {enlace}\n\n"
+            "Se te va a pedir que la cambies por una propia en el primer acceso."
+        ),
+        cuerpo_html=(
+            f"<p>Hola {nombre_admin},</p>"
+            f"<p>Se creo tu cuenta de administrador para "
+            f"<strong>{tenant_razon_social}</strong> en AeroHub.</p>"
+            f"<p>Correo: {destinatario}<br>"
+            f"Contrasena temporal: <strong>{password_temporal}</strong></p>"
+            f'<p><a href="{enlace}">Iniciar sesion</a></p>'
+            "<p>Se te va a pedir que la cambies por una propia en el primer acceso.</p>"
+        ),
+    )
+
+
 def mensaje_recuperacion(*, destinatario: str, token_en_claro: str) -> Mensaje:
     enlace = f"{_url_base()}/restablecer?token={token_en_claro}"
     return Mensaje(

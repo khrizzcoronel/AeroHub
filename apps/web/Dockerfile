@@ -18,6 +18,8 @@ COPY apps apps
 
 EXPOSE 4200
 
+ENV NX_DAEMON=false
+
 # --host 0.0.0.0: el dev-server de Angular (Vite) escucha en localhost por
 # defecto, invisible fuera del contenedor sin esto.
 CMD ["npx", "nx", "serve", "web", "--host", "0.0.0.0", "--port", "4200"]

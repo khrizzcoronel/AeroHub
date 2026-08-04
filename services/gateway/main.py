@@ -51,7 +51,12 @@ _registro = logging.getLogger("aerohub.gateway")
 # Origenes de los servidores de desarrollo de Angular (apps/web S1.1,
 # apps/fids-player S1.3) -- permisivo solo para localhost, no un comodin.
 # Revisar antes de cualquier despliegue mas alla de desarrollo local.
-_ORIGENES_DEV = ["http://localhost:4200", "http://localhost:4300"]
+_ORIGENES_DEV = [
+    "http://localhost:4200",
+    "http://localhost:4300",
+    "http://127.0.0.1:4200",
+    "http://127.0.0.1:4300",
+]
 
 # Intervalo del ciclo del monitor de senal (RNF-R04): sensiblemente menor
 # al umbral de 60s (ver aerohub_fids.application.monitorear_senal) para
@@ -173,6 +178,7 @@ def crear_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_ORIGENES_DEV,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -187,6 +193,14 @@ def crear_app() -> FastAPI:
     app.include_router(router_compliance)
     app.include_router(router_support)
     app.add_exception_handler(OperationalError, _manejador_acceso_denegado_motor)
+
+    @app.exception_handler(Exception)
+    async def manejador_excepciones_generales(request: Request, exc: Exception) -> JSONResponse:
+        _registro.exception("Excepción no capturada en la petición %s %s: %s", request.method, request.url.path, exc)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Error interno del servidor"},
+        )
 
     @app.get("/metrics", include_in_schema=False)
     def metricas() -> Response:

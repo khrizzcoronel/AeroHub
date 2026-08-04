@@ -11,8 +11,10 @@ from .consultar_perfil import (
 )
 from .gestionar_api_key import (
     ApiKeyNoEncontrada,
+    ApiKeyResumen,
     ResultadoCrearApiKey,
     ResultadoRotarApiKey,
+    consultar_api_keys_del_tenant,
     crear_api_key,
     revocar_api_key,
     rotar_api_key,
@@ -45,6 +47,13 @@ from .gestionar_tenant import listar_tenants as consultar_tenants
 from .iniciar_sesion import CredencialesInvalidas, ResultadoLogin, iniciar_sesion
 from .verificar_correo import TokenInvalido as VerificacionTokenInvalido
 from .verificar_correo import solicitar_verificacion, verificar_correo
+from .validar_disponibilidad import (
+    ResultadoValidacionDisponibilidad,
+    validar_disponibilidad_tenant,
+)
+from .eliminar_tenant import eliminar_tenant_fisico
+from .consultar_usuarios import UsuarioResumen, consultar_usuarios_del_tenant
+from .consultar_licencias import LicenciaResumen, consultar_licencias_del_tenant
 
 __all__ = [
     "aprovisionar_tenant",
@@ -55,6 +64,8 @@ __all__ = [
     "ResultadoCrearApiKey",
     "ResultadoRotarApiKey",
     "ApiKeyNoEncontrada",
+    "consultar_api_keys_del_tenant",
+    "ApiKeyResumen",
     "iniciar_sesion",
     "ResultadoLogin",
     "CredencialesInvalidas",
@@ -89,4 +100,11 @@ __all__ = [
     "cambiar_estado_tenant",
     "TenantResumen",
     "TenantNoEncontrado",
+    "validar_disponibilidad_tenant",
+    "ResultadoValidacionDisponibilidad",
+    "eliminar_tenant_fisico",
+    "consultar_usuarios_del_tenant",
+    "UsuarioResumen",
+    "consultar_licencias_del_tenant",
+    "LicenciaResumen",
 ]

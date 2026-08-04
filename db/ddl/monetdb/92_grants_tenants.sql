@@ -4,17 +4,17 @@
 -- objeto -- conceder SELECT/INSERT/UPDATE en una tabla ya implica poder
 -- resolverla dentro de su esquema. Nunca se otorga DELETE (SRS §2.6, P5).
 
--- role_platform_admin: S,I,Up en todo el esquema (matriz 4.3.1).
-GRANT SELECT, INSERT, UPDATE ON tenants.plan TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.plan_modulo TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.tenant TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.licencia TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.usuario TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.rol TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.usuario_rol TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.api_key TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.okr TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.okr_resultado_clave TO role_platform_admin;
+-- role_platform_admin: S,I,Up,D en todo el esquema (matriz 4.3.1 y borrado fisico de tenants).
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.plan TO role_platform_admin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.plan_modulo TO role_platform_admin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.tenant TO role_platform_admin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.licencia TO role_platform_admin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.usuario TO role_platform_admin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.rol TO role_platform_admin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.usuario_rol TO role_platform_admin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.api_key TO role_platform_admin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.okr TO role_platform_admin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants.okr_resultado_clave TO role_platform_admin;
 
 -- role_sre: S en todo el esquema.
 GRANT SELECT ON tenants.plan TO role_sre;
@@ -78,13 +78,18 @@ GRANT SELECT, INSERT, UPDATE ON tenants.okr_resultado_clave TO role_business_vie
 -- (tenant/licencia/plan), sin escritura sobre esas tres -- interpretacion de
 -- ingenieria que desarrolla el parentesis del origen (SRS §3.2: 'CRUD de
 -- usuarios locales, API Keys, licencias... de su tenant' incluye LEER licencias,
--- no solo escribir usuarios). Sin acceso a plan_modulo, rol, okr*.
+-- no solo escribir usuarios). S sobre rol y sesion: necesario para el JOIN de
+-- listar_usuarios_del_tenant (rol_codigo/rol_nombre) y la verificacion de sesion
+-- del gateway (verificar_sesion.py), que corre con SET ROLE del llamador.
 GRANT SELECT, INSERT, UPDATE ON tenants.usuario TO role_tenant_admin;
 GRANT SELECT, INSERT, UPDATE ON tenants.usuario_rol TO role_tenant_admin;
 GRANT SELECT, INSERT, UPDATE ON tenants.api_key TO role_tenant_admin;
+GRANT SELECT, INSERT, UPDATE ON tenants.invitacion TO role_tenant_admin;
 GRANT SELECT ON tenants.tenant TO role_tenant_admin;
 GRANT SELECT ON tenants.licencia TO role_tenant_admin;
 GRANT SELECT ON tenants.plan TO role_tenant_admin;
+GRANT SELECT ON tenants.rol TO role_tenant_admin;
+GRANT SELECT ON tenants.sesion TO role_tenant_admin;
 
 -- role_operations_controller, role_airline_coordinator, role_ramp_agent,
 -- role_billing_officer: la matriz 4.3.1 los marca sin acceso a `tenants`

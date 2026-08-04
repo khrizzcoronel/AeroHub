@@ -19,9 +19,21 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(peticion).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse && error.status === 401 && token) {
-        auth.logout();
-        router.navigate(['/login']);
+      if (error instanceof HttpErrorResponse && token) {
+        // 401: sesion expirada o revocada -> logout y redirigir a login
+        if (error.status === 401) {
+          auth.logout();
+          router.navigate(['/login']);
+        }
+        // 403 con mensaje de scope insuficiente: el token es viejo (emitido
+        // antes de que se actualizaran los scopes del rol). Limpiamos la
+        // sesion para forzar un nuevo login con token fresco.
+        if (error.status === 403 &&
+            typeof error.error?.detail === 'string' &&
+            error.error.detail.includes('scope insuficiente')) {
+          auth.logout();
+          router.navigate(['/login']);
+        }
       }
       return throwError(() => error);
     }),

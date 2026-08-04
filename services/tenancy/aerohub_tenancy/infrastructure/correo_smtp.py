@@ -17,10 +17,10 @@ from aerohub_contracts import EnviarCorreo, EnvioDeCorreoFallo, Mensaje
 def crear_adaptador_smtp_desde_entorno() -> EnviarCorreo:
     host = os.environ.get("AEROHUB_SMTP_HOST", "localhost")
     puerto = int(os.environ.get("AEROHUB_SMTP_PORT", "1025"))
-    usuario = os.environ.get("AEROHUB_SMTP_USUARIO", "")
-    password = os.environ.get("AEROHUB_SMTP_PASSWORD", "")
+    usuario = os.environ.get("AEROHUB_SMTP_USUARIO", "").strip()
+    password = os.environ.get("AEROHUB_SMTP_PASSWORD", "").replace(" ", "").strip()
     usar_tls = os.environ.get("AEROHUB_SMTP_TLS", "false").strip().lower() == "true"
-    remitente = os.environ.get("AEROHUB_SMTP_REMITENTE", "no-responder@aerohub.test")
+    remitente = os.environ.get("AEROHUB_SMTP_REMITENTE", "no-responder@aerohub.test").strip()
 
     def _enviar(mensaje: Mensaje) -> None:
         correo = EmailMessage()
@@ -31,13 +31,18 @@ def crear_adaptador_smtp_desde_entorno() -> EnviarCorreo:
         correo.add_alternative(mensaje.cuerpo_html, subtype="html")
 
         try:
-            with smtplib.SMTP(host, puerto, timeout=10) as smtp:
-                if usar_tls:
+            if puerto == 465:
+                smtp_cls = smtplib.SMTP_SSL
+            else:
+                smtp_cls = smtplib.SMTP
+
+            with smtp_cls(host, puerto, timeout=15) as smtp:
+                if usar_tls and puerto != 465:
                     smtp.starttls()
                 if usuario:
                     smtp.login(usuario, password)
                 smtp.send_message(correo)
-        except (OSError, smtplib.SMTPException) as exc:
+        except (OSError, smtplib.SMTPException, Exception) as exc:
             raise EnvioDeCorreoFallo(
                 f"no se pudo entregar el correo a {mensaje.destinatario!r}"
             ) from exc

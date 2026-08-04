@@ -1,0 +1,48 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>Licencias y Módulos Contratados</h1>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarLicencias()" [disabled]="cargando()">
+      Actualizar
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
+
+  @if (licencias().length === 0) {
+    <p class="ah-vacio">Sin licencias registradas para esta organización.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre del Módulo</th>
+            <th>Estado</th>
+            <th>Fecha de activación</th>
+            <th>Vigente hasta</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of licencias(); track l.id) {
+            <tr>
+              <td><code>{{ l.modulo_codigo }}</code></td>
+              <td><strong>{{ l.modulo_nombre }}</strong></td>
+              <td>
+                <span class="ah-pill" [class]="claseVigencia(l.es_vigente)">
+                  {{ textoVigencia(l.es_vigente) }}
+                </span>
+              </td>
+              <td>{{ l.activa_desde | date: 'dd/MM/yyyy' }}</td>
+              <td>{{ l.activa_hasta ? (l.activa_hasta | date: 'dd/MM/yyyy') : 'Permanente / Sin expiración' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

@@ -140,6 +140,13 @@ en vistas de tabla (aprovechan el ancho real), 480 px en formularios.
 Que sea **el mismo componente** es el punto: quien aprende a leer una pantalla ya sabe leer las otras
 cinco. No es reutilización por ahorro de código, es coherencia de lectura.
 
+### 2.4.1 Primitivos de diálogo, insignias y retroalimentación (Toasts)
+
+- **`.ah-pill`**: Insignia de estado sólida y redondeada (`.ah-pill--ok`, `.ah-pill--atencion`, `.ah-pill--critico`). Diseñada para columnas de tablas donde el estado es la columna principal.
+- **`.ah-modal-fondo` / `.ah-modal`**: Diálogo superpuesto para operaciones de alta o edición sin navegación de página ni pérdida de contexto.
+- **`.ah-toast-container` / `.ah-toast`**: Notificaciones flotantes en la esquina superior derecha (`.ah-toast--exito`, `.ah-toast--error`, `.ah-toast--info`, `.ah-toast--aviso`) que confirman operaciones completadas (aprovisionamiento, actualización, borrado físico, copiado al portapapeles).
+- **`.ah-btn--peligro`**: Variante de botón destructiva (rojo) para salvaguardas y confirmación de acciones irreversibles (borrado físico).
+
 ### 2.5 Autocrítica (antes de construir)
 
 Revisado contra el riesgo de "diseño genérico de IA":

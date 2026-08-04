@@ -20,6 +20,7 @@ from ..infrastructure import (
     contexto_tenant_id,
     escribir_journal,
     insertar_api_key,
+    listar_api_keys_del_tenant,
     marcar_api_key_rotada,
     obtener_api_key_por_id,
     registrar_auditoria,
@@ -181,3 +182,30 @@ def rotar_api_key(*, api_key_id: int) -> ResultadoRotarApiKey:
         )
 
     return ResultadoRotarApiKey(api_key_id=nueva_id, api_key_en_claro=f"{prefijo}.{secreto}")
+
+
+@dataclass(frozen=True, slots=True)
+class ApiKeyResumen:
+    id: str
+    prefijo: str
+    estado: str
+    creada_en: datetime
+    expira_en: datetime | None
+    rotada_en: datetime | None
+
+
+def consultar_api_keys_del_tenant() -> list[ApiKeyResumen]:
+    with sesion() as conn:
+        filas = listar_api_keys_del_tenant(conn)
+
+    return [
+        ApiKeyResumen(
+            id=str(f.id),
+            prefijo=f.prefijo,
+            estado=f.estado,
+            creada_en=f.creada_en,
+            expira_en=f.expira_en,
+            rotada_en=f.rotada_en,
+        )
+        for f in filas
+    ]

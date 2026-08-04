@@ -10,8 +10,8 @@ JWT previo (FR-026).
 
 from __future__ import annotations
 
-from aerohub_contracts import EnvioDeCorreoFallo, emitir_jwt_sesion, sesion_id_de_jwt
-from fastapi import APIRouter, HTTPException, Request
+from aerohub_contracts import EnvioDeCorreoFallo, emitir_jwt_sesion, requiere_scope, sesion_id_de_jwt
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from ..application import (
@@ -28,6 +28,7 @@ from ..application import (
     cerrar_sesion,
     consultar_mi_perfil,
     consultar_perfil,
+    consultar_usuarios_del_tenant,
     iniciar_sesion,
     invitar_usuario,
     restablecer_password,
@@ -267,3 +268,36 @@ def aceptar(cuerpo: AceptarInvitacionRequest) -> AceptarInvitacionResponse:
     return AceptarInvitacionResponse(
         usuario_id=str(resultado.usuario_id), tenant_id=str(resultado.tenant_id)
     )
+
+
+class UsuarioResumenResponse(BaseModel):
+    id: str
+    email: str
+    nombre: str
+    estado: str
+    creado_en: str
+    ultimo_acceso_en: str | None
+    rol_codigo: str | None
+    rol_nombre: str | None
+
+
+@router_auth.get(
+    "/usuarios",
+    response_model=list[UsuarioResumenResponse],
+    dependencies=[Depends(requiere_scope("usuarios:administrar"))],
+)
+def listar_usuarios() -> list[UsuarioResumenResponse]:
+    usuarios = consultar_usuarios_del_tenant()
+    return [
+        UsuarioResumenResponse(
+            id=u.id,
+            email=u.email,
+            nombre=u.nombre,
+            estado=u.estado,
+            creado_en=u.creado_en.isoformat(),
+            ultimo_acceso_en=u.ultimo_acceso_en.isoformat() if u.ultimo_acceso_en else None,
+            rol_codigo=u.rol_codigo,
+            rol_nombre=u.rol_nombre,
+        )
+        for u in usuarios
+    ]

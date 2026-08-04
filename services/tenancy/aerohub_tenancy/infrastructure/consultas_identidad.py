@@ -59,6 +59,29 @@ def contar_intentos_fallidos_recientes(
     return conn.execute(stmt).scalar_one()
 
 
+def listar_usuarios_del_tenant(conn: Connection, tenant_id: int) -> list[Row]:
+    stmt = (
+        select(
+            usuario.c.id,
+            usuario.c.email,
+            usuario.c.nombre,
+            usuario.c.estado,
+            usuario.c.creado_en,
+            usuario.c.ultimo_acceso_en,
+            rol.c.codigo.label("rol_codigo"),
+            rol.c.nombre.label("rol_nombre"),
+        )
+        .select_from(
+            usuario.outerjoin(usuario_rol, usuario_rol.c.usuario_id == usuario.c.id).outerjoin(
+                rol, rol.c.id == usuario_rol.c.rol_id
+            )
+        )
+        .where(usuario.c.tenant_id == tenant_id)
+        .order_by(usuario.c.creado_en.desc())
+    )
+    return list(conn.execute(stmt).fetchall())
+
+
 def obtener_sesion_por_id(conn: Connection, sesion_id: int) -> Row | None:
     return conn.execute(select(sesion).where(sesion.c.id == sesion_id)).first()
 

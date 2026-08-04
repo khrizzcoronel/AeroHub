@@ -1,0 +1,117 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>Usuarios del Equipo</h1>
+  </div>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar usuarios</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroBusqueda">Nombre o correo</label>
+        <input
+          id="filtroBusqueda"
+          type="text"
+          placeholder="Ej. Juan Pérez"
+          [ngModel]="filtroBusqueda()"
+          (ngModelChange)="cambiarFiltroBusqueda($event)"
+          name="filtroBusqueda"
+        />
+      </div>
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroRol">Filtrar por rol</label>
+        <select
+          id="filtroRol"
+          [ngModel]="filtroRol()"
+          (ngModelChange)="cambiarFiltroRol($event)"
+          name="filtroRol"
+        >
+          @for (op of rolesOpciones; track op.value) {
+            <option [value]="op.value">{{ op.label }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="consola__acciones">
+    <button type="button" class="ah-btn" (click)="abrirModalInvitar()">Invitar Usuario</button>
+    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarUsuarios()" [disabled]="cargando()">
+      Actualizar
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
+
+  @if (usuarios().length > 0) {
+    <p class="ah-resumen-resultados">
+      Mostrando {{ usuariosFiltrados().length }} {{ usuariosFiltrados().length === 1 ? 'usuario' : 'usuarios' }}
+      @if (filtroRol()) {
+        con rol <strong>{{ etiquetaRol(filtroRol()) }}</strong>
+      }
+    </p>
+  }
+
+  @if (usuarios().length === 0) {
+    <p class="ah-vacio">Sin usuarios registrados todavía.</p>
+  } @else if (usuariosFiltrados().length === 0) {
+    <p class="ah-vacio">Ningún usuario coincide con la búsqueda.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo electrónico</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Fecha de registro</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of usuariosPagina(); track u.id) {
+            <tr>
+              <td><strong>{{ u.nombre }}</strong></td>
+              <td>{{ u.email }}</td>
+              <td>{{ etiquetaRol(u.rol_codigo) }}</td>
+              <td>
+                <span class="ah-pill" [class]="claseEstado(u.estado)">{{ u.estado }}</span>
+              </td>
+              <td>{{ u.creado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (totalPaginas() > 1) {
+      <div class="ah-paginacion">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnterior()" [disabled]="paginaActual() === 1">
+          Anterior
+        </button>
+        <span class="ah-paginacion__estado">Página {{ paginaActual() }} de {{ totalPaginas() }}</span>
+        <button
+          type="button"
+          class="ah-btn ah-btn--secundario"
+          (click)="paginaSiguiente()"
+          [disabled]="paginaActual() === totalPaginas()"
+        >
+          Siguiente
+        </button>
+      </div>
+    }
+  }
+</section>
+
+@if (mostrarModalInvitar()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalInvitar()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Invitar Nuevo Usuario</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalInvitar()" aria-label="Cerrar">✕</button>
+      </div>
+      <app-invitar (cerrar)="cerrarModalInvitar()" (enviado)="alEnviarInvitacion()" />
+    </div>
+  </div>
+}

@@ -23,14 +23,20 @@ from ..application import (
     aprovisionar_tenant,
     cambiar_estado_tenant,
     consultar_aeropuertos,
+    consultar_api_keys_del_tenant,
+    consultar_licencias_del_tenant,
     consultar_planes,
     consultar_tenants,
     crear_api_key,
     obtener_tenant,
     revocar_api_key,
     rotar_api_key,
+    validar_disponibilidad_tenant,
+    eliminar_tenant_fisico,
 )
 from ..domain import ESTADOS_VALIDOS, TenantInvalido, TransicionTenantInvalida
+
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(tags=["tenants"])
 
@@ -81,6 +87,22 @@ def crear_tenant(cuerpo: TenantCrearRequest) -> TenantCrearResponse:
         )
     except TenantInvalido as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except IntegrityError as exc:
+        causa = str(exc.orig) if exc.orig is not None else str(exc)
+        if "uq_usuario_email" in causa or "usuario.email" in causa:
+            raise HTTPException(
+                status_code=422,
+                detail=f"El correo electrónico '{cuerpo.email_admin}' ya se encuentra registrado.",
+            ) from exc
+        if "uq_tenant_codigo" in causa or "tenant.codigo" in causa:
+            raise HTTPException(
+                status_code=422,
+                detail=f"El código de tenant '{cuerpo.codigo}' ya existe.",
+            ) from exc
+        raise HTTPException(
+            status_code=422,
+            detail="Error de restricción de datos al crear el tenant.",
+        ) from exc
     return TenantCrearResponse(
         tenant_id=str(resultado.tenant_id),
         usuario_admin_id=str(resultado.usuario_admin_id),
@@ -175,6 +197,32 @@ def listar_tenants_endpoint() -> list[TenantResumenResponse]:
     return [_resumen_a_response(r) for r in consultar_tenants()]
 
 
+class ValidarDisponibilidadResponse(BaseModel):
+    codigo_disponible: bool
+    codigo_mensaje: str | None = None
+    email_disponible: bool
+    email_mensaje: str | None = None
+
+
+@router.get(
+    "/tenants/validar",
+    response_model=ValidarDisponibilidadResponse,
+    dependencies=[Depends(requiere_scope("tenants:crear"))],
+)
+def validar_disponibilidad_endpoint(
+    codigo: str | None = None,
+    email_admin: str | None = None,
+) -> ValidarDisponibilidadResponse:
+    """Verifica en tiempo real si un codigo de tenant o email de admin ya existen."""
+    res = validar_disponibilidad_tenant(codigo=codigo, email_admin=email_admin)
+    return ValidarDisponibilidadResponse(
+        codigo_disponible=res.codigo_disponible,
+        codigo_mensaje=res.codigo_mensaje,
+        email_disponible=res.email_disponible,
+        email_mensaje=res.email_mensaje,
+    )
+
+
 @router.get(
     "/tenants/{tenant_id}",
     response_model=TenantResumenResponse,
@@ -236,6 +284,78 @@ def cambiar_estado_tenant_endpoint(
     except TransicionTenantInvalida as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return _resumen_a_response(resultado)
+
+
+@router.delete(
+    "/tenants/{tenant_id}",
+    status_code=204,
+    dependencies=[Depends(requiere_scope("tenants:administrar"))],
+)
+def eliminar_tenant_endpoint(tenant_id: int) -> None:
+    """Borrado fisico permanente de un tenant y todos sus registros asociados."""
+    try:
+        eliminar_tenant_fisico(tenant_id=tenant_id)
+    except TenantNoEncontrado as exc:
+        raise HTTPException(status_code=404, detail="tenant no encontrado") from exc
+
+
+class ApiKeyResumenResponse(BaseModel):
+    id: str
+    prefijo: str
+    estado: str
+    creada_en: str
+    expira_en: str | None
+    rotada_en: str | None
+
+
+@router.get(
+    "/api-keys",
+    response_model=list[ApiKeyResumenResponse],
+    dependencies=[Depends(requiere_scope("api-keys:administrar"))],
+)
+def listar_api_keys_endpoint() -> list[ApiKeyResumenResponse]:
+    """Lista las API Keys asociadas al tenant del usuario autenticado."""
+    keys = consultar_api_keys_del_tenant()
+    return [
+        ApiKeyResumenResponse(
+            id=k.id,
+            prefijo=k.prefijo,
+            estado=k.estado,
+            creada_en=k.creada_en.isoformat(),
+            expira_en=k.expira_en.isoformat() if k.expira_en else None,
+            rotada_en=k.rotada_en.isoformat() if k.rotada_en else None,
+        )
+        for k in keys
+    ]
+
+
+class LicenciaResumenResponse(BaseModel):
+    id: str
+    modulo_codigo: str
+    modulo_nombre: str
+    activa_desde: str
+    activa_hasta: str | None
+    es_vigente: bool
+
+
+@router.get(
+    "/licencias/mi-tenant",
+    response_model=list[LicenciaResumenResponse],
+)
+def listar_licencias_mi_tenant_endpoint() -> list[LicenciaResumenResponse]:
+    """Lista las licencias contratadas por el tenant del usuario autenticado."""
+    licencias = consultar_licencias_del_tenant()
+    return [
+        LicenciaResumenResponse(
+            id=l.id,
+            modulo_codigo=l.modulo_codigo,
+            modulo_nombre=l.modulo_nombre,
+            activa_desde=l.activa_desde.isoformat(),
+            activa_hasta=l.activa_hasta.isoformat() if l.activa_hasta else None,
+            es_vigente=l.es_vigente,
+        )
+        for l in licencias
+    ]
 
 
 class ApiKeyCrearResponse(BaseModel):

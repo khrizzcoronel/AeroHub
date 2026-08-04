@@ -9,10 +9,10 @@ los grants de la matriz 4.3.1).
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.engine import Connection, Row
 
-from .tablas import tenant
+from .tablas import tenant, usuario
 
 
 def listar_tenants(conn: Connection) -> list[Row]:
@@ -21,3 +21,13 @@ def listar_tenants(conn: Connection) -> list[Row]:
 
 def obtener_tenant_por_id(conn: Connection, tenant_id: int) -> Row | None:
     return conn.execute(select(tenant).where(tenant.c.id == tenant_id)).first()
+
+
+def existe_tenant_codigo(conn: Connection, codigo: str) -> bool:
+    stmt = select(tenant.c.id).where(func.upper(tenant.c.codigo) == codigo.strip().upper())
+    return conn.execute(stmt).first() is not None
+
+
+def existe_usuario_email(conn: Connection, email: str) -> bool:
+    stmt = select(usuario.c.id).where(func.lower(usuario.c.email) == email.strip().lower())
+    return conn.execute(stmt).first() is not None

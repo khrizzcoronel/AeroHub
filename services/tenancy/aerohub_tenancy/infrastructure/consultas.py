@@ -54,3 +54,12 @@ def obtener_api_key_por_id(conn: Connection, api_key_id: int) -> Row | None:
         api_key.c.tenant_id == contexto_tenant_id(), api_key.c.id == api_key_id
     )
     return conn.execute(stmt).first()
+
+
+def listar_api_keys_del_tenant(conn: Connection) -> list[Row]:
+    stmt = (
+        select(api_key)
+        .where(api_key.c.tenant_id == contexto_tenant_id())
+        .order_by(api_key.c.creada_en.desc())
+    )
+    return list(conn.execute(stmt).fetchall())

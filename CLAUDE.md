@@ -286,6 +286,32 @@ las transiciones correctas para ese estado puntual, columnas de la
 tabla con anchos distintos según su contenido, sin errores de consola,
 build de producción en verde.
 
+**Quinta iteración (backend): correo de bienvenida al crear un tenant**
+(mismo día, pedido directo -- "esa credencial debería enviarse al
+correo"). `aprovisionar_tenant` (CU-O18, S1.1) ahora envía un correo real
+al admin del tenant recién creado con su contraseña temporal, reusando el
+puerto `EnviarCorreo`/adaptador SMTP ya construido en S1.10 -- plantilla
+nueva `mensaje_bienvenida_tenant()` en `plantillas_correo.py`. **Decisión
+de diseño explícita**: a diferencia de `invitar_usuario` (S1.10), que
+envía el correo ANTES de persistir (el correo ES la entrega), acá el
+envío ocurre DESPUÉS de que la transacción confirma, y un
+`EnvioDeCorreoFallo` se traga en silencio en vez de propagarse -- el
+tenant y su admin YA son el valor entregado en el momento del envío; un
+fallo de SMTP no debe destruir un aprovisionamiento real, y propagar un
+502 le ocultaría `password_temporal` (que la pantalla de resultado sigue
+mostrando, sin cambios) a quien crea el tenant justo cuando más la
+necesita. El correo es un canal adicional, no reemplaza la pantalla.
+Verificado contra `mailpit` real (sin mock de `smtplib`): tenant creado
+por API, correo con asunto "Tu acceso a &lt;razón social&gt; en AeroHub"
+**Sexta iteración: integración SMTP de Gmail real y eliminación de Mailpit**
+(mismo día, pedido directo): Se reemplazó el contenedor `mailpit` por configuración real de Gmail SMTP en `infra/docker-compose.yml` (`smtp.gmail.com:587`, TLS) y se actualizó `correo_smtp.py` para limpiar automáticamente espacios en blanco de contraseñas de aplicación de Google. Se detuvo y eliminó el servicio `aerohub-mailpit` del stack Docker para liberar recursos del sistema.
+
+**Séptima iteración: validación en tiempo real de disponibilidad, CORS y mensajes legibles**
+(mismo día, pedido directo): Se implementó el endpoint `GET /tenants/validar` (`validar_disponibilidad.py`) que consulta MonetDB en tiempo real bajo `alcance_global`. En `tenant-creation.ts` se conectó validación asíncrona con debounce que resalta en rojo e indica mensajes inline si un código o correo ya existen, deshabilitando el botón de envío. Se ajustó la función global `mensajeDeError()` en `auth.service.ts` para traducir todos los nombres de campos técnicos (`aeropuerto_id y plan_id son obligatorios` → *"Debe seleccionar un aeropuerto y un plan válidos de la lista."*). Se corrigió la intercepción de peticiones preflight HTTP `OPTIONS` en `AutenticacionJWTMiddleware` permitiendo el paso limpio a `CORSMiddleware`.
+
+**Novena iteración: Suite de Workpanels de Tenant Admin y navegación dinámica en Shell**
+(mismo día, pedido directo): Se implementó la suite completa de administración del tenant (`role_tenant_admin`). En backend (`aerohub_tenancy`) se expusieron los endpoints `GET /usuarios` (`consultar_usuarios.py`), `GET /api-keys` (`consultar_api_keys_del_tenant()`) y `GET /licencias/mi-tenant` (`consultar_licencias.py`) con aislamiento por tenant estricto. En frontend (`apps/web`) se construyeron los tres workpanels: `UsuarioList` (`/usuarios`) con tabla `.ah-tabla`, paginación e invitación modal por correo (`Invitar`); `ApiKeyList` (`/api-keys`) con rotación, revocación y modal de secreto en claro en `IBM Plex Mono` con botón de copiado al portapapeles; `LicenciaList` (`/licencias`) con lista de módulos contratados (`M1`-`M5`) e insignias de vigencia. Se actualizó la barra lateral del shell (`shell.ts`/`shell.html`) con los condicionales `puedeVerUsuarios()`, `puedeVerApiKeys()` y `puedeVerLicencias()` para desplegar dinámicamente el menú administrativo según la identidad y scopes del usuario logueado.
+
 **La dirección estética completa vive en `docs/diseno/DIRECCION_VISUAL.md`**
 — tokens, tipografía, el componente "tira de progreso de vuelo" como
 unidad estructural reutilizada en los 5 módulos, la decisión de densidad
@@ -365,13 +391,14 @@ Referencia más completa y reciente: `services/ramp/aerohub_ramp/` (S1.5).
   sobre sus propias tareas, S1.5): se implementa en `infrastructure/`
   filtrando por `contexto_usuario_id()` cuando el rol activo lo exige, no
   en el motor (MonetDB no tiene RLS).
-- Frontend (`apps/web`, `apps/fids-player`): sin login real todavía — el
-  JWT se pega a mano en un textarea. Patrón de componente: standalone,
-  todo el estado en `signal()`, `inject()` para DI, manejo de error
-  uniforme vía `mensajeDeError(err)` que prioriza `err.error?.detail`.
-  `<input type="datetime-local">` no lleva zona horaria — convertir a UTC
-  con un helper tipo `aUtcIso()` antes de enviar al backend (si no, el
-  backend rechaza con 422 por datetime naive).
+- Frontend (`apps/web`): el estado de sesión y token se guarda en `localStorage`
+  (`AuthService`). El interceptor HTTP (`auth.interceptor.ts`) intercepta 401 y
+  403 (por "scope insuficiente") para forzar cierre de sesión y limpieza local si 
+  el token caduca (15 min) o sus permisos quedaron obsoletos tras un cambio de rol.
+  Patrón de componente: standalone, todo el estado en `signal()`, `inject()` para
+  DI, manejo de error uniforme vía `mensajeDeError(err)`. `<input type="datetime-local">`
+  no lleva zona horaria — convertir a UTC con un helper tipo `aUtcIso()` antes de
+  enviar al backend.
 
 ## Hallazgos empíricos de MonetDB (ver también `docs/runbooks/monetdb.md`)
 
@@ -392,6 +419,11 @@ Referencia más completa y reciente: `services/ramp/aerohub_ramp/` (S1.5).
   el operador `IS` solo acepta `NULL`/`NOT NULL`, no un literal booleano).
   Usar `columna_booleana == True` (comparación de igualdad, `= true`) en
   su lugar. Encontrado en `consultas_catalogo.py::listar_planes`.
+- Permisos bajo `SET ROLE`: cualquier tabla leída durante una consulta 
+  (incluso vía `JOIN` o subquery interna) requiere un `GRANT SELECT` 
+  explícito al rol en MonetDB. Si falta, la base de datos lanza `access denied`
+  (que en FastAPI llega como un `OperationalError` de SQLAlchemy y se traduce
+  a `403 acceso denegado`).
 
 ## Entorno de desarrollo
 
@@ -410,6 +442,3 @@ Referencia más completa y reciente: `services/ramp/aerohub_ramp/` (S1.5).
   fijos: `MEC` y `UIO` (código/email/vuelos estables, usados por
   `tests/cross_tenant/` y por los `datos_canario` de casi toda la suite de
   integración).
-- Verificación manual de endpoints: mintar un JWT de prueba con
-  `aerohub_gateway.infrastructure.codificar_jwt(rol=..., tenant_id=...,
-  usuario_id=..., scopes=[...])` — no hay login real todavía.
