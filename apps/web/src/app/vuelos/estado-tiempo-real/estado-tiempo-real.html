@@ -18,6 +18,9 @@
       >
         Desconectar
       </button>
+      <button type="button" class="ah-btn" (click)="abrirModalNuevoVuelo()">
+        Nuevo vuelo
+      </button>
     </div>
   </div>
 
@@ -58,6 +61,7 @@
             <th>Vuelo</th>
             <th>Ocurrido en</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -69,6 +73,15 @@
                 <span class="ah-pill" [class]="claseDeEstado(evento.codigo_estado)">
                   {{ etiquetaEstado(evento.codigo_estado) }}
                 </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="ah-btn ah-btn--secundario ah-btn--sm"
+                  (click)="abrirModalCambiarEstado(evento.vuelo_id)"
+                >
+                  Cambiar estado
+                </button>
               </td>
             </tr>
           }
@@ -94,3 +107,137 @@
     }
   }
 </section>
+
+@if (mostrarModalNuevoVuelo()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalNuevoVuelo()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Nuevo vuelo</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalNuevoVuelo()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorFormulario()) {
+        <p class="ah-alerta" role="alert">{{ errorFormulario() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="aerolineaId">Aerolinea</label>
+          <select id="aerolineaId" [ngModel]="aerolineaId()" (ngModelChange)="aerolineaId.set($event)" name="aerolineaId">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (a of aerolineas(); track a.id) {
+              <option [value]="a.id">{{ a.nombre }} ({{ a.codigo_iata }})</option>
+            }
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="aeronaveId">Aeronave</label>
+          <select id="aeronaveId" [ngModel]="aeronaveId()" (ngModelChange)="aeronaveId.set($event)" name="aeronaveId">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (a of aeronaves(); track a.id) {
+              <option [value]="a.id">{{ a.matricula }} -- {{ a.fabricante }} {{ a.modelo }}</option>
+            }
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="numeroVuelo">Numero de vuelo</label>
+          <input id="numeroVuelo" type="text" [ngModel]="numeroVuelo()" (ngModelChange)="numeroVuelo.set($event)" name="numeroVuelo" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="tipoVueloId">Tipo de vuelo</label>
+          <select id="tipoVueloId" [ngModel]="tipoVueloId()" (ngModelChange)="tipoVueloId.set($event)" name="tipoVueloId">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (t of tiposVuelo(); track t.id) {
+              <option [value]="t.id">{{ t.descripcion }}</option>
+            }
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="sentido">Sentido</label>
+          <select id="sentido" [ngModel]="sentido()" (ngModelChange)="sentido.set($event)" name="sentido">
+            <option value="L">Llegada</option>
+            <option value="S">Salida</option>
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="fechaOperacion">Fecha de operacion</label>
+          <input id="fechaOperacion" type="date" [ngModel]="fechaOperacion()" (ngModelChange)="fechaOperacion.set($event)" name="fechaOperacion" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="aeropuertoOrigenId">Aeropuerto origen</label>
+          <select id="aeropuertoOrigenId" [ngModel]="aeropuertoOrigenId()" (ngModelChange)="aeropuertoOrigenId.set($event)" name="aeropuertoOrigenId">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (a of aeropuertos(); track a.id) {
+              <option [value]="a.id">{{ a.nombre }} ({{ a.codigo_iata }})</option>
+            }
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="aeropuertoDestinoId">Aeropuerto destino</label>
+          <select id="aeropuertoDestinoId" [ngModel]="aeropuertoDestinoId()" (ngModelChange)="aeropuertoDestinoId.set($event)" name="aeropuertoDestinoId">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (a of aeropuertos(); track a.id) {
+              <option [value]="a.id">{{ a.nombre }} ({{ a.codigo_iata }})</option>
+            }
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="staUtc">Hora estimada de llegada (UTC)</label>
+          <input id="staUtc" type="datetime-local" [ngModel]="staUtc()" (ngModelChange)="staUtc.set($event)" name="staUtc" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="stdUtc">Hora estimada de salida (UTC)</label>
+          <input id="stdUtc" type="datetime-local" [ngModel]="stdUtc()" (ngModelChange)="stdUtc.set($event)" name="stdUtc" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="paxEstimado">Pax estimado (opcional)</label>
+          <input id="paxEstimado" type="number" min="0" [ngModel]="paxEstimado()" (ngModelChange)="paxEstimado.set($event)" name="paxEstimado" />
+        </div>
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="crearVuelo()"
+            [disabled]="guardando() || !aerolineaId() || !aeronaveId() || !numeroVuelo() || !tipoVueloId() || !fechaOperacion() || !aeropuertoOrigenId() || !aeropuertoDestinoId() || !staUtc() || !stdUtc()"
+          >
+            Registrar vuelo
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalNuevoVuelo()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@if (vueloEditandoEstadoId(); as vueloId) {
+  <div class="ah-modal-fondo" (click)="cerrarModalCambiarEstado()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Cambiar estado -- vuelo {{ vueloId }}</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalCambiarEstado()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorFormulario()) {
+        <p class="ah-alerta" role="alert">{{ errorFormulario() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="estadoNuevo">Nuevo estado</label>
+          <select id="estadoNuevo" [ngModel]="estadoNuevo()" (ngModelChange)="estadoNuevo.set($event)" name="estadoNuevo">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (op of opcionesEstado; track op.value) {
+              <option [value]="op.value">{{ op.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="cambiarEstado()" [disabled]="guardando() || !estadoNuevo()">
+            Guardar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalCambiarEstado()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

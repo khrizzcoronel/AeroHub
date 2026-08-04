@@ -52,6 +52,19 @@
   </nav>
 
   <main class="content">
+    @if (mostrarBannerVerificacion()) {
+      <div class="banner-verificacion">
+        <span>Tu correo todavía no está verificado.</span>
+        <button
+          type="button"
+          class="ah-btn ah-btn--secundario ah-btn--sm"
+          (click)="reenviarVerificacion()"
+          [disabled]="enviandoVerificacion()"
+        >
+          Reenviar correo de verificación
+        </button>
+      </div>
+    }
     @if (tituloVistaActual()) {
       <div class="content__ubicacion">{{ tituloVistaActual() }}</div>
     }

@@ -8,6 +8,7 @@ import {
   PuertaTablero,
   PuertasService,
 } from '../puertas.service';
+import { ToastService } from '../../shared/toast.service';
 
 // Ocupacion/conflicto de una puerta (Sprint S1.12, research.md
 // Decision 1): funcion pura de PRESENTACION sobre las asignaciones ya
@@ -92,6 +93,8 @@ export class TableroPuertas {
   });
 
   private readonly puertasService = inject(PuertasService);
+  private readonly toast = inject(ToastService);
+  protected readonly cancelando = signal(false);
 
   protected cargarTablero(): void {
     this.cargando.set(true);
@@ -163,6 +166,25 @@ export class TableroPuertas {
 
   protected cerrarModalAsignaciones(): void {
     this.puertaViendo.set(null);
+  }
+
+  // Sprint S1.15 -- endpoint huerfano de bajo costo (ya existia en el
+  // backend desde S1.4).
+  protected cancelar(asignacion: AsignacionTablero): void {
+    this.cancelando.set(true);
+    this.error.set(null);
+    this.puertasService.cancelarAsignacion(asignacion.id).subscribe({
+      next: () => {
+        this.cancelando.set(false);
+        this.cerrarModalAsignaciones();
+        this.cargarTablero();
+        this.toast.mostrar(`Asignación de ${asignacion.puerta_codigo} cancelada`, 'exito');
+      },
+      error: (err: HttpErrorResponse) => {
+        this.error.set(this.mensajeDeError(err));
+        this.cancelando.set(false);
+      },
+    });
   }
 
   protected ejecutarAutomatica(): void {

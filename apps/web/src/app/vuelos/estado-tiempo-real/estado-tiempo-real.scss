@@ -41,3 +41,17 @@
 .tabla-envoltorio .ah-tabla {
   min-width: 480px;
 }
+
+// Modal de alta/cambio de estado (Sprint S1.15) -- mismo patron que
+// tenants/tenant-list.scss.
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}

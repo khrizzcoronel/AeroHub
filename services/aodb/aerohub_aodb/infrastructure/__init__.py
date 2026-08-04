@@ -14,6 +14,12 @@ from .consultas import (
     obtener_estado_vuelo_actual_por_id,
     obtener_vuelo_por_id,
 )
+from .consultas_catalogo import (
+    listar_aerolineas,
+    listar_aeronaves,
+    listar_aeropuertos,
+    listar_tipos_vuelo,
+)
 from .eventos import EventoEstadoVuelo, broadcaster_global
 
 # Regla 4 de ADR-017 (.importlinter "solo-infrastructure-toca-repository"):
@@ -35,4 +41,8 @@ __all__ = [
     "broadcaster_global",
     "EventoEstadoVuelo",
     "reintentar_en_conflicto",
+    "listar_aerolineas",
+    "listar_aeronaves",
+    "listar_tipos_vuelo",
+    "listar_aeropuertos",
 ]

@@ -20,6 +20,10 @@ from ..application import (
     EstadoDesconocido,
     VueloNoEncontrado,
     alta_vuelo,
+    consultar_aerolineas,
+    consultar_aeronaves,
+    consultar_aeropuertos,
+    consultar_tipos_vuelo,
     consultar_vuelo,
     desuscribir_de_estado_vuelo,
     registrar_cambio_estado,
@@ -86,6 +90,103 @@ class CambioEstadoRequest(BaseModel):
 
 class CambioEstadoResponse(BaseModel):
     vuelo_estado_id: str
+
+
+class AerolineaResponse(BaseModel):
+    id: str
+    codigo_iata: str
+    codigo_icao: str
+    nombre: str
+
+
+class AeronaveResponse(BaseModel):
+    id: str
+    matricula: str
+    aerolinea_id: str
+    fabricante: str
+    modelo: str
+
+
+class TipoVueloResponse(BaseModel):
+    id: str
+    codigo: str
+    descripcion: str
+
+
+class AeropuertoResponse(BaseModel):
+    id: str
+    codigo_iata: str
+    codigo_icao: str
+    nombre: str
+    ciudad: str
+
+
+@router.get(
+    "/catalogo/aerolineas",
+    response_model=list[AerolineaResponse],
+    dependencies=[Depends(requiere_scope("vuelos:leer"))],
+)
+def listar_aerolineas_endpoint() -> list[AerolineaResponse]:
+    """Catalogo global para el select de aerolinea del formulario de alta
+    de vuelo -- sin esto, el formulario pediria un id Snowflake a mano
+    (Sprint S1.15, FR-010)."""
+    return [
+        AerolineaResponse(
+            id=str(a.id), codigo_iata=a.codigo_iata, codigo_icao=a.codigo_icao, nombre=a.nombre
+        )
+        for a in consultar_aerolineas()
+    ]
+
+
+@router.get(
+    "/catalogo/aeronaves",
+    response_model=list[AeronaveResponse],
+    dependencies=[Depends(requiere_scope("vuelos:leer"))],
+)
+def listar_aeronaves_endpoint() -> list[AeronaveResponse]:
+    return [
+        AeronaveResponse(
+            id=str(a.id),
+            matricula=a.matricula,
+            aerolinea_id=str(a.aerolinea_id),
+            fabricante=a.fabricante,
+            modelo=a.modelo,
+        )
+        for a in consultar_aeronaves()
+    ]
+
+
+@router.get(
+    "/catalogo/tipos-vuelo",
+    response_model=list[TipoVueloResponse],
+    dependencies=[Depends(requiere_scope("vuelos:leer"))],
+)
+def listar_tipos_vuelo_endpoint() -> list[TipoVueloResponse]:
+    return [
+        TipoVueloResponse(id=str(t.id), codigo=t.codigo, descripcion=t.descripcion)
+        for t in consultar_tipos_vuelo()
+    ]
+
+
+@router.get(
+    "/catalogo/aeropuertos",
+    response_model=list[AeropuertoResponse],
+    dependencies=[Depends(requiere_scope("vuelos:leer"))],
+)
+def listar_aeropuertos_endpoint() -> list[AeropuertoResponse]:
+    """Redeclarado aqui bajo 'vuelos:leer' (hallazgo empirico, ver
+    consultas_catalogo.py): GET /catalogo/aeropuertos de aerohub_tenancy
+    exige 'tenants:crear', que un rol operativo no tiene."""
+    return [
+        AeropuertoResponse(
+            id=str(a.id),
+            codigo_iata=a.codigo_iata,
+            codigo_icao=a.codigo_icao,
+            nombre=a.nombre,
+            ciudad=a.ciudad,
+        )
+        for a in consultar_aeropuertos()
+    ]
 
 
 @router.post(

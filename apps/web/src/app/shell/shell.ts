@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   ActivatedRoute,
   NavigationEnd,
@@ -9,7 +10,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { filter } from 'rxjs';
-import { AuthService } from '../auth/auth.service';
+import { AuthService, mensajeDeError } from '../auth/auth.service';
 import { ToastService } from '../shared/toast.service';
 
 @Component({
@@ -61,6 +62,16 @@ export class Shell {
     return !!tenantId;
   });
 
+  // Sprint S1.15 -- endpoint huerfano POST /auth/solicitar-verificacion
+  // (ya existia desde S1.10, sin ningun boton que lo invocara). Vive en
+  // el shell, no en la vista publica /verificar-correo, porque el
+  // endpoint opera sobre la sesion ya autenticada (research.md Decision
+  // 4 de specs/017-contrato-api-superficie-aodb).
+  protected readonly mostrarBannerVerificacion = computed(
+    () => this.perfil()?.email_verificado === false,
+  );
+  protected readonly enviandoVerificacion = signal(false);
+
   // Titulo de la vista actual (post S1.13): antes la barra lateral no
   // indicaba en que pantalla estaba la persona -- notorio en roles como
   // role_platform_admin, cuyo menu de modulos queda vacio (no opera
@@ -88,5 +99,19 @@ export class Shell {
   protected cerrarSesion(): void {
     this.auth.logout();
     this.router.navigate(['/login']);
+  }
+
+  protected reenviarVerificacion(): void {
+    this.enviandoVerificacion.set(true);
+    this.auth.solicitarVerificacion().subscribe({
+      next: () => {
+        this.enviandoVerificacion.set(false);
+        this.toastService.mostrar('Correo de verificación reenviado', 'exito');
+      },
+      error: (err: HttpErrorResponse) => {
+        this.enviandoVerificacion.set(false);
+        this.toastService.mostrar(mensajeDeError(err), 'error');
+      },
+    });
   }
 }

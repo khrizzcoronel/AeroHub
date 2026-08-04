@@ -106,7 +106,8 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.12 | Rediseño: `puertas/tablero` (ocupación/conflicto) + `rampa/turnaround` (desviación, tareas, incidencias) | `738a44b` |
 | S1.13 | Rediseño: `billing/facturas` (semáforo de estado) + `tenants/nuevo` + auditoría de las 8 vistas de S1.10 (1 inconsistencia real corregida en `login.scss`) | `738a44b` |
 | S1.14 | Rediseño: `fids-player/pantalla-player` (3 modos: configuración/reproducción/sin señal) -- cierra el rediseño de interfaz S1.11-S1.14 | `2285ced` |
-| **S1.15** | **Fase 1.5: contrato de API generado + superficie del AODB (alta de vuelo, registro de estado)** | **siguiente** |
+| S1.15 | Fase 1.5: contrato de API generado + superficie del AODB (alta de vuelo, registro de estado) + 2 endpoints huérfanos (cancelar asignación, reenviar verificación) | pendiente de commit |
+| **S1.16** | **Fase 1.5: administración de FIDS (plantillas, pantallas, telemetría)** | **siguiente** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
@@ -173,6 +174,34 @@ la Fase 1.5, amparados por la excepción textual de §3.5 del Análisis v6.0
 táctico** (comparativas multi-período, tendencias) esperan a
 **ClickHouse `ah_tactico`** en S2.4. Se divide por horizonte de la
 pregunta, no por complejidad de la consulta.
+
+**S1.15 implementado** (`specs/017-contrato-api-superficie-aodb/`,
+pendiente de commit): `tools/generar_openapi.py` (existía desde S1.2,
+nunca se había vuelto a correr) regenerado -- `docs/api/openapi.yaml`
+pasa de 60 a 72 rutas; `.github/workflows/ci.yml` gana un paso en el job
+`contrato-api` que regenera el esquema y compara contra el comiteado,
+fallando ante cualquier divergencia futura. Superficie nueva de M1 AODB
+en `vuelos/estado-tiempo-real`: modal "Nuevo vuelo" y modal "Cambiar
+estado" por fila, consumiendo los 3 endpoints REST que solo existían por
+API (`POST /vuelos`, `GET /vuelos/{id}`, `POST /vuelos/{id}/estados`).
+**Hallazgo/decisión**: el formulario de alta necesitaba catálogos de
+aerolínea/aeronave/tipo de vuelo que no tenían endpoint -- se agregaron
+`GET /vuelos/catalogo/{aerolineas,aeronaves,tipos-vuelo}` en
+`aerohub_aodb`, redeclarando las tablas de `catalogo.*` de solo lectura
+(mismo patrón que `catalogo.aeropuerto` en tenancy; ya estaban
+registradas como alcance `'global'` en el guardián central, sin DDL
+nuevo). El cambio de estado no sintetiza una fila local tras el POST --
+se apoya en que el WebSocket ya conectado entrega el evento real en
+<1s (RNF-P01), evitando una fila duplicada. Se cerraron además los 2
+endpoints huérfanos de bajo costo: botón "Cancelar" en el modal de
+asignaciones de `puertas/tablero-puertas`, y un banner en el shell
+(`perfil().email_verificado === false`) con reenvío de verificación --
+**no** en la vista pública `/verificar-correo`, porque
+`POST /auth/solicitar-verificacion` opera sobre la sesión ya autenticada
+y esa vista es alcanzable sin sesión. Verificado: ruff/mypy/bandit/
+import-linter en verde sobre `aerohub_aodb`; 3 tests de integración
+nuevos contra MonetDB real (`tests/integration/test_aodb_catalogos.py`);
+build de producción de `apps/web` en verde.
 
 ## Rediseño de interfaz (S1.11–S1.14)
 

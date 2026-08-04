@@ -57,7 +57,7 @@ jobs:
         run: uv run pytest tests/negative/test_pn15_sql_fuera_del_repositorio.py -v
 
   contrato-api:
-    name: OpenAPI 3.1 · Spectral
+    name: OpenAPI 3.1 · Spectral · sincronía con el backend real
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,6 +71,28 @@ jobs:
           fi
       - if: steps.existe.outputs.spec == 'true'
         run: npx --yes @stoplight/spectral-cli lint docs/api/openapi.yaml --fail-severity=error
+      # Sprint S1.15 (PLAN v3.0 §8-bis.1): el lint de arriba solo valida que
+      # el YAML sea sintacticamente correcto -- no que describa la API real.
+      # El contrato quedo 12 rutas por detras del backend real entre S1.2 y
+      # S1.15 sin que este job lo detectara. Este paso regenera el esquema
+      # desde la app real (tools/generar_openapi.py) y falla si difiere del
+      # archivo comiteado -- convierte "el documento es valido" en "el
+      # documento es el que el backend expone hoy".
+      - if: steps.existe.outputs.spec == 'true'
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: ${{ env.UV_VERSION }}
+      - if: steps.existe.outputs.spec == 'true'
+        run: uv sync --all-packages --dev
+      - name: Contrato sincronizado con el backend (Sprint S1.15)
+        if: steps.existe.outputs.spec == 'true'
+        run: |
+          cp docs/api/openapi.yaml /tmp/openapi-comiteado.yaml
+          uv run python tools/generar_openapi.py
+          if ! diff -u /tmp/openapi-comiteado.yaml docs/api/openapi.yaml; then
+            echo "::error::docs/api/openapi.yaml no coincide con el esquema real del backend. Correr 'uv run python tools/generar_openapi.py' y comitear el resultado."
+            exit 1
+          fi
 
   contenedores:
     name: Trivy

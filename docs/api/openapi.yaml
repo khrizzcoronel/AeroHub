@@ -11,6 +11,25 @@ servers:
   description: Desarrollo local
 paths:
   /tenants:
+    get:
+      tags:
+      - tenants
+      summary: Listar Tenants Endpoint
+      description: 'Workpanel: lista de todos los tenants (alcance ''interno'', no
+        hay
+
+        filtro de tenant que aplicar -- ver consultas_tenant.py).'
+      operationId: listar_tenants_endpoint_tenants_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TenantResumenResponse'
+                type: array
+                title: Response Listar Tenants Endpoint Tenants Get
     post:
       tags:
       - tenants
@@ -36,7 +55,212 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /catalogo/aeropuertos:
+    get:
+      tags:
+      - tenants
+      summary: Listar Aeropuertos Endpoint
+      description: 'Para el select de aeropuerto del formulario de tenant -- antes
+        se
+
+        pedia el id de memoria en un campo de texto libre.'
+      operationId: listar_aeropuertos_endpoint_catalogo_aeropuertos_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/AeropuertoResponse'
+                type: array
+                title: Response Listar Aeropuertos Endpoint Catalogo Aeropuertos Get
+  /catalogo/planes:
+    get:
+      tags:
+      - tenants
+      summary: Listar Planes Endpoint
+      operationId: listar_planes_endpoint_catalogo_planes_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/PlanResponse'
+                type: array
+                title: Response Listar Planes Endpoint Catalogo Planes Get
+  /tenants/validar:
+    get:
+      tags:
+      - tenants
+      summary: Validar Disponibilidad Endpoint
+      description: Verifica en tiempo real si un codigo de tenant o email de admin
+        ya existen.
+      operationId: validar_disponibilidad_endpoint_tenants_validar_get
+      parameters:
+      - name: codigo
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Codigo
+      - name: email_admin
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email Admin
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidarDisponibilidadResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /tenants/{tenant_id}:
+    get:
+      tags:
+      - tenants
+      summary: Obtener Tenant Endpoint
+      operationId: obtener_tenant_endpoint_tenants__tenant_id__get
+      parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Tenant Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResumenResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - tenants
+      summary: Actualizar Tenant Endpoint
+      operationId: actualizar_tenant_endpoint_tenants__tenant_id__patch
+      parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Tenant Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantActualizarRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResumenResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - tenants
+      summary: Eliminar Tenant Endpoint
+      description: Borrado fisico permanente de un tenant y todos sus registros asociados.
+      operationId: eliminar_tenant_endpoint_tenants__tenant_id__delete
+      parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Tenant Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /tenants/{tenant_id}/estado:
+    post:
+      tags:
+      - tenants
+      summary: Cambiar Estado Tenant Endpoint
+      description: 'Transiciones validas por domain/tenant.py -- p. ej. dar de baja
+        es
+
+        terminal, no se puede reactivar un tenant ''dado_de_baja''.'
+      operationId: cambiar_estado_tenant_endpoint_tenants__tenant_id__estado_post
+      parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Tenant Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCambiarEstadoRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResumenResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api-keys:
+    get:
+      tags:
+      - tenants
+      summary: Listar Api Keys Endpoint
+      description: Lista las API Keys asociadas al tenant del usuario autenticado.
+      operationId: listar_api_keys_endpoint_api_keys_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ApiKeyResumenResponse'
+                type: array
+                title: Response Listar Api Keys Endpoint Api Keys Get
     post:
       tags:
       - tenants
@@ -55,6 +279,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiKeyCrearResponse'
+  /licencias/mi-tenant:
+    get:
+      tags:
+      - tenants
+      summary: Listar Licencias Mi Tenant Endpoint
+      description: Lista las licencias contratadas por el tenant del usuario autenticado.
+      operationId: listar_licencias_mi_tenant_endpoint_licencias_mi_tenant_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/LicenciaResumenResponse'
+                type: array
+                title: Response Listar Licencias Mi Tenant Endpoint Licencias Mi Tenant
+                  Get
   /api-keys/{api_key_id}/revocar:
     post:
       tags:
@@ -352,6 +594,168 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /usuarios:
+    get:
+      tags:
+      - auth
+      summary: Listar Usuarios
+      operationId: listar_usuarios_usuarios_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/UsuarioResumenResponse'
+                type: array
+                title: Response Listar Usuarios Usuarios Get
+  /usuarios/{usuario_id}:
+    get:
+      tags:
+      - auth
+      summary: Obtener Usuario Endpoint
+      operationId: obtener_usuario_endpoint_usuarios__usuario_id__get
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Usuario Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioDetalleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - auth
+      summary: Actualizar Usuario Endpoint
+      operationId: actualizar_usuario_endpoint_usuarios__usuario_id__patch
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Usuario Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioActualizarRolRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioDetalleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /usuarios/{usuario_id}/estado:
+    post:
+      tags:
+      - auth
+      summary: Cambiar Estado Usuario Endpoint
+      operationId: cambiar_estado_usuario_endpoint_usuarios__usuario_id__estado_post
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Usuario Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioCambiarEstadoRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioDetalleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /vuelos/catalogo/aerolineas:
+    get:
+      tags:
+      - vuelos
+      summary: Listar Aerolineas Endpoint
+      description: 'Catalogo global para el select de aerolinea del formulario de
+        alta
+
+        de vuelo -- sin esto, el formulario pediria un id Snowflake a mano
+
+        (Sprint S1.15, FR-010).'
+      operationId: listar_aerolineas_endpoint_vuelos_catalogo_aerolineas_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/AerolineaResponse'
+                type: array
+                title: Response Listar Aerolineas Endpoint Vuelos Catalogo Aerolineas
+                  Get
+  /vuelos/catalogo/aeronaves:
+    get:
+      tags:
+      - vuelos
+      summary: Listar Aeronaves Endpoint
+      operationId: listar_aeronaves_endpoint_vuelos_catalogo_aeronaves_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/AeronaveResponse'
+                type: array
+                title: Response Listar Aeronaves Endpoint Vuelos Catalogo Aeronaves
+                  Get
+  /vuelos/catalogo/tipos-vuelo:
+    get:
+      tags:
+      - vuelos
+      summary: Listar Tipos Vuelo Endpoint
+      operationId: listar_tipos_vuelo_endpoint_vuelos_catalogo_tipos_vuelo_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TipoVueloResponse'
+                type: array
+                title: Response Listar Tipos Vuelo Endpoint Vuelos Catalogo Tipos
+                  Vuelo Get
   /vuelos:
     post:
       tags:
@@ -1911,6 +2315,77 @@ components:
       - usuario_id
       - tenant_id
       title: AceptarInvitacionResponse
+    AerolineaResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo_iata:
+          type: string
+          title: Codigo Iata
+        codigo_icao:
+          type: string
+          title: Codigo Icao
+        nombre:
+          type: string
+          title: Nombre
+      type: object
+      required:
+      - id
+      - codigo_iata
+      - codigo_icao
+      - nombre
+      title: AerolineaResponse
+    AeronaveResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        matricula:
+          type: string
+          title: Matricula
+        aerolinea_id:
+          type: string
+          title: Aerolinea Id
+        fabricante:
+          type: string
+          title: Fabricante
+        modelo:
+          type: string
+          title: Modelo
+      type: object
+      required:
+      - id
+      - matricula
+      - aerolinea_id
+      - fabricante
+      - modelo
+      title: AeronaveResponse
+    AeropuertoResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo_iata:
+          type: string
+          title: Codigo Iata
+        codigo_icao:
+          type: string
+          title: Codigo Icao
+        nombre:
+          type: string
+          title: Nombre
+        ciudad:
+          type: string
+          title: Ciudad
+      type: object
+      required:
+      - id
+      - codigo_iata
+      - codigo_icao
+      - nombre
+      - ciudad
+      title: AeropuertoResponse
     AgregarAccionRequest:
       properties:
         descripcion:
@@ -1995,6 +2470,39 @@ components:
       - api_key_id
       - api_key_en_claro
       title: ApiKeyCrearResponse
+    ApiKeyResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        prefijo:
+          type: string
+          title: Prefijo
+        estado:
+          type: string
+          title: Estado
+        creada_en:
+          type: string
+          title: Creada En
+        expira_en:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expira En
+        rotada_en:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rotada En
+      type: object
+      required:
+      - id
+      - prefijo
+      - estado
+      - creada_en
+      - expira_en
+      - rotada_en
+      title: ApiKeyResumenResponse
     ArticuloResponse:
       properties:
         id:
@@ -2781,6 +3289,37 @@ components:
       - tipo_cambio
       - descripcion
       title: ItemChangelogResponse
+    LicenciaResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        modulo_codigo:
+          type: string
+          title: Modulo Codigo
+        modulo_nombre:
+          type: string
+          title: Modulo Nombre
+        activa_desde:
+          type: string
+          title: Activa Desde
+        activa_hasta:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Activa Hasta
+        es_vigente:
+          type: boolean
+          title: Es Vigente
+      type: object
+      required:
+      - id
+      - modulo_codigo
+      - modulo_nombre
+      - activa_desde
+      - activa_hasta
+      - es_vigente
+      title: LicenciaResumenResponse
     LoginRequest:
       properties:
         email:
@@ -3036,6 +3575,31 @@ components:
       - scopes
       - modulos_visibles
       title: PerfilResponse
+    PlanResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        nombre:
+          type: string
+          title: Nombre
+        tarifa_base_mensual:
+          type: string
+          title: Tarifa Base Mensual
+        moneda:
+          type: string
+          title: Moneda
+      type: object
+      required:
+      - id
+      - codigo
+      - nombre
+      - tarifa_base_mensual
+      - moneda
+      title: PlanResponse
     PlantillaPublicarRequest:
       properties:
         nombre:
@@ -3455,6 +4019,34 @@ components:
       - fin_real
       - estado
       title: TareaResponse
+    TenantActualizarRequest:
+      properties:
+        razon_social:
+          type: string
+          minLength: 1
+          title: Razon Social
+        plan_id:
+          type: integer
+          title: Plan Id
+        es_sandbox:
+          type: boolean
+          title: Es Sandbox
+          default: false
+      type: object
+      required:
+      - razon_social
+      - plan_id
+      title: TenantActualizarRequest
+    TenantCambiarEstadoRequest:
+      properties:
+        estado_nuevo:
+          type: string
+          title: Estado Nuevo
+          description: 'uno de: en_onboarding, activo, suspendido, dado_de_baja'
+      type: object
+      required:
+      - estado_nuevo
+      title: TenantCambiarEstadoRequest
     TenantCrearRequest:
       properties:
         codigo:
@@ -3511,6 +4103,39 @@ components:
       - usuario_admin_id
       - password_temporal
       title: TenantCrearResponse
+    TenantResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        razon_social:
+          type: string
+          title: Razon Social
+        aeropuerto_id:
+          type: string
+          title: Aeropuerto Id
+        plan_id:
+          type: string
+          title: Plan Id
+        estado:
+          type: string
+          title: Estado
+        es_sandbox:
+          type: boolean
+          title: Es Sandbox
+      type: object
+      required:
+      - id
+      - codigo
+      - razon_social
+      - aeropuerto_id
+      - plan_id
+      - estado
+      - es_sandbox
+      title: TenantResumenResponse
     TicketDetalleResponse:
       properties:
         ticket:
@@ -3607,6 +4232,23 @@ components:
       - fecha
       - franjas
       title: TiemposEsperaResponse
+    TipoVueloResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        descripcion:
+          type: string
+          title: Descripcion
+      type: object
+      required:
+      - id
+      - codigo
+      - descripcion
+      title: TipoVueloResponse
     TurnaroundResponse:
       properties:
         id:
@@ -3650,6 +4292,124 @@ components:
       - fin_previsto
       - estado
       title: TurnaroundResponse
+    UsuarioActualizarRolRequest:
+      properties:
+        rol_codigo:
+          type: string
+          title: Rol Codigo
+      type: object
+      required:
+      - rol_codigo
+      title: UsuarioActualizarRolRequest
+    UsuarioCambiarEstadoRequest:
+      properties:
+        estado_nuevo:
+          type: string
+          title: Estado Nuevo
+          description: 'uno de: activo, suspendido, eliminado_logicamente'
+      type: object
+      required:
+      - estado_nuevo
+      title: UsuarioCambiarEstadoRequest
+    UsuarioDetalleResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        email:
+          type: string
+          title: Email
+        nombre:
+          type: string
+          title: Nombre
+        estado:
+          type: string
+          title: Estado
+        rol_codigo:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rol Codigo
+        rol_nombre:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rol Nombre
+      type: object
+      required:
+      - id
+      - email
+      - nombre
+      - estado
+      - rol_codigo
+      - rol_nombre
+      title: UsuarioDetalleResponse
+    UsuarioResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        email:
+          type: string
+          title: Email
+        nombre:
+          type: string
+          title: Nombre
+        estado:
+          type: string
+          title: Estado
+        creado_en:
+          type: string
+          title: Creado En
+        ultimo_acceso_en:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ultimo Acceso En
+        rol_codigo:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rol Codigo
+        rol_nombre:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rol Nombre
+      type: object
+      required:
+      - id
+      - email
+      - nombre
+      - estado
+      - creado_en
+      - ultimo_acceso_en
+      - rol_codigo
+      - rol_nombre
+      title: UsuarioResumenResponse
+    ValidarDisponibilidadResponse:
+      properties:
+        codigo_disponible:
+          type: boolean
+          title: Codigo Disponible
+        codigo_mensaje:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Codigo Mensaje
+        email_disponible:
+          type: boolean
+          title: Email Disponible
+        email_mensaje:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email Mensaje
+      type: object
+      required:
+      - codigo_disponible
+      - email_disponible
+      title: ValidarDisponibilidadResponse
     ValidationError:
       properties:
         loc:

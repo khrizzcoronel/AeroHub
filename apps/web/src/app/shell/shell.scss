@@ -124,3 +124,20 @@
   color: var(--ah-ink-400);
   margin-bottom: 1rem;
 }
+
+// Banner de correo sin verificar (Sprint S1.15) -- mismo tono de aviso
+// que .ah-alerta--aviso del resto del sistema.
+.banner-verificacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: var(--ah-danger-50);
+  border: 1px solid var(--ah-danger-600);
+  border-radius: var(--ah-radius);
+  color: var(--ah-danger-600);
+  padding: 0.65rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}

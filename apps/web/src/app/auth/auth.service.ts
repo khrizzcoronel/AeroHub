@@ -115,6 +115,13 @@ export class AuthService {
     return this.http.post(`${API_BASE_URL}/auth/verificar-correo`, { token });
   }
 
+  // Sprint S1.15 -- endpoint huerfano: opera sobre la sesion ya
+  // autenticada (contexto_usuario_id()), por eso vive en el shell y no en
+  // la vista publica /verificar-correo (research.md Decision 4).
+  solicitarVerificacion(): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/auth/solicitar-verificacion`, {});
+  }
+
   aceptarInvitacion(token: string, nombre: string, password: string): Observable<unknown> {
     return this.http.post(`${API_BASE_URL}/usuarios/aceptar-invitacion`, {
       token,

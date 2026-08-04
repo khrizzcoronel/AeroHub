@@ -173,6 +173,9 @@
         <h2>Asignaciones de {{ p.codigo }}</h2>
         <button type="button" class="ah-modal__cerrar" (click)="cerrarModalAsignaciones()" aria-label="Cerrar">✕</button>
       </div>
+      @if (error()) {
+        <p class="ah-alerta" role="alert">{{ error() }}</p>
+      }
       <table class="ah-tabla">
         <thead>
           <tr>
@@ -180,6 +183,7 @@
             <th>Inicio previsto</th>
             <th>Fin previsto</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -189,6 +193,16 @@
               <td>{{ asignacion.inicio_previsto }}</td>
               <td>{{ asignacion.fin_previsto }}</td>
               <td>{{ asignacion.estado }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="ah-btn ah-btn--secundario ah-btn--sm"
+                  (click)="cancelar(asignacion)"
+                  [disabled]="cancelando()"
+                >
+                  Cancelar
+                </button>
+              </td>
             </tr>
           }
         </tbody>

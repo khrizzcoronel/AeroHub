@@ -66,4 +66,13 @@ export class PuertasService {
       {},
     );
   }
+
+  // Sprint S1.15 -- endpoint huerfano (ya existia en el backend desde
+  // S1.4, sin ningun boton que lo invocara).
+  cancelarAsignacion(asignacionId: string): Observable<void> {
+    return this.http.post<void>(
+      `${API_BASE_URL}/puertas/asignaciones/${asignacionId}/cancelar`,
+      {},
+    );
+  }
 }
