@@ -111,7 +111,8 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.17 | Fase 1.5: tarifarios (RF-T10) y conciliación de pax -- historial completo de tarifarios con conceptos, activación con aviso de inmutabilidad, conciliación con diferencia derivada | `f23bb3e` |
 | S1.18 | Fase 1.5: informes operativos (familia RF-I nueva) -- 6 informes (simple+compuesto) en M1/M3/M4/M5/Tenancy/M9, primitivo `.ah-informe`, exportación CSV, auditoría de emisión en M5/M9 | `3e066ba` |
 | S1.19 | Fase 1.5: Compliance Hub (M9) -- listados/catálogos nuevos, vista `compliance/panel`, hallazgo de scopes de `role_sre` corregido | pendiente de commit |
-| **S1.20** | **Fase 1.5: D6 Soporte (tickets con SLA, KB, changelog) -- cierra la Fase 1.5** | **retomar aquí** |
+| S1.20 | Fase 1.5: D6 Soporte (tickets con SLA, KB, changelog) -- cierra la Fase 1.5 completa (S1.15-S1.20) | pendiente de commit |
+| **S2.1** | **Fase 2 -- retomar en `docs/PLAN_IMPLEMENTACION_v3.0.md` §8, sprint siguiente a S1.20** | **retomar aquí** |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
@@ -374,6 +375,80 @@ ninguna vista en `apps/web` (`ruta: null` en `roles_modulos.py`).
    regresiones (6/6 verde). No verificado en navegador real (regla
    vigente desde S1.16 -- no probar automáticamente salvo pedido
    explícito).
+
+**S1.20 implementado** (`specs/022-soporte-d6/`, pendiente de commit):
+superficie completa de D6 Soporte (tickets con SLA, base de
+conocimientos, changelog), hasta ahora sin ninguna vista en `apps/web`
+pese a que los 11 endpoints existen desde S1.8. **Cierra la Fase 1.5
+completa (S1.15-S1.20)**.
+
+1. **Hallazgo crítico** (`packages/contracts/aerohub_contracts/roles_modulos.py`):
+   `publicar_changelog()` (`gestionar_changelog.py::_ROL_AUTORIZADO`)
+   exige exactamente `role_platform_admin`, pero ese rol no tenía
+   ningún scope `support:*` -- `POST /support/changelog` era
+   inalcanzable por cualquier rol del sistema desde S1.8 (mismo patrón
+   que `fids:*` en S1.16 y `compliance:*` en S1.19). La suite de tests
+   original de S1.8 (`test_kb_changelog.py`) nunca lo detectó porque
+   fabrica el JWT con `codificar_jwt(scopes=[...])` a mano en vez de
+   derivarlo de `roles_modulos.py` -- enmascaraba el hallazgo real de
+   producción. Corregido agregando `support:leer`/`support:escribir` a
+   `role_platform_admin`.
+2. **Segundo hallazgo, revelado por el test de integración (no por la
+   lectura de código)**: `cambiar_estado_ticket()` es exclusivo de
+   `role_support` -- `role_tenant_admin`/`role_sre` pueden crear
+   tickets y responder (con `support:escribir`), pero no mover la
+   máquina de estados. No es un bug -- es la regla de negocio real de
+   S1.8 -- pero el frontend debía ocultar esos botones para cualquier
+   rol que no fuera `role_support`, no solo dejar que el backend
+   devolviera 403.
+3. **Endpoint nuevo**: `GET /support/catalogo/categorias-ticket`
+   (`support:leer`) -- el formulario de alta de ticket necesitaba
+   `categoria_id` y no existía ningún catálogo, mismo patrón de brecha
+   ya corregido para aerolíneas/aeronaves en S1.15.
+4. **Frontend completo**: `apps/web/src/app/soporte/soporte.service.ts`
+   (10 métodos) y `apps/web/src/app/soporte/panel-soporte/`
+   (`.ts`/`.html`/`.scss`, 3 secciones: tickets con indicador de SLA
+   calculado en el cliente -- research.md Decisión 3, no un campo
+   nuevo de backend --, base de conocimientos con aviso fijo de
+   contenido compartido entre tenants, changelog). Ruta `soporte/panel`
+   → `PanelSoporte`; enlace manual del shell (`puedeVerSoporte()`, por
+   scope `support:leer` -- D6 no es un módulo M1-M9 licenciable, mismo
+   mecanismo que tarifarios/informes). La sección de tickets se oculta
+   por completo para `role_platform_admin` (sin tenant propio,
+   `listar_tickets_de_tenant` lanzaría `ContextoTenantAusente`/500 --
+   mismo hallazgo de S1.11 para usuarios/API Keys). Los controles de
+   escritura se condicionan no solo por scope sino por rol específico
+   donde el dominio lo exige (nota interna y cambio de estado:
+   `role_support`; publicar KB: `role_support`/`role_platform_admin`;
+   publicar changelog: `role_platform_admin`).
+5. **Verificado**: `docker cp` de los 6 archivos backend + 5 frontend
+   al contenedor, `ruff`/`mypy` en verde sobre `services/support` +
+   `packages/contracts`; `bandit`/`import-linter` en verde sobre el
+   repo completo; `npx nx build web --configuration=production` en
+   verde (mismos 2 warnings preexistentes de `informes/panel-informe`).
+   `tests/integration/test_soporte_hub.py` nuevo (8 tests: catálogo de
+   categorías, ciclo de ticket con `role_tenant_admin`, nota interna
+   403/visibilidad por rol, transición de estado 403 por rol + 409 por
+   transición inválida, KB visible entre tenants + 403 para tenant,
+   changelog publicado por `role_platform_admin` + 403 para
+   `role_support`) -- 12/12 en verde junto con la suite existente
+   `test_kb_changelog.py`; sin regresiones en
+   `test_ticket_sla.py`/`test_pn01_tickets_cross_tenant.py`/
+   `tests/unit/support` (30/30 en total). No verificado en navegador
+   real (regla vigente desde S1.16).
+
+## Fase 1.5 -- cerrada (S1.15-S1.20)
+
+Los 38 endpoints huérfanos detectados en el inventario de brechas
+(`docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md`) quedaron resueltos:
+contrato de API regenerado + superficie de M1 AODB (S1.15),
+administración de FIDS/M2 (S1.16), tarifarios/conciliación de M5
+(S1.17), informes operativos RF-I01-04 en 6 módulos (S1.18), M9
+Compliance Hub (S1.19), D6 Soporte (S1.20). Retomar en
+`docs/PLAN_IMPLEMENTACION_v3.0.md` §9, Fase 2 (S2.1 -- `etl_control` e
+ingesta a bronce), la primera fase que la v3.0 deliberadamente puso
+DESPUÉS de cerrar esta superficie (§8-bis, "por qué la Fase 1.5 va
+antes de la Fase 2 y no en paralelo").
 
 ## Rediseño de interfaz (S1.11–S1.14)
 

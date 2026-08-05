@@ -30,6 +30,14 @@ def obtener_categoria_ticket_por_id(conn: Connection, categoria_id: int) -> Row 
     return conn.execute(stmt).first()
 
 
+def listar_categorias_ticket(conn: Connection) -> list[Row]:
+    """Sprint S1.20 -- catalogo que faltaba para el formulario de alta de
+    ticket (sin el, la unica forma de elegir categoria_id era pegarlo a
+    mano, mismo patron ya corregido para vuelos/aerolineas en S1.15)."""
+    stmt = select(categoria_ticket).order_by(categoria_ticket.c.nombre)
+    return list(conn.execute(stmt))
+
+
 def obtener_ticket_por_id_de_tenant(conn: Connection, *, ticket_id: int) -> Row | None:
     """Uso de un actor de tenant: PN-01, nunca revela un ticket ajeno."""
     stmt = select(ticket).where(

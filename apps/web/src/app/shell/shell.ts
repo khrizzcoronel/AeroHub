@@ -103,6 +103,13 @@ export class Shell {
     (this.perfil()?.scopes ?? []).includes('compliance:leer'),
   );
 
+  // Sprint S1.20 -- soporte D6 no es un modulo M1-M9 (research.md
+  // Decision 2 de specs/022-soporte-d6/): mismo mecanismo de enlace
+  // manual que puedeVerTarifarios/puedeVerInformes*.
+  protected readonly puedeVerSoporte = computed(() =>
+    (this.perfil()?.scopes ?? []).includes('support:leer'),
+  );
+
   // Sprint S1.15 -- endpoint huerfano POST /auth/solicitar-verificacion
   // (ya existia desde S1.10, sin ningun boton que lo invocara). Vive en
   // el shell, no en la vista publica /verificar-correo, porque el

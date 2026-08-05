@@ -28,6 +28,7 @@ from ..infrastructure import (
     fijar_primera_respuesta,
     insertar_ticket,
     insertar_ticket_mensaje,
+    listar_categorias_ticket,
     listar_mensajes_de_ticket,
     listar_tickets_de_tenant,
     listar_tickets_global,
@@ -76,6 +77,21 @@ class ResultadoCrearTicket:
 @dataclass(frozen=True, slots=True)
 class ResultadoResponderTicket:
     mensaje_id: int
+
+
+@dataclass(frozen=True, slots=True)
+class CategoriaTicketTablero:
+    id: int
+    codigo: str
+    nombre: str
+
+
+def consultar_categorias_ticket() -> list[CategoriaTicketTablero]:
+    """Sprint S1.20 -- catalogo global (alcance='global'), sin filtro de
+    tenant, para el select del formulario de alta de ticket."""
+    with sesion() as conn:
+        filas = listar_categorias_ticket(conn)
+    return [CategoriaTicketTablero(id=f.id, codigo=f.codigo, nombre=f.nombre) for f in filas]
 
 
 @dataclass(frozen=True, slots=True)

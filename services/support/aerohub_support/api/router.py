@@ -33,6 +33,7 @@ from ..application import (
     TransicionInvalida,
     buscar_articulos,
     cambiar_estado_ticket,
+    consultar_categorias_ticket,
     consultar_changelog,
     consultar_ticket,
     consultar_tickets,
@@ -136,6 +137,27 @@ def _ticket_response(t) -> TicketResponse:  # noqa: ANN001 -- TicketTablero de a
         resuelto_en=t.resuelto_en,
         sla_objetivo_min=t.sla_objetivo_min,
     )
+
+
+class CategoriaTicketResponse(BaseModel):
+    id: str
+    codigo: str
+    nombre: str
+
+
+@router.get(
+    "/catalogo/categorias-ticket",
+    response_model=list[CategoriaTicketResponse],
+    dependencies=[Depends(requiere_scope("support:leer"))],
+)
+def listar_categorias_ticket_endpoint() -> list[CategoriaTicketResponse]:
+    """Sprint S1.20 -- catalogo global para el select del formulario de
+    alta de ticket (antes no existia ningun listado, solo el id se
+    conocia via GET/POST de un ticket ya creado)."""
+    return [
+        CategoriaTicketResponse(id=str(c.id), codigo=c.codigo, nombre=c.nombre)
+        for c in consultar_categorias_ticket()
+    ]
 
 
 @router.post(

@@ -23,6 +23,7 @@ from .comandos import (
 from .consultas import (
     buscar_articulos_kb,
     listar_changelog,
+    listar_categorias_ticket,
     listar_etiquetas_de_articulo,
     listar_items_de_changelog,
     listar_mensajes_de_ticket,
@@ -47,6 +48,7 @@ from .prometheus import (
 # solo infrastructure/ importa aerohub_repository.
 __all__ = [
     "obtener_categoria_ticket_por_id",
+    "listar_categorias_ticket",
     "obtener_ticket_por_id_de_tenant",
     "obtener_ticket_por_id_global",
     "listar_tickets_de_tenant",

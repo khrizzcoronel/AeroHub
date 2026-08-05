@@ -58,6 +58,17 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "tenants:administrar",
                 "api-keys:administrar",
                 "usuarios:administrar",
+                # Sprint S1.20 -- hallazgo empirico: publicar_changelog()
+                # (gestionar_changelog.py) exige exactamente
+                # role_platform_admin (_ROL_AUTORIZADO), pero este rol no
+                # tenia ningun scope support:* -- POST /support/changelog
+                # era inalcanzable por CUALQUIER rol del sistema desde que
+                # se construyo en S1.8 (mismo patron que el hallazgo de
+                # compliance:* en role_sre, S1.19). support:leer se agrega
+                # junto a escribir para que quien publica tambien pueda
+                # ver el listado resultante.
+                "support:leer",
+                "support:escribir",
             }
         ),
     ),

@@ -1,0 +1,454 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>Soporte</h1>
+    <div class="consola__acciones">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTodo()" [disabled]="cargando()">
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
+
+  <!-- ============ Sección Tickets (US1) ============ -->
+  @if (!esPlatformAdmin()) {
+    <h2>Tickets</h2>
+
+    <div class="ah-panel">
+      <h2 class="ah-panel__titulo">Filtrar bandeja</h2>
+      <div class="ah-panel__campos">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="filtroEstado">Estado</label>
+          <select id="filtroEstado" [ngModel]="filtroEstado()" (ngModelChange)="actualizarFiltroEstado($event)" name="filtroEstado">
+            <option value="">Todos</option>
+            <option value="abierto">Abierto</option>
+            <option value="en_progreso">En progreso</option>
+            <option value="esperando_cliente">Esperando cliente</option>
+            <option value="resuelto">Resuelto</option>
+            <option value="cerrado">Cerrado</option>
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="filtroSeveridad">Severidad</label>
+          <select id="filtroSeveridad" [ngModel]="filtroSeveridad()" (ngModelChange)="actualizarFiltroSeveridad($event)" name="filtroSeveridad">
+            <option value="">Todas</option>
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+            <option value="critica">Crítica</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    @if (puedeEscribir()) {
+      <div class="consola__acciones">
+        <button type="button" class="ah-btn" (click)="abrirModalTicket()">Nuevo ticket</button>
+      </div>
+    }
+
+    @if (tickets().length === 0) {
+      <p class="ah-vacio">Sin tickets que coincidan con el filtro.</p>
+    } @else {
+      <div class="tabla-envoltorio">
+        <table class="ah-tabla">
+          <thead>
+            <tr>
+              <th>Asunto</th>
+              <th>Severidad</th>
+              <th>Estado</th>
+              <th>SLA primera respuesta</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of tickets(); track t.id) {
+              <tr>
+                <td>{{ t.asunto }}</td>
+                <td>{{ t.severidad }}</td>
+                <td><span class="ah-pill">{{ t.estado }}</span></td>
+                <td>
+                  <span class="ah-punto" [class]="indicadorSla(t).vencido ? 'ah-punto--critico' : 'ah-punto--ok'"></span>
+                  {{ indicadorSla(t).texto }}
+                </td>
+                <td>
+                  <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirDetalle(t)">
+                    Ver detalle
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ============ Sección Base de conocimientos (US2) ============ -->
+  <h2>Base de conocimientos</h2>
+
+  <p class="ah-alerta ah-alerta--aviso">
+    Los artículos de esta base son <strong>contenido compartido entre todos los tenants</strong>,
+    no aislado por tenant como el resto de la aplicación.
+  </p>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar artículo</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="busquedaTexto">Texto</label>
+        <input
+          id="busquedaTexto"
+          type="text"
+          [ngModel]="busquedaTexto()"
+          (ngModelChange)="actualizarBusquedaTexto($event)"
+          name="busquedaTexto"
+        />
+      </div>
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="busquedaEtiqueta">Etiqueta</label>
+        <input
+          id="busquedaEtiqueta"
+          type="text"
+          [ngModel]="busquedaEtiqueta()"
+          (ngModelChange)="actualizarBusquedaEtiqueta($event)"
+          name="busquedaEtiqueta"
+        />
+      </div>
+    </div>
+  </div>
+
+  @if (puedeEscribirKB()) {
+    <div class="consola__acciones">
+      <button type="button" class="ah-btn" (click)="abrirModalArticulo()">Publicar artículo</button>
+    </div>
+  }
+
+  @if (articulos().length === 0) {
+    <p class="ah-vacio">Sin artículos que coincidan con la búsqueda.</p>
+  } @else {
+    <div class="tabla-envoltorio">
+      <table class="ah-tabla">
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Versión</th>
+            <th>Etiquetas</th>
+            <th>Publicado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of articulos(); track a.id) {
+            <tr>
+              <td>{{ a.titulo }}</td>
+              <td>{{ a.version }}</td>
+              <td>{{ a.etiquetas.join(', ') }}</td>
+              <td>{{ a.publicado_en ? (a.publicado_en | date: 'dd/MM/yyyy') : '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ============ Sección Changelog (US3) ============ -->
+  <h2>Changelog</h2>
+
+  @if (puedeEscribirChangelog()) {
+    <div class="consola__acciones">
+      <button type="button" class="ah-btn" (click)="abrirModalChangelog()">Publicar entrada</button>
+    </div>
+  }
+
+  @if (changelog().length === 0) {
+    <p class="ah-vacio">Sin entradas de changelog publicadas todavía.</p>
+  } @else {
+    @for (c of changelog(); track c.id) {
+      <div class="ah-panel">
+        <h2 class="ah-panel__titulo">{{ c.version_producto }} — {{ c.publicado_en | date: 'dd/MM/yyyy' }}</h2>
+        <p>{{ c.resumen }}</p>
+        <div class="tabla-envoltorio">
+          <table class="ah-tabla">
+            <thead>
+              <tr>
+                <th>Módulo</th>
+                <th>Tipo</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of c.items; track i.id) {
+                <tr>
+                  <td>{{ i.modulo_id }}</td>
+                  <td>{{ i.tipo_cambio }}</td>
+                  <td>{{ i.descripcion }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+</section>
+
+<!-- Modal: Nuevo ticket -->
+@if (mostrarModalTicket()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalTicket()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Nuevo ticket</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalTicket()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorFormularioTicket()) {
+        <p class="ah-alerta" role="alert">{{ errorFormularioTicket() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="categoriaIdTicket">Categoría</label>
+          @if (categorias().length === 0) {
+            <p class="ah-vacio ah-vacio--compacto">Sin categorías en el catálogo.</p>
+          } @else {
+            <select id="categoriaIdTicket" [ngModel]="categoriaIdTicket()" (ngModelChange)="categoriaIdTicket.set($event)" name="categoriaIdTicket">
+              <option value="" disabled selected>Seleccionar...</option>
+              @for (c of categorias(); track c.id) {
+                <option [value]="c.id">{{ c.nombre }}</option>
+              }
+            </select>
+          }
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="severidadTicket">Severidad</label>
+          <select id="severidadTicket" [ngModel]="severidadTicket()" (ngModelChange)="severidadTicket.set($event)" name="severidadTicket">
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+            <option value="critica">Crítica</option>
+          </select>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="asuntoTicket">Asunto</label>
+          <input id="asuntoTicket" type="text" [ngModel]="asuntoTicket()" (ngModelChange)="asuntoTicket.set($event)" name="asuntoTicket" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="cuerpoInicialTicket">Descripción</label>
+          <textarea id="cuerpoInicialTicket" rows="4" [ngModel]="cuerpoInicialTicket()" (ngModelChange)="cuerpoInicialTicket.set($event)" name="cuerpoInicialTicket"></textarea>
+        </div>
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="crearTicket()"
+            [disabled]="guardandoTicket() || !categoriaIdTicket() || !asuntoTicket() || !cuerpoInicialTicket()"
+          >
+            Crear
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalTicket()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Detalle de ticket -->
+@if (detalleTicket(); as d) {
+  <div class="ah-modal-fondo" (click)="cerrarDetalle()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>{{ d.ticket.asunto }}</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarDetalle()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorDetalle()) {
+        <p class="ah-alerta" role="alert">{{ errorDetalle() }}</p>
+      }
+
+      <p>
+        <span class="ah-pill">{{ d.ticket.estado }}</span>
+        · {{ nombreCategoriaDe(d.ticket.categoria_id) }} · {{ d.ticket.severidad }}
+      </p>
+
+      <h3>Conversación</h3>
+      @if (d.mensajes.length === 0) {
+        <p class="ah-vacio ah-vacio--compacto">Sin mensajes todavía.</p>
+      } @else {
+        <ul class="hilo">
+          @for (m of d.mensajes; track m.id) {
+            <li class="hilo__mensaje" [class.hilo__mensaje--interno]="m.es_interno">
+              @if (m.es_interno) {
+                <span class="ah-pill ah-pill--atencion">Interno</span>
+              }
+              <p>{{ m.cuerpo }}</p>
+              <span class="hilo__meta">{{ m.enviado_en | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </li>
+          }
+        </ul>
+      }
+
+      @if (puedeEscribir()) {
+        <div class="formulario">
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="cuerpoRespuesta">Responder</label>
+            <textarea id="cuerpoRespuesta" rows="3" [ngModel]="cuerpoRespuesta()" (ngModelChange)="cuerpoRespuesta.set($event)" name="cuerpoRespuesta"></textarea>
+          </div>
+          @if (esRoleSupport()) {
+            <label class="hilo__checkbox">
+              <input type="checkbox" [ngModel]="esInternoRespuesta()" (ngModelChange)="esInternoRespuesta.set($event)" name="esInternoRespuesta" />
+              Marcar como nota interna (no visible al tenant)
+            </label>
+          }
+          <div class="modal-acciones">
+            <button type="button" class="ah-btn" (click)="responder()" [disabled]="respondiendo() || !cuerpoRespuesta()">
+              Enviar
+            </button>
+          </div>
+        </div>
+
+        @if (esRoleSupport() && transicionesDisponibles().length > 0) {
+          <h3>Cambiar estado</h3>
+          <div class="modal-acciones">
+            @for (estado of transicionesDisponibles(); track estado) {
+              <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="cambiarEstado(estado)" [disabled]="cambiandoEstado()">
+                {{ estado }}
+              </button>
+            }
+          </div>
+        }
+      }
+
+      <div class="modal-acciones">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarDetalle()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Publicar artículo -->
+@if (mostrarModalArticulo()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalArticulo()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Publicar artículo</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalArticulo()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorFormularioArticulo()) {
+        <p class="ah-alerta" role="alert">{{ errorFormularioArticulo() }}</p>
+      }
+
+      <p class="ah-alerta ah-alerta--aviso">Este artículo será visible para todos los tenants.</p>
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="tituloArticulo">Título</label>
+          <input id="tituloArticulo" type="text" [ngModel]="tituloArticulo()" (ngModelChange)="tituloArticulo.set($event)" name="tituloArticulo" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="cuerpoArticulo">Cuerpo</label>
+          <textarea id="cuerpoArticulo" rows="5" [ngModel]="cuerpoArticulo()" (ngModelChange)="cuerpoArticulo.set($event)" name="cuerpoArticulo"></textarea>
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="etiquetasArticulo">Etiquetas (separadas por coma)</label>
+          <input id="etiquetasArticulo" type="text" [ngModel]="etiquetasArticulo()" (ngModelChange)="etiquetasArticulo.set($event)" name="etiquetasArticulo" />
+        </div>
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="publicarArticulo()"
+            [disabled]="guardandoArticulo() || !tituloArticulo() || !cuerpoArticulo()"
+          >
+            Publicar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalArticulo()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Publicar changelog -->
+@if (mostrarModalChangelog()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalChangelog()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Publicar changelog</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalChangelog()" aria-label="Cerrar">✕</button>
+      </div>
+
+      @if (errorFormularioChangelog()) {
+        <p class="ah-alerta" role="alert">{{ errorFormularioChangelog() }}</p>
+      }
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="versionProducto">Versión de producto</label>
+          <input id="versionProducto" type="text" [ngModel]="versionProducto()" (ngModelChange)="versionProducto.set($event)" name="versionProducto" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="resumenChangelog">Resumen</label>
+          <textarea id="resumenChangelog" rows="3" [ngModel]="resumenChangelog()" (ngModelChange)="resumenChangelog.set($event)" name="resumenChangelog"></textarea>
+        </div>
+
+        <h3>Ítems</h3>
+        @if (itemsChangelog().length === 0) {
+          <p class="ah-vacio ah-vacio--compacto">Sin ítems agregados todavía.</p>
+        } @else {
+          <ul class="items-changelog">
+            @for (item of itemsChangelog(); track $index) {
+              <li>
+                <strong>{{ item.modulo_codigo }}</strong> ({{ item.tipo_cambio }}): {{ item.descripcion }}
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="quitarItemChangelog($index)">Quitar</button>
+              </li>
+            }
+          </ul>
+        }
+
+        <div class="ah-panel__campos">
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="moduloItemNuevo">Módulo</label>
+            <select id="moduloItemNuevo" [ngModel]="moduloItemNuevo()" (ngModelChange)="moduloItemNuevo.set($event)" name="moduloItemNuevo">
+              @for (m of modulosChangelog; track m.codigo) {
+                <option [value]="m.codigo">{{ m.codigo }} — {{ m.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="tipoItemNuevo">Tipo de cambio</label>
+            <select id="tipoItemNuevo" [ngModel]="tipoItemNuevo()" (ngModelChange)="tipoItemNuevo.set($event)" name="tipoItemNuevo">
+              <option value="nuevo">Nuevo</option>
+              <option value="mejora">Mejora</option>
+              <option value="correccion">Corrección</option>
+              <option value="obsolescencia">Obsolescencia</option>
+            </select>
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="descripcionItemNuevo">Descripción del ítem</label>
+            <input id="descripcionItemNuevo" type="text" [ngModel]="descripcionItemNuevo()" (ngModelChange)="descripcionItemNuevo.set($event)" name="descripcionItemNuevo" />
+          </div>
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="agregarItemChangelog()" [disabled]="!descripcionItemNuevo()">
+            Agregar ítem
+          </button>
+        </div>
+
+        <div class="modal-acciones">
+          <button
+            type="button"
+            class="ah-btn"
+            (click)="publicarChangelog()"
+            [disabled]="guardandoChangelog() || !versionProducto() || !resumenChangelog() || itemsChangelog().length === 0"
+          >
+            Publicar
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalChangelog()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

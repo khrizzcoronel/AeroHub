@@ -1,0 +1,109 @@
+// Soporte D6 (Sprint S1.20) -- mismo patrón que el resto de apps/web
+// desde S1.14: .ah-panel + .ah-tabla + .ah-modal, sin max-width.
+
+.consola {
+  width: 100%;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+.consola__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.consola__acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.tabla-envoltorio {
+  overflow-x: auto;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  background: #fff;
+}
+
+.tabla-envoltorio .ah-tabla {
+  min-width: 640px;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+// Hilo de mensajes del detalle de ticket (US1) -- distingue mensajes
+// internos de los visibles al tenant sin ambigüedad visual.
+.hilo {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.hilo__mensaje {
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+
+  p {
+    margin: 0.25rem 0;
+  }
+}
+
+.hilo__mensaje--interno {
+  background: var(--ah-atencion-100, #fff4e0);
+  border-color: var(--ah-atencion-300, #f0b429);
+}
+
+.hilo__meta {
+  font-family: var(--ah-font-mono);
+  font-size: 0.75rem;
+  color: var(--ah-ink-500);
+}
+
+.hilo__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.items-changelog {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid var(--ah-line-200);
+    border-radius: var(--ah-radius);
+    padding: 0.4rem 0.6rem;
+  }
+}

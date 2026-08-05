@@ -80,6 +80,13 @@
           </a>
         </li>
       }
+      @if (puedeVerSoporte()) {
+        <li>
+          <a routerLink="/soporte/panel" routerLinkActive="side__link--activo" class="side__link">
+            Soporte
+          </a>
+        </li>
+      }
       @for (modulo of modulosConVista(); track modulo.codigo) {
         <li>
           <a [routerLink]="modulo.ruta" routerLinkActive="side__link--activo" class="side__link">

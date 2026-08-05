@@ -37,6 +37,7 @@ from .gestionar_tickets import (
     CategoriaNoEncontrada as TicketCategoriaNoEncontrada,
 )
 from .gestionar_tickets import (
+    CategoriaTicketTablero,
     MensajeInternoNoAutorizado,
     MensajeTablero,
     ResultadoCrearTicket,
@@ -45,6 +46,7 @@ from .gestionar_tickets import (
     TicketTablero,
     TransicionInvalida,
     cambiar_estado_ticket,
+    consultar_categorias_ticket,
     consultar_ticket,
     consultar_tickets,
     crear_ticket,
@@ -70,6 +72,8 @@ __all__ = [
     "TicketNoEncontrado",
     "TicketRolNoAutorizado",
     "TicketCategoriaNoEncontrada",
+    "consultar_categorias_ticket",
+    "CategoriaTicketTablero",
     "TicketUsuarioNoIdentificado",
     "MensajeInternoNoAutorizado",
     "TransicionInvalida",
