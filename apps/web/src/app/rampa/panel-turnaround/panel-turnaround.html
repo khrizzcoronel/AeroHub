@@ -3,6 +3,16 @@
     <h1>Panel de turnaround (rampa)</h1>
   </div>
 
+  <p class="consola__resumen">
+    Seguí el avance de cada turnaround y sus tareas, desde que llega el vuelo hasta que despega.
+    @if (turnarounds().length > 0) {
+      <strong>{{ turnarounds().length }}</strong> {{ turnarounds().length === 1 ? 'turnaround' : 'turnarounds' }}
+      @if (turnaroundsEnDesviacion() > 0) {
+        , <strong class="resumen-critico">{{ turnaroundsEnDesviacion() }}</strong> con desviación
+      }.
+    }
+  </p>
+
   <div class="ah-panel">
     <h2 class="ah-panel__titulo">Buscar por vuelo</h2>
     <div class="ah-panel__campos">
@@ -36,7 +46,14 @@
 
   <h2>Turnarounds</h2>
   @if (turnarounds().length === 0) {
-    <p class="ah-vacio">Sin turnarounds cargados todavia.</p>
+    <p class="ah-vacio">
+      Todavía no hay turnarounds registrados.
+      @if (puedeEscribir()) {
+        <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalCrear()">
+          Crear el primero
+        </button>
+      }
+    </p>
   } @else if (turnaroundsFiltrados().length === 0) {
     <p class="ah-vacio">Ningun turnaround coincide con la busqueda.</p>
   } @else {
@@ -91,7 +108,7 @@
 
   <h2>Incidencias</h2>
   @if (incidencias().length === 0) {
-    <p class="ah-vacio">Sin incidencias todavia.</p>
+    <p class="ah-vacio">Sin incidencias todavía -- se registran solas cuando una tarea supera su duración estándar.</p>
   } @else {
     <div class="tabla-envoltorio">
       <table class="ah-tabla">

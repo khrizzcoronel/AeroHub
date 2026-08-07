@@ -3,6 +3,16 @@
     <h1>Panel de facturas (billing)</h1>
   </div>
 
+  <p class="consola__resumen">
+    Facturación por aerolínea, calculada a partir de los cargos aeronáuticos del período.
+    @if (facturas().length > 0) {
+      <strong>{{ facturas().length }}</strong> {{ facturas().length === 1 ? 'factura' : 'facturas' }}
+      @if (facturasCriticas() > 0) {
+        , <strong class="resumen-critico">{{ facturasCriticas() }}</strong> vencidas o disputadas
+      }.
+    }
+  </p>
+
   <div class="ah-panel">
     <h2 class="ah-panel__titulo">Buscar facturas</h2>
     <div class="ah-panel__campos">
@@ -46,7 +56,14 @@
   }
 
   @if (facturas().length === 0) {
-    <p class="ah-vacio">Sin facturas cargadas todavia.</p>
+    <p class="ah-vacio">
+      Todavía no hay facturas para este período.
+      @if (puedeEscribir()) {
+        <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalCalcular()">
+          Calcular facturación
+        </button>
+      }
+    </p>
   } @else if (facturasFiltradas().length === 0) {
     <p class="ah-vacio">Ninguna factura coincide con la busqueda.</p>
   } @else {

@@ -36,6 +36,13 @@
 -- role_operations_controller/role_airline_coordinator) -- misma
 -- deviacion documentada de la matriz literal que role_ramp_agent en
 -- S1.5 (97_grants_rampa.sql).
+--
+-- Fase 5 de docs/diseno/PLAN_CORRECCION_MODULOS.md (2026-08-07, item
+-- 15): ademas de ops.vuelo, GET /vuelos (Fase 3) hace LEFT JOIN contra
+-- ops.vuelo_estado para resolver el estado actual -- sin este GRANT, el
+-- selector de vuelo del formulario de conciliacion (que ahora usa este
+-- mismo endpoint) fallaria con "insufficient privileges" bajo
+-- role_billing_officer.
 
 GRANT SELECT ON ops.terminal TO role_platform_admin;
 GRANT SELECT ON ops.puerta TO role_platform_admin;
@@ -104,6 +111,7 @@ GRANT SELECT ON ops.v_vuelo_estado_actual TO role_ramp_agent;
 GRANT SELECT ON ops.asignacion_puerta TO role_ramp_agent;
 
 GRANT SELECT ON ops.vuelo TO role_billing_officer;
+GRANT SELECT ON ops.vuelo_estado TO role_billing_officer;
 
 GRANT SELECT ON ops.terminal TO role_elt_reader;
 GRANT SELECT ON ops.puerta TO role_elt_reader;

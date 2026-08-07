@@ -8,6 +8,16 @@
     </div>
   </div>
 
+  <p class="consola__resumen">
+    Tickets con SLA, base de conocimientos y novedades de producto, todo en un solo lugar.
+    @if (!esPlatformAdmin() && tickets().length > 0) {
+      <strong>{{ tickets().length }}</strong> {{ tickets().length === 1 ? 'ticket' : 'tickets' }}
+      @if (ticketsConSlaVencido() > 0) {
+        , <strong class="resumen-critico">{{ ticketsConSlaVencido() }}</strong> con SLA vencido
+      }.
+    }
+  </p>
+
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
   }
@@ -50,7 +60,14 @@
     }
 
     @if (tickets().length === 0) {
-      <p class="ah-vacio">Sin tickets que coincidan con el filtro.</p>
+      <p class="ah-vacio">
+        Sin tickets que coincidan con el filtro.
+        @if (puedeEscribir()) {
+          <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalTicket()">
+            Crear un ticket
+          </button>
+        }
+      </p>
     } @else {
       <div class="tabla-envoltorio">
         <table class="ah-tabla">
@@ -132,7 +149,14 @@
   }
 
   @if (articulos().length === 0) {
-    <p class="ah-vacio">Sin artículos que coincidan con la búsqueda.</p>
+    <p class="ah-vacio">
+      Sin artículos que coincidan con la búsqueda.
+      @if (puedeEscribirKB()) {
+        <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalArticulo()">
+          Publicar el primero
+        </button>
+      }
+    </p>
   } @else {
     <div class="tabla-envoltorio">
       <table class="ah-tabla">
@@ -189,7 +213,14 @@
   }
 
   @if (changelogFiltrado().length === 0) {
-    <p class="ah-vacio">Sin entradas de changelog que coincidan.</p>
+    <p class="ah-vacio">
+      Sin entradas de changelog que coincidan.
+      @if (puedeEscribirChangelog()) {
+        <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalChangelog()">
+          Publicar la primera
+        </button>
+      }
+    </p>
   } @else {
     @for (c of changelogPagina(); track c.id) {
       <div class="ah-panel">
@@ -303,33 +334,41 @@
         · {{ nombreCategoriaDe(d.ticket.categoria_id) }} · {{ d.ticket.severidad }}
       </p>
 
-      <h3>Conversación</h3>
-      @if (d.mensajes.length === 0) {
-        <p class="ah-vacio ah-vacio--compacto">Sin mensajes todavía.</p>
+      <h3>Línea de tiempo</h3>
+      @if (lineaTiempo().length === 0) {
+        <p class="ah-vacio ah-vacio--compacto">Sin actividad todavía -- el primer mensaje va a aparecer aquí.</p>
       } @else {
         <ul class="hilo">
-          @for (m of d.mensajes; track m.id) {
-            <li class="hilo__mensaje" [class.hilo__mensaje--interno]="m.es_interno">
-              @if (m.es_interno) {
-                <span class="ah-pill ah-pill--atencion">Interno</span>
-              }
-              <p>{{ m.cuerpo }}</p>
-              <span class="hilo__meta">{{ m.enviado_en | date: 'dd/MM/yyyy HH:mm' }}</span>
-            </li>
+          @for (item of lineaTiempo(); track item.fecha + item.tipo) {
+            @if (item.tipo === 'mensaje') {
+              <li class="hilo__mensaje" [class.hilo__mensaje--interno]="item.mensaje.es_interno">
+                @if (item.mensaje.es_interno) {
+                  <span class="ah-pill ah-pill--atencion">Interno</span>
+                }
+                <p>{{ item.mensaje.cuerpo }}</p>
+                <span class="hilo__meta">{{ item.mensaje.enviado_en | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </li>
+            } @else {
+              <li class="hilo__mensaje hilo__mensaje--transicion">
+                <p>
+                  Cambio de estado: {{ etiquetaEstadoTicket(item.transicion.estado_anterior ?? '') }}
+                  &rarr; {{ etiquetaEstadoTicket(item.transicion.estado_nuevo ?? '') }}
+                  <span class="ah-pill">{{ item.transicion.rol_codigo }}</span>
+                </p>
+                <span class="hilo__meta">{{ item.transicion.ocurrido_en | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </li>
+            }
           }
         </ul>
       }
 
-      @if (transiciones().length > 0) {
-        <h3>Historial de estado</h3>
-        <ul class="hilo">
-          @for (t of transiciones(); track t.id) {
-            <li class="hilo__mensaje">
-              <p>
-                {{ etiquetaEstadoTicket(t.estado_anterior ?? '') }} &rarr; {{ etiquetaEstadoTicket(t.estado_nuevo ?? '') }}
-                <span class="ah-pill">{{ t.rol_codigo }}</span>
-              </p>
-              <span class="hilo__meta">{{ t.ocurrido_en | date: 'dd/MM/yyyy HH:mm' }}</span>
+      @if (articulosRelacionados().length > 0) {
+        <h3>Artículos relacionados de la base de conocimientos</h3>
+        <ul class="articulos-relacionados">
+          @for (a of articulosRelacionados(); track a.id) {
+            <li>
+              <strong>{{ a.titulo }}</strong>
+              <p>{{ a.cuerpo }}</p>
             </li>
           }
         </ul>

@@ -10,6 +10,24 @@ import {
   Conciliacion,
   Tarifario,
 } from '../billing.service';
+import { VueloListado, VueloService } from '../../vuelos/vuelo.service';
+
+// Selector de moneda (Fase 5 de docs/diseno/PLAN_CORRECCION_MODULOS.md,
+// item 15) -- el backend no restringe a una lista cerrada (domain solo
+// exige ISO 4217 de 3 letras), esta es una curada de monedas reales para
+// el contexto de la aplicacion (tenants LatAm + carriers internacionales),
+// no el catalogo ISO 4217 completo (cientos de codigos irrelevantes aqui).
+export const MONEDAS_COMUNES: { codigo: string; nombre: string }[] = [
+  { codigo: 'USD', nombre: 'Dólar estadounidense' },
+  { codigo: 'EUR', nombre: 'Euro' },
+  { codigo: 'GBP', nombre: 'Libra esterlina' },
+  { codigo: 'COP', nombre: 'Peso colombiano' },
+  { codigo: 'PEN', nombre: 'Sol peruano' },
+  { codigo: 'CLP', nombre: 'Peso chileno' },
+  { codigo: 'BRL', nombre: 'Real brasileño' },
+  { codigo: 'MXN', nombre: 'Peso mexicano' },
+  { codigo: 'ARS', nombre: 'Peso argentino' },
+];
 
 // Semaforo de estado de tarifario (Sprint S1.17) -- 3 valores de
 // ESTADOS_TARIFARIO (services/billing/aerohub_billing/domain/tarifario.py).
@@ -37,11 +55,13 @@ export function etiquetaEstadoTarifario(estado: string): string {
 })
 export class PanelTarifarios {
   private readonly billingService = inject(BillingService);
+  private readonly vueloService = inject(VueloService);
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
 
   protected readonly claseEstadoTarifario = claseEstadoTarifario;
   protected readonly etiquetaEstadoTarifario = etiquetaEstadoTarifario;
+  protected readonly monedasComunes = MONEDAS_COMUNES;
 
   // Fase 1 de docs/diseno/PLAN_CORRECCION_MODULOS.md (2026-08-06, D1(a)):
   // role_tenant_admin perdio billing:escribir -- ocultar "Nuevo
@@ -97,9 +117,17 @@ export class PanelTarifarios {
     const q = this.filtroConciliacion().trim().toLowerCase();
     if (!q) return this.conciliaciones();
     return this.conciliaciones().filter(
-      (c) => c.vuelo_id.includes(q) || c.periodo.toLowerCase().includes(q),
+      (c) =>
+        c.vuelo_id.includes(q) ||
+        this.numeroVueloDe(c.vuelo_id).toLowerCase().includes(q) ||
+        c.periodo.toLowerCase().includes(q),
     );
   });
+
+  // Selector de vuelo (Fase 5, item 15) -- reemplaza el id de 18 digitos
+  // pegado a mano. role_billing_officer gano vuelos:leer para esto
+  // (decision explicita del usuario).
+  protected readonly vuelosDisponibles = signal<VueloListado[]>([]);
 
   protected readonly mostrarModalConciliacion = signal(false);
   protected readonly vueloIdConciliacion = signal('');
@@ -115,6 +143,7 @@ export class PanelTarifarios {
 
   constructor() {
     this.cargarTodo();
+    this.vueloService.listarVuelos().subscribe({ next: (r) => this.vuelosDisponibles.set(r) });
   }
 
   protected cargarTodo(): void {
@@ -308,6 +337,11 @@ export class PanelTarifarios {
           this.guardandoConciliacion.set(false);
         },
       });
+  }
+
+  protected numeroVueloDe(vueloId: string): string {
+    const v = this.vuelosDisponibles().find((item) => item.id === vueloId);
+    return v ? v.numero_vuelo : vueloId;
   }
 
   // Conciliar (US3) -- el backend re-valida diferencia == 0

@@ -3,7 +3,7 @@
 | Campo | Contenido |
 |:---|:---|
 | **Fecha** | 2026-08-06 |
-| **Estado** | **Plan — no implementado.** Se implementa cuando el usuario lo indique. |
+| **Estado** | **Implementado y verificado — Fases 1-6 cerradas (2026-08-07).** Items 13/17 de M2 FIDS/M9 Compliance/Tenants/Usuarios/API-Keys/Licencias quedaron explícitamente fuera de alcance (acotado a la capa operativa). Detalle completo del pase en `CLAUDE.md`. Pendiente de commit. |
 | **Origen** | Revisión funcional del usuario sobre la aplicación completa (2026-08-06). |
 | **Método** | Cada hallazgo de este plan fue **verificado empíricamente** contra el stack en Docker (login real por rol, `curl` contra el gateway, lectura de trazas y del DDL). Lo que no se pudo verificar está marcado como *inferido*. |
 | **Relacionado** | `docs/diseno/ROLES_POR_CAPA.md`, `docs/diseno/PLAN_DASHBOARDS_OPERATIVOS.md`, `docs/diseno/DIRECCION_VISUAL.md` |

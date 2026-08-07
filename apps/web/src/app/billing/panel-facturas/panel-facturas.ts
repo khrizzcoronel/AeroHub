@@ -81,6 +81,12 @@ export class PanelFacturas {
     return this.facturasFiltradas().slice(inicio, inicio + TAMANO_PAGINA);
   });
 
+  // KPI de apertura (Fase 5, item 13): facturas vencidas o disputadas --
+  // lectura sobre datos ya cargados.
+  protected readonly facturasCriticas = computed(
+    () => this.facturas().filter((f) => f.estado === 'vencida' || f.estado === 'disputada').length,
+  );
+
   // Modal de calculo de facturacion -- reemplaza el formulario inline
   // (S1.14, §3.0).
   protected readonly mostrarModalCalcular = signal(false);

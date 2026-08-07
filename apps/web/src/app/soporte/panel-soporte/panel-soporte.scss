@@ -25,6 +25,23 @@
   flex-wrap: wrap;
 }
 
+.consola__resumen {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ah-ink-600);
+}
+
+.resumen-critico {
+  color: var(--ah-estado-critico);
+}
+
+.ah-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
 .tabla-envoltorio {
   overflow-x: auto;
   border: 1px solid var(--ah-line-200);
@@ -75,6 +92,34 @@
 .hilo__mensaje--interno {
   background: var(--ah-atencion-100, #fff4e0);
   border-color: var(--ah-atencion-300, #f0b429);
+}
+
+.hilo__mensaje--transicion {
+  background: var(--ah-paper-50);
+  border-style: dashed;
+}
+
+.articulos-relacionados {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  li {
+    border: 1px solid var(--ah-line-200);
+    border-left: 3px solid var(--ah-blue-500);
+    border-radius: var(--ah-radius);
+    padding: 0.5rem 0.75rem;
+    background: #fff;
+  }
+
+  p {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: var(--ah-ink-600);
+  }
 }
 
 .hilo__meta {

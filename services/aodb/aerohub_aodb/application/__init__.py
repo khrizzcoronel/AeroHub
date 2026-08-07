@@ -10,7 +10,6 @@ from .consultar_catalogos import (
     consultar_tipos_vuelo,
 )
 from .consultar_vuelo import VueloConsultado, consultar_vuelo
-from .listar_vuelos import VueloListado, listar_vuelos
 from .informes import (
     GrupoInforme,
     InformeCompuesto,
@@ -18,6 +17,7 @@ from .informes import (
     consultar_informe_vuelos_compuesto,
     consultar_informe_vuelos_simple,
 )
+from .listar_vuelos import VueloListado, listar_vuelos
 from .registrar_cambio_estado import (
     EstadoDesconocido,
     ResultadoCambioEstado,

@@ -85,6 +85,11 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
   private readonly toast = inject(ToastService);
 
   protected readonly conectado = signal(false);
+  // Fase 5 de docs/diseno/PLAN_CORRECCION_MODULOS.md (item 14): la
+  // conexion ya no se activa/corta a mano -- se abre sola al entrar y se
+  // reconecta sola si se cae. `reconectando` distingue "cayo, reintentando"
+  // de "nunca se conecto" para el indicador.
+  protected readonly reconectando = signal(false);
   protected readonly error = signal<string | null>(null);
   // Mas reciente primero -- historial capado a 20 (RF-O04, glanceability).
   // Post S1.14: se le agrega tabla + filtro + paginacion (pedido directo del
@@ -92,7 +97,16 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
   // esta vista) -- la pagina 1 sigue siendo la mas reciente.
   protected readonly eventos = signal<EventoEstadoVuelo[]>([]);
 
+  // KPI de apertura (Fase 5, item 13): cuantos de los eventos visibles
+  // estan en un estado critico (cancelado/desviado) -- no vuelve a pedir
+  // nada al backend, es una lectura sobre `eventos` ya cargado.
+  protected readonly eventosCriticos = computed(
+    () => this.eventos().filter((e) => claseDeEstado(e.codigo_estado) === 'ah-pill--critico').length,
+  );
+
   private socket: WebSocket | null = null;
+  private reintentoTimeout: ReturnType<typeof setTimeout> | null = null;
+  private destruido = false;
 
   protected readonly claseDeEstado = claseDeEstado;
   protected readonly etiquetaEstado = etiquetaEstado;
@@ -173,6 +187,7 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
     this.vueloService.listarAeronaves().subscribe({ next: (r) => this.aeronaves.set(r) });
     this.vueloService.listarTiposVuelo().subscribe({ next: (r) => this.tiposVuelo.set(r) });
     this.vueloService.listarAeropuertos().subscribe({ next: (r) => this.aeropuertos.set(r) });
+    this.conectar();
   }
 
   protected abrirModalNuevoVuelo(): void {
@@ -282,7 +297,11 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
       });
   }
 
-  protected conectar(): void {
+  // Fase 5 (item 14): conexion automatica con reconexion -- reemplaza los
+  // botones "Conectar"/"Desconectar" por un indicador de solo lectura
+  // (ver estado-tiempo-real.html). Se llama sola desde ngOnInit y desde
+  // si misma tras una caida no autenticada.
+  private conectar(): void {
     const token = this.auth.token();
     if (!token) {
       this.router.navigate(['/login']);
@@ -290,17 +309,29 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
     }
 
     this.error.set(null);
-    this.eventos.set([]);
     const socket = new WebSocket(`${WS_BASE_URL}/vuelos/ws/estado?token=${encodeURIComponent(token)}`);
 
-    socket.onopen = () => this.conectado.set(true);
+    socket.onopen = () => {
+      this.conectado.set(true);
+      this.reconectando.set(false);
+    };
     socket.onclose = (evento) => {
       this.conectado.set(false);
       if (evento.code >= 4000) {
         // Sesion invalida/vencida -- mismo criterio que authInterceptor
         // ante un 401 de HTTP (S1.10): no dejar la pantalla en un estado
-        // ambiguo, llevar a la persona a iniciar sesion de nuevo.
+        // ambiguo, llevar a la persona a iniciar sesion de nuevo. Nunca
+        // reintentar un cierre de este tipo -- el token no va a volverse
+        // valido solo.
+        this.reconectando.set(false);
         this.router.navigate(['/login']);
+        return;
+      }
+      // Corte de red u otro cierre no autenticado -- reintentar en 3s,
+      // salvo que el componente ya se haya destruido (ngOnDestroy).
+      if (!this.destruido) {
+        this.reconectando.set(true);
+        this.reintentoTimeout = setTimeout(() => this.conectar(), 3000);
       }
     };
     socket.onerror = () => this.error.set('Error de conexion WebSocket');
@@ -312,13 +343,9 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
     this.socket = socket;
   }
 
-  protected desconectar(): void {
-    this.socket?.close();
-    this.socket = null;
-    this.conectado.set(false);
-  }
-
   ngOnDestroy(): void {
+    this.destruido = true;
+    if (this.reintentoTimeout) clearTimeout(this.reintentoTimeout);
     this.socket?.close();
   }
 }

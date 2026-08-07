@@ -15,6 +15,15 @@ import {
   Transicion,
 } from '../soporte.service';
 
+// Enlace KB <-> ticket (Fase 5 de docs/diseno/PLAN_CORRECCION_MODULOS.md,
+// item 16): no existe una relacion formal en el backend entre
+// categoria_ticket y las etiquetas de un articulo -- se usa el codigo de
+// categoria en minusculas como etiqueta de busqueda (coincide con el
+// criterio ya usado al etiquetar articulos por modulo, ver
+// db/seeds/generate.py). Si no hay coincidencias, la seccion
+// simplemente no aparece -- no es un vinculo garantizado, es una
+// sugerencia basada en el mismo vocabulario.
+
 // Sprint S1.20 -- catalogo.modulo (M1-M9) es fijo y ya conocido en todo
 // el proyecto (packages/contracts/aerohub_contracts/roles_modulos.py);
 // no hay endpoint de catalogo en aerohub_support para esto, y agregar
@@ -114,6 +123,12 @@ export class PanelSoporte {
   protected readonly categorias = signal<CategoriaTicket[]>([]);
   protected readonly tickets = signal<Ticket[]>([]);
   protected readonly filtroEstado = signal('');
+
+  // KPI de apertura (Fase 5, item 13): tickets con SLA de primera
+  // respuesta vencido -- lectura sobre datos ya cargados.
+  protected readonly ticketsConSlaVencido = computed(
+    () => this.tickets().filter((t) => indicadorSla(t).vencido).length,
+  );
   protected readonly filtroSeveridad = signal('');
 
   protected readonly mostrarModalTicket = signal(false);
@@ -136,6 +151,25 @@ export class PanelSoporte {
   // mensajes -- antes de esto el dato existia (auditoria) pero no se
   // exponia en ningun lado.
   protected readonly transiciones = signal<Transicion[]>([]);
+  protected readonly articulosRelacionados = signal<ArticuloKB[]>([]);
+
+  // Fase 5 (item 16): linea de tiempo unica = mensajes + transiciones de
+  // estado, ordenados por fecha -- reemplaza las 2 listas separadas de
+  // antes ("Conversación" / "Historial de estado"), que obligaban a
+  // reconstruir mentalmente el orden real de los hechos.
+  protected readonly lineaTiempo = computed(() => {
+    const mensajes = (this.detalleTicket()?.mensajes ?? []).map((m) => ({
+      tipo: 'mensaje' as const,
+      fecha: m.enviado_en,
+      mensaje: m,
+    }));
+    const transiciones = this.transiciones().map((t) => ({
+      tipo: 'transicion' as const,
+      fecha: t.ocurrido_en,
+      transicion: t,
+    }));
+    return [...mensajes, ...transiciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  });
 
   protected readonly transicionesDisponibles = computed(() => {
     const d = this.detalleTicket();
@@ -345,6 +379,7 @@ export class PanelSoporte {
     this.cuerpoRespuesta.set('');
     this.esInternoRespuesta.set(false);
     this.transiciones.set([]);
+    this.articulosRelacionados.set([]);
     this.soporteService.obtenerTicket(t.id).subscribe({
       next: (r) => this.detalleTicket.set(r),
       error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
@@ -356,11 +391,19 @@ export class PanelSoporte {
       // errores silenciosos de catalogos secundarios en otras vistas).
       error: () => this.transiciones.set([]),
     });
+    const categoria = this.categorias().find((c) => c.id === t.categoria_id);
+    if (categoria) {
+      this.soporteService.buscarArticulos(undefined, categoria.codigo.toLowerCase()).subscribe({
+        next: (r) => this.articulosRelacionados.set(r),
+        error: () => this.articulosRelacionados.set([]),
+      });
+    }
   }
 
   protected cerrarDetalle(): void {
     this.detalleTicket.set(null);
     this.transiciones.set([]);
+    this.articulosRelacionados.set([]);
   }
 
   protected responder(): void {

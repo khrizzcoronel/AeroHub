@@ -181,7 +181,19 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     ),
     "role_billing_officer": (
         frozenset({"M5"}),
-        frozenset({"billing:leer", "billing:escribir"}),
+        frozenset(
+            {
+                "billing:leer",
+                "billing:escribir",
+                # Fase 5 de docs/diseno/PLAN_CORRECCION_MODULOS.md
+                # (2026-08-07, item 15): quien concilia pax necesita ver
+                # que vuelos existen para elegirlos de un selector real
+                # en vez de pegar un id de 18 digitos a mano -- ops.vuelo
+                # ya es de solo lectura para todos los roles con acceso
+                # (SELECT), sin GRANT de motor nuevo.
+                "vuelos:leer",
+            }
+        ),
     ),
     "role_tenant_analyst": (
         frozenset({"M1", "M3", "M4", "M5", "M6"}),

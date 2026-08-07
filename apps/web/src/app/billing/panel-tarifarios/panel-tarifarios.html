@@ -127,7 +127,7 @@
         <tbody>
           @for (c of conciliacionesFiltradas(); track c.id) {
             <tr>
-              <td>{{ c.vuelo_id }}</td>
+              <td>{{ numeroVueloDe(c.vuelo_id) }}</td>
               <td>{{ c.periodo }}</td>
               <td>{{ c.pax_reportado_aerolinea }}</td>
               <td>{{ c.pax_registrado_sistema }}</td>
@@ -180,8 +180,13 @@
           <input id="nombreTarifario" type="text" [ngModel]="nombreTarifario()" (ngModelChange)="nombreTarifario.set($event)" name="nombreTarifario" />
         </div>
         <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="monedaTarifario">Moneda (ISO 4217, ej. USD)</label>
-          <input id="monedaTarifario" type="text" maxlength="3" [ngModel]="monedaTarifario()" (ngModelChange)="monedaTarifario.set($event)" name="monedaTarifario" />
+          <label class="ah-campo__etiqueta" for="monedaTarifario">Moneda</label>
+          <select id="monedaTarifario" [ngModel]="monedaTarifario()" (ngModelChange)="monedaTarifario.set($event)" name="monedaTarifario">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (m of monedasComunes; track m.codigo) {
+              <option [value]="m.codigo">{{ m.codigo }} — {{ m.nombre }}</option>
+            }
+          </select>
         </div>
         <div class="ah-campo">
           <label class="ah-campo__etiqueta" for="vigenteDesdeTarifario">Vigente desde</label>
@@ -354,8 +359,17 @@
 
       <div class="formulario">
         <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="vueloIdConciliacion">ID de vuelo</label>
-          <input id="vueloIdConciliacion" type="text" [ngModel]="vueloIdConciliacion()" (ngModelChange)="vueloIdConciliacion.set($event)" name="vueloIdConciliacion" />
+          <label class="ah-campo__etiqueta" for="vueloIdConciliacion">Vuelo</label>
+          @if (vuelosDisponibles().length === 0) {
+            <p class="ah-vacio ah-vacio--compacto">Sin vuelos disponibles todavía.</p>
+          } @else {
+            <select id="vueloIdConciliacion" [ngModel]="vueloIdConciliacion()" (ngModelChange)="vueloIdConciliacion.set($event)" name="vueloIdConciliacion">
+              <option value="" disabled selected>Seleccionar...</option>
+              @for (v of vuelosDisponibles(); track v.id) {
+                <option [value]="v.id">{{ v.numero_vuelo }} — {{ v.fecha_operacion }}</option>
+              }
+            </select>
+          }
         </div>
         <div class="ah-campo">
           <label class="ah-campo__etiqueta" for="periodoConciliacion">Período (ej. 2026-08)</label>

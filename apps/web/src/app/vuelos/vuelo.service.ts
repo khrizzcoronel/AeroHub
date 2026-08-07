@@ -72,6 +72,10 @@ export interface VueloConsultado {
   pax_estimado: number | null;
 }
 
+export interface VueloListado extends VueloConsultado {
+  codigo_estado: string | null;
+}
+
 export interface CambiarEstadoRequest {
   codigo_estado_nuevo: string;
   origen_cambio: string;
@@ -91,6 +95,13 @@ export class VueloService {
 
   obtenerVuelo(vueloId: string): Observable<VueloConsultado> {
     return this.http.get<VueloConsultado>(`${API_BASE_URL}/vuelos/${vueloId}`);
+  }
+
+  // Fase 3 de docs/diseno/PLAN_CORRECCION_MODULOS.md -- cerrado en el
+  // backend sin consumidor hasta Fase 5, item 15 (selector de vuelo en
+  // vez de texto libre en el formulario de conciliacion de pax).
+  listarVuelos(): Observable<VueloListado[]> {
+    return this.http.get<VueloListado[]>(`${API_BASE_URL}/vuelos`);
   }
 
   cambiarEstadoVuelo(

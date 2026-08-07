@@ -3,6 +3,16 @@
     <h1>Tablero de puertas</h1>
   </div>
 
+  <p class="consola__resumen">
+    Ocupación de puertas en tiempo real y sus asignaciones vigentes.
+    @if (puertas().length > 0) {
+      <strong>{{ puertas().length }}</strong> {{ puertas().length === 1 ? 'puerta' : 'puertas' }}
+      @if (puertasEnConflicto() > 0) {
+        , <strong class="resumen-critico">{{ puertasEnConflicto() }}</strong> con solapamiento
+      }.
+    }
+  </p>
+
   <div class="ah-panel">
     <h2 class="ah-panel__titulo">Buscar puerta</h2>
     <div class="ah-panel__campos">
@@ -57,7 +67,14 @@
   }
 
   @if (puertas().length === 0) {
-    <p class="ah-vacio">Sin puertas cargadas todavia.</p>
+    <p class="ah-vacio">
+      Todavía no hay puertas registradas.
+      @if (puedeEscribir()) {
+        <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalTerminal()">
+          Crear la primera terminal
+        </button>
+      }
+    </p>
   } @else if (puertasFiltradas().length === 0) {
     <p class="ah-vacio">Ninguna puerta coincide con la busqueda.</p>
   } @else {

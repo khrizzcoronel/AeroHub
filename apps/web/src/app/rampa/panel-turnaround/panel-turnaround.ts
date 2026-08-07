@@ -97,6 +97,15 @@ export class PanelTurnaround {
   protected readonly puntoEstadoTarea = puntoEstadoTarea;
   protected readonly ahora = new Date();
 
+  // KPI de apertura (Fase 5, item 13): turnarounds interrumpidos o en
+  // curso pero ya vencidos -- lectura sobre datos ya cargados.
+  protected readonly turnaroundsEnDesviacion = computed(
+    () =>
+      this.turnarounds().filter(
+        (t) => claseEstadoTurnaround(t, this.ahora) === 'ah-pill--critico' || claseEstadoTurnaround(t, this.ahora) === 'ah-pill--atencion',
+      ).length,
+  );
+
   protected readonly tiposTarea = signal<TipoTarea[]>([]);
 
   // Panel de busqueda + paginacion (S1.14, §3.0) -- filtra por numero de

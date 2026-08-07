@@ -81,6 +81,16 @@ export class TableroPuertas {
   // anidada dentro de la tira.
   protected readonly puertaViendo = signal<PuertaTablero | null>(null);
 
+  // KPI de apertura (Fase 5, item 13): cuantas puertas tienen conflicto
+  // de solapamiento entre sus asignaciones -- lectura sobre datos ya
+  // cargados, sin pedir nada nuevo al backend.
+  protected readonly puertasEnConflicto = computed(
+    () =>
+      Array.from(this.asignacionesPorPuerta().values()).filter(
+        (asignaciones) => claseOcupacionPuerta(asignaciones) === 'ah-pill--critico',
+      ).length,
+  );
+
   protected readonly asignacionesPorPuerta = computed(() => {
     const mapa = new Map<string, AsignacionTablero[]>();
     for (const asignacion of this.asignaciones()) {

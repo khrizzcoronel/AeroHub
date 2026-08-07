@@ -898,19 +898,163 @@ quedan pendientes.
      endpoints de catálogo, ya visto antes con `/support/kb/articulos` y
      `/vuelos/catalogo/tipos-vuelo`) devuelve intermitentemente 500
      `pymonetdb.exceptions.Error: connection closed` tras un período de
-     inactividad -- el pool de SQLAlchemy no tiene `pool_pre_ping`, así
-     que una conexión que MonetDB cerró del lado del servidor no se
-     detecta hasta el primer intento de uso, y ese primer intento falla
-     en vez de reabrir la conexión. Siempre se resuelve solo en el
-     siguiente intento (confirmado repetidas veces con reintentos
-     inmediatos). **No es una regresión de ningún sprint** -- es
-     comportamiento pre-existente del pool de conexiones, reproducido en
-     múltiples endpoints no relacionados entre sí a lo largo de toda la
-     sesión. Se documenta aquí como hallazgo a considerar (agregar
-     `pool_pre_ping=True` al `create_engine` de
-     `packages/repository/aerohub_repository/base.py` sería el arreglo de
-     una línea), pero queda fuera del alcance de la Fase 4 -- es un
-     cambio transversal de infraestructura, no de un módulo puntual.
+     inactividad. Siempre se resuelve solo en el siguiente intento
+     (confirmado repetidas veces con reintentos inmediatos). **No es una
+     regresión de ningún sprint** -- es comportamiento pre-existente del
+     pool de conexiones, reproducido en múltiples endpoints no
+     relacionados entre sí a lo largo de toda la sesión.
+     **Corrección (Fase 5, 2026-08-07)**: la nota original de esta
+     entrada decía que faltaba `pool_pre_ping` y que el arreglo era de
+     una línea -- **incorrecto**, no se leyó `base.py` antes de
+     escribirlo. `obtener_engine()` (`packages/repository/aerohub_repository/base.py`)
+     ya tiene `pool_pre_ping=True` **y** `pool_recycle=180` desde el
+     2026-08-05, con un comentario que documenta exactamente este
+     síntoma: el pre-ping de SQLAlchemy no alcanza a detectar un socket
+     que MonetDB cerró del lado del servidor (el `assert self.sock` de
+     `pymonetdb/mapi.py` salta recién al ejecutar la consulta real, no
+     durante el ping), por lo que `pool_recycle` es la mitigación real
+     (descarta conexiones viejas proactivamente) y ya está aplicada. Lo
+     que queda es un residuo de esa misma clase de fallo, ya mitigado
+     tanto como el pool de SQLAlchemy razonablemente permite -- no hay
+     una corrección de una línea pendiente. Verificado de nuevo en vivo
+     en Fase 5: `GET /rampa/incidencias` lo reprodujo 2 veces seguidas
+     tras un `docker restart aerohub-gateway`, resuelto en el tercer
+     intento.
+
+**Fase 5 implementada** (2026-08-07, pendiente de commit): comprensibilidad
+(items 13-17), usando el skill `frontend-design` y `docs/diseno/DIRECCION_VISUAL.md`
+como referencia obligatoria -- ningún token/patrón nuevo, solo aplicación
+del sistema ya existente (`.ah-punto`, semáforo de 4 tonos, `.ah-vacio`).
+
+1. **Item 14 -- indicador de conexión en AODB**: `vuelos/estado-tiempo-real`
+   se conecta sola al entrar (ya no hay botones "Conectar"/"Desconectar")
+   y se reconecta sola cada 3s si se cae (salvo cierre por sesión inválida,
+   código ≥4000, que sigue llevando a `/login`). El indicador es de solo
+   lectura: `.ah-punto` verde "En vivo" / ámbar "Reconectando…" / rojo
+   "Sin conexión".
+2. **Item 13 -- línea de apertura + KPI** en M1, M3, M4, M5 (facturas) y
+   D6: una oración que dice qué resuelve el módulo, más un conteo en vivo
+   sobre los datos ya cargados (sin pedir nada nuevo al backend) --
+   eventos en estado crítico (M1), puertas con solapamiento (M3),
+   turnarounds con desviación (M4), facturas vencidas/disputadas (M5),
+   tickets con SLA vencido (D6).
+3. **Item 15 -- selectores en Billing**: moneda pasa de texto libre (3
+   letras) a un `<select>` curado de monedas reales para el contexto de
+   la app (`MONEDAS_COMUNES` en `panel-tarifarios.ts`, no el catálogo ISO
+   4217 completo). El id de vuelo en "Nueva conciliación" pasa a un
+   `<select>` poblado por `GET /vuelos` (cerrado en Fase 3, sin frontend
+   hasta ahora) -- la tabla de conciliaciones también resuelve
+   `numeroVueloDe()` en vez de mostrar el id crudo. **Decisión explícita
+   del usuario** (`AskUserQuestion`): agregar `vuelos:leer` a
+   `role_billing_officer` en vez de mantener el campo de texto -- tiene
+   sentido de dominio (quien concilia pax necesita ver qué vuelos
+   existen). Reveló un GRANT de motor faltante: `ops.vuelo` ya tenía
+   SELECT para este rol desde S1.6, pero `ops.vuelo_estado` no (lo
+   necesita el `LEFT JOIN` de `GET /vuelos`) -- agregado en
+   `96_grants_ops.sql`.
+4. **Item 16 -- Soporte**: la KB se enlaza desde el ticket -- al abrir el
+   detalle, se buscan artículos por `etiqueta = categoria.codigo.toLowerCase()`
+   (sin relación formal en el backend entre categoría de ticket y
+   etiqueta de artículo; es una sugerencia por vocabulario compartido, no
+   un vínculo garantizado). Además, "Conversación" e "Historial de
+   estado" (2 listas separadas desde Fase 4) se fusionan en una sola
+   **línea de tiempo** cronológica (`lineaTiempo` computed, mensajes +
+   transiciones intercalados por fecha) -- resuelve la ejecución
+   completa del pedido original del plan ("línea de tiempo del ticket y
+   KB enlazada"), no solo la mitad que había quedado en Fase 4.
+5. **Item 17 -- estados vacíos con CTA**: en M1, M3, M4 (turnarounds), M5
+   y D6 (tickets/KB/changelog), el texto "sin X todavía" ahora explica
+   qué va a pasar o incluye un botón hacia la acción de creación
+   correspondiente, condicionado a `puedeEscribir()` donde aplica.
+   Incidencias (M4) no lleva CTA -- se generan solas, no hay alta manual.
+6. **Hallazgo corregido de una nota anterior**: la entrada de Fase 4 de
+   este mismo documento decía que faltaba `pool_pre_ping` en el pool de
+   conexiones y que el arreglo era de una línea -- **era incorrecto**, no
+   se había leído `packages/repository/aerohub_repository/base.py` antes
+   de escribirlo. Ese archivo ya tiene `pool_pre_ping=True` y
+   `pool_recycle=180` desde el 2026-08-05, con el hallazgo empírico ya
+   documentado in situ. Corregido en la entrada original (ver arriba,
+   dentro de la sección de Fase 4) para no dejar un dato falso en el
+   historial.
+7. **Verificado**: build de producción de `apps/web` en verde (716KB,
+   mismo warning de bundle); ruff/mypy en verde sobre
+   `roles_modulos.py`/`aerohub_aodb`; 95/95 tests de integración
+   relacionados (billing/Fase 3/negativos) sin regresiones. Verificado
+   en navegador real: AODB se conecta y reconecta sola, KPI se
+   actualiza en vivo tras un cambio de estado real vía WebSocket
+   (confirmado "1 evento reciente, 1 en estado crítico"); selector de
+   moneda y de vuelo poblados correctamente bajo `role_billing_officer`
+   real (login real, no JWT fabricado); línea de tiempo de ticket
+   intercala mensaje (18:09) y transición (21:04) en el orden correcto;
+   artículos relacionados aparecen para un ticket de categoría AODB (7
+   coincidencias reales). Los 500 transitorios vistos durante la
+   verificación (`/rampa/incidencias`, `/support/changelog`) son el
+   mismo hallazgo de conexión ya documentado, no regresiones -- se
+   resolvieron solos en el siguiente intento.
+
+**Pendiente**: item 13/17 en M2 FIDS, M9 Compliance, Tenants/Usuarios/
+API-Keys/Licencias (no se tocaron en este pase, la Fase 5 se acotó a los
+5 módulos de la capa operativa igual que las Fases 1-4).
+
+**Fase 6 implementada** (2026-08-07, pendiente de commit): verificación
+final -- cierra `docs/diseno/PLAN_CORRECCION_MODULOS.md` completo
+(Fases 1-6).
+
+1. **Item 19 -- compuertas de calidad**: `ruff check .`/`mypy services
+   packages`/`bandit -r services packages`/`lint-imports` en verde sobre
+   el repo completo (no solo los módulos tocados). Encontró un error
+   real propio: el import de `listar_vuelos` en
+   `aerohub_aodb/application/__init__.py` (agregado en Fase 3) quedó
+   fuera de orden alfabético -- corregido con `ruff check --fix`. El
+   resto de hallazgos de `ruff` (15) son deuda preexistente en archivos
+   no tocados en toda esta iteración (`tools/crear_usuarios_demo_roles.py`,
+   `test_fids_administracion.py`, `test_aodb_catalogos.py`,
+   `router_auth.py`, `consultas_informe.py` de gates, y varios
+   `__init__.py` con imports sin ordenar) -- se dejan intactos, mismo
+   criterio que el resto de la iteración. Suite completa:
+   **197 tests pasando** (0 fallos reales; los 2 errores de teardown de
+   `test_pn06_pn07_rnf_p01.py`/`test_fids_pn11_...` ya documentados como
+   ambientales siguen igual). Build de producción de `apps/web` en verde.
+2. **Item 18 -- recorrido con los 5 roles operativos reales** (login real
+   por credencial, no JWT fabricado, con logout entre cada uno):
+   - `role_operations_controller` (`controlador@`): M1 (conectado en
+     vivo, "Nuevo vuelo" visible), M3 (68 puertas), M4 (43 turnarounds,
+     1 con desviación, incidencias) -- sin 500 no explicados.
+   - `role_ramp_agent` (`rampa@`): M4 con "Crear turnaround" visible
+     (tiene `rampa:escribir`) -- correcto.
+   - `role_airline_coordinator` (`aerolinea@`): M1 sin botón de
+     escritura (no tiene `vuelos:escribir`) -- correcto, ningún error.
+   - `role_billing_officer` (`facturacion@`): M5 facturas (35 facturas,
+     9 vencidas/disputadas) con "Calcular facturación" visible --
+     correcto.
+   - `role_tenant_admin` (`canario@`): recorrido completo de
+     Usuarios/API Keys/Licencias/FIDS/Tarifarios/Compliance/Soporte/
+     Puertas/Informes -- sin escritura visible en M1/M3/M4/M5 (Fase 1),
+     "acceso denegado" en Compliance (hallazgo pre-existente S1.7/S1.19,
+     no una regresión), un único 500 transitorio en
+     `GET /fids/pantallas` resuelto en el reintento inmediato (mismo
+     patrón de conexión ya documentado). **Hallazgo de navegación**:
+     navegar a `/tenants` con este rol (que no administra tenants) forzó
+     un logout -- comportamiento correcto del `authInterceptor` ante un
+     403 por scope insuficiente, no un bug.
+3. **Corrección de un dato falso dejado en la entrada de Fase 5**: ver
+   arriba, dentro de esa misma sección -- la nota sobre `pool_pre_ping`
+   faltante era incorrecta y ya fue corregida in situ, no se repite acá.
+4. **Item 20 -- documentación actualizada**: `CLAUDE.md` (esta entrada) y
+   `docs/diseno/WORKPANEL_Y_DASHBOARD_ROLES.md`, que había quedado
+   desactualizado desde el 2026-08-05 -- no reflejaba que
+   `role_tenant_admin` perdió escritura en M1/M3/M4/M5 (Fase 1), ni los
+   cambios de UI de Fases 4-5 (API Keys/Licencias con "Ver detalles",
+   AODB con indicador de conexión, FIDS con detalle de plantilla,
+   Gates con CRUD de terminal/puerta, Tarifarios con selectores,
+   Soporte con línea de tiempo unificada). Reescrita la sección 1.2
+   completa (workpanels de `role_tenant_admin`) y el resumen visual
+   final para reflejar el estado real verificado en este mismo pase.
+
+**`docs/diseno/PLAN_CORRECCION_MODULOS.md` queda cerrado en sus 6 fases**
+(items 13/17 de M2 FIDS/M9 Compliance/Tenants/Usuarios/API-Keys/Licencias
+explícitamente fuera de alcance por decisión de acotar a la capa
+operativa, no un pendiente olvidado).
 
 **Sin commitear todavía** -- pendiente de pedido explícito del
 usuario (Principio V).

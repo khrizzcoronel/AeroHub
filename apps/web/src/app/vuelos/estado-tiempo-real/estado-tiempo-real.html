@@ -2,22 +2,6 @@
   <div class="consola__cabecera">
     <h1>Estado de vuelo en tiempo real</h1>
     <div class="consola__acciones">
-      <button
-        type="button"
-        class="ah-btn"
-        (click)="conectar()"
-        [disabled]="conectado()"
-      >
-        Conectar
-      </button>
-      <button
-        type="button"
-        class="ah-btn ah-btn--secundario"
-        (click)="desconectar()"
-        [disabled]="!conectado()"
-      >
-        Desconectar
-      </button>
       @if (puedeEscribir()) {
         <button type="button" class="ah-btn" (click)="abrirModalNuevoVuelo()">
           Nuevo vuelo
@@ -26,7 +10,25 @@
     </div>
   </div>
 
-  <p class="consola__estado">Estado: {{ conectado() ? 'conectado' : 'desconectado' }}</p>
+  <p class="consola__resumen">
+    Sigue el estado de cada vuelo en cuanto cambia, sin recargar la pantalla.
+    @if (eventos().length > 0) {
+      <strong>{{ eventos().length }}</strong> {{ eventos().length === 1 ? 'evento reciente' : 'eventos recientes' }}
+      @if (eventosCriticos() > 0) {
+        , <strong class="resumen-critico">{{ eventosCriticos() }}</strong> en estado crítico
+      }.
+    }
+  </p>
+
+  <p class="consola__conexion">
+    @if (conectado()) {
+      <span class="ah-punto ah-punto--ok"></span> En vivo
+    } @else if (reconectando()) {
+      <span class="ah-punto ah-punto--atencion"></span> Reconectando…
+    } @else {
+      <span class="ah-punto ah-punto--critico"></span> Sin conexión
+    }
+  </p>
 
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
@@ -52,7 +54,17 @@
   <h2>Ultimos cambios de estado</h2>
 
   @if (eventos().length === 0) {
-    <p class="ah-vacio">Sin eventos todavia.</p>
+    <p class="ah-vacio">
+      Todavía no hay cambios de estado registrados en esta sesión.
+      @if (conectado()) {
+        Van a aparecer solos, apenas ocurra el primero.
+      }
+      @if (puedeEscribir()) {
+        <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalNuevoVuelo()">
+          Registrar un vuelo
+        </button>
+      }
+    </p>
   } @else if (eventosFiltrados().length === 0) {
     <p class="ah-vacio">Ningun evento coincide con la busqueda.</p>
   } @else {

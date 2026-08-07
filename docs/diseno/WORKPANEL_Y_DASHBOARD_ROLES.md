@@ -2,10 +2,10 @@
 
 | Campo | Contenido |
 |:---|:---|
-| **Fecha** | 2026-08-05 |
+| **Fecha** | 2026-08-05, actualizado 2026-08-07 (Fase 6 de `docs/diseno/PLAN_CORRECCION_MODULOS.md`, cierre de Fases 1-5) |
 | **Propósito** | Catalogar qué ve cada rol administrativo en `apps/web`, separado por naturaleza de vista: workpanel (CRUD sobre registros) vs. informe simple (listado con filtros) vs. informe compuesto (agrupado, con subtotales y total). |
 | **Fuente de verdad** | `packages/contracts/aerohub_contracts/roles_modulos.py` (scopes reales), `apps/web/src/app/shell/shell.ts` (qué enlace se muestra y por qué), `apps/web/src/app/informes/informes-config.ts` (contrato de cada informe). Este documento no inventa nada — resume lo que el código ya decide. |
-| **No cubre** | `role_sre`, `role_regulatory_auditor` y demás roles operativos/técnicos (`role_operations_controller`, `role_ramp_agent`, etc.) — cada uno ve un subconjunto de los workpanels de `role_tenant_admin` según sus propios scopes, no una superficie nueva. |
+| **No cubre** | `role_sre`, `role_regulatory_auditor` y demás roles operativos/técnicos (`role_operations_controller`, `role_ramp_agent`, `role_airline_coordinator`, `role_billing_officer`, etc.) — cada uno ve un subconjunto de las **vistas** de `role_tenant_admin` según sus propios scopes, no una superficie nueva. Ojo: desde la Fase 1 (2026-08-06, D1(a)) esto ya no es un subconjunto estricto de **acciones** — los 5 roles operativos de la capa operativa (`docs/diseno/ROLES_POR_CAPA.md`) tienen los scopes de escritura de M1/M3/M4/M5 que `role_tenant_admin` perdió, así que ven botones de crear/editar que `role_tenant_admin` ya no ve en esas mismas pantallas. |
 
 ---
 
@@ -37,21 +37,21 @@ Varias vistas que técnicamente podrían mostrarse a `role_platform_admin` por s
 
 ### 1.2 `role_tenant_admin`
 
-Tiene (casi) todos los módulos M1-M9 excepto M7 (ETL/Analytics) y M8 (Observability), y los scopes de escritura de cada uno. Workpanels visibles:
+Tiene (casi) todos los módulos M1-M9 excepto M7 (ETL/Analytics) y M8 (Observability). **Desde la Fase 1 de `docs/diseno/PLAN_CORRECCION_MODULOS.md` (2026-08-06, decisión D1(a)) este rol perdió los scopes de escritura de M1/M3/M4/M5** (`vuelos:escribir`, `puertas:escribir`, `rampa:escribir`, `billing:escribir`): la matriz de roles del Análisis v6.0 §4.3.1 los reserva a los roles operativos reales (`role_operations_controller`, `role_airline_coordinator`, `role_ramp_agent`, `role_billing_officer`) — `role_tenant_admin` es *configuración* del tenant, no *operación* del día a día. El motor de MonetDB nunca le había dado el `GRANT` correspondiente de todas formas; antes de la Fase 1 eso producía un 500 opaco al primer clic, ahora la propia interfaz oculta el botón. Workpanels visibles:
 
 | Vista | Ruta | Qué administra | Acciones |
 |:---|:---|:---|:---|
 | **Usuarios y Equipo** | `/usuarios` | Rol, estado (`activo`/`suspendido`/`eliminado_logicamente`) de los usuarios del propio tenant | Invitar por correo, modal "Ver detalles" con editor de rol (`<select>`) y transiciones de estado válidas |
-| **API Keys e Integraciones** | `/api-keys` | Claves de API del tenant | Generar (modal con secreto en claro copiable una sola vez), Rotar, Revocar — ambas inline por fila, sin modal de detalle (son operaciones de un paso, no edición de campos) |
-| **Licencias y Módulos** | `/licencias` | Solo lectura — módulos M1-M9 contratados, vigencia | Ninguna (las licencias se otorgan al aprovisionar/actualizar el tenant, no desde aquí) |
-| **AODB — Estado de vuelos** | `/vuelos/tiempo-real` | Alta de vuelo, registro de cambio de estado | Modal "Nuevo vuelo", modal "Cambiar estado" por fila, tabla en tiempo real vía WebSocket |
-| **FIDS Management** | `/fids/pantallas` | Plantillas de contenido, pantallas físicas registradas | Alta de plantilla, alta de pantalla (con selects de terminal/plantilla), "Asignar plantilla" por fila |
-| **Terminal & Gate Manager** | `/puertas/tablero` | Asignaciones de puerta | Asignación manual o automática (PuLP), modal "Ver asignaciones" con cancelación |
-| **Ground Operations** | `/rampa/turnaround` | Turnarounds, tareas, incidencias | Modal "Crear turnaround", modal "Ver detalles" con iniciar/finalizar tarea (select de tipo de tarea desde catálogo) |
-| **Revenue & Billing — Facturas** | `/billing/facturas` | Cálculo de facturación, emisión, disputa | Modal "Calcular facturación", modal "Ver detalle" con Emitir/Disputar |
-| **Tarifarios y conciliación** | `/billing/tarifarios` | Tarifarios (alta, conceptos, activación), conciliación de pax | Modal "Nuevo tarifario", "Agregar concepto", "Activar" (con aviso de inmutabilidad), "Nueva conciliación", "Conciliar" |
-| **Compliance Hub** | `/compliance/panel` | Incidentes, post-mortems, reportes DGAC, accesos de auditor, evidencia SOC2 | Alta de incidente, ciclo completo de post-mortem (crear/editar causa raíz/agregar y completar acciones/publicar — solo `role_sre` puede escribir en post-mortems pese a que `role_tenant_admin` ve la sección), emitir reporte DGAC, otorgar acceso de auditor, registrar evidencia SOC2 |
-| **Soporte** | `/soporte/panel` | Tickets (con SLA), KB, changelog | Alta de ticket, cambio de estado (solo `role_support` puede transicionar), nota interna, alta de artículo KB, ver changelog (no puede publicarlo — exclusivo `role_platform_admin`) |
+| **API Keys e Integraciones** | `/api-keys` | Claves de API del tenant | Generar (modal con secreto en claro copiable una sola vez); **Fase 4**: Rotar/Revocar se movieron de botones de fila a un modal "Ver detalles" (sin edición — una llave no se edita) |
+| **Licencias y Módulos** | `/licencias` | Solo lectura — módulos M1-M9 contratados, vigencia | **Fase 4**: modal "Ver detalles" (código de módulo, vigencia, un origen textual explicando que la otorga el plan del tenant) — sigue sin edición posible |
+| **AODB — Estado de vuelos** | `/vuelos/tiempo-real` | Consulta de vuelos y su estado en tiempo real | Sin "Nuevo vuelo"/"Cambiar estado" (perdió `vuelos:escribir` en Fase 1). **Fase 5**: la conexión WebSocket ya no tiene botones "Conectar"/"Desconectar" — se conecta y reconecta sola, con un indicador de solo lectura (`.ah-punto` verde/ámbar/rojo). El botón de fila pasó de "Cambiar estado" a "Ver detalles" (GET /vuelos/{id}, resuelve aerolínea/aeronave/aeropuertos a nombre real) |
+| **FIDS Management** | `/fids/pantallas` | Plantillas de contenido, pantallas físicas registradas | Alta de plantilla, alta de pantalla. **Fase 4**: plantillas ganaron "Ver detalles" (muestra el `definicion_json` real, antes solo visible al crearla); el botón de pantalla pasó de "Asignar plantilla" a "Ver detalles" con la reasignación como acción nested |
+| **Terminal & Gate Manager** | `/puertas/tablero` | Consulta de ocupación de puertas | Sin asignación manual/automática ni CRUD de terminal/puerta (perdió `puertas:escribir` en Fase 1 — incluye el botón "Cancelar" de una asignación, que sí funcionaba antes de esa decisión). **Fase 4**: el botón de fila es "Ver detalles" (terminal/tipo/envergadura/pasarela + asignaciones), con "Editar" nested solo si hay `puertas:escribir` |
+| **Ground Operations** | `/rampa/turnaround` | Consulta de turnarounds, tareas, incidencias | Sin "Crear turnaround"/iniciar-finalizar tarea (perdió `rampa:escribir` en Fase 1). El modal "Ver detalles" con tareas/incidencias sigue disponible en solo lectura |
+| **Revenue & Billing — Facturas** | `/billing/facturas` | Consulta de facturas | Sin "Calcular facturación"/Emitir/Disputar (perdió `billing:escribir` en Fase 1). El modal "Ver detalle" con líneas de factura sigue disponible en solo lectura |
+| **Tarifarios y conciliación** | `/billing/tarifarios` | Consulta de tarifarios y conciliaciones | Sin altas ni conciliar (mismo motivo). **Fase 4**: "Ver conceptos"/"Agregar concepto"/"Activar" (3 botones de fila) se consolidaron en un solo "Ver detalles". **Fase 5**: moneda pasó de texto libre a `<select>` curado; el id de vuelo de "Nueva conciliación" pasó a `<select>` poblado por `GET /vuelos` (ninguno de los dos aplica a este rol sin `billing:escribir`, pero sí a `role_billing_officer`, que ganó `vuelos:leer` para esto) |
+| **Compliance Hub** | `/compliance/panel` | Incidentes, post-mortems, reportes DGAC, accesos de auditor, evidencia SOC2 | Alta de incidente, ciclo completo de post-mortem (crear/editar causa raíz/agregar y completar acciones/publicar — solo `role_sre` puede escribir en post-mortems pese a que `role_tenant_admin` ve la sección), emitir reporte DGAC, otorgar acceso de auditor, registrar evidencia SOC2. **Hallazgo pre-existente sin cambios (S1.7/S1.19)**: este rol tiene los scopes de aplicación `compliance:leer`/`escribir` pero **ningún `GRANT` de motor** sobre `compliance.*` (salvo `log_auditoria`, ver fila de Soporte) — cualquier consulta real devuelve "acceso denegado"; usar `role_sre`/`role_regulatory_auditor` para probar este módulo |
+| **Soporte** | `/soporte/panel` | Tickets (con SLA), KB, changelog | Alta de ticket, cambio de estado (solo `role_support` puede transicionar), nota interna, alta de artículo KB, ver changelog (no puede publicarlo — exclusivo `role_platform_admin`). **Fase 3**: ganó `GRANT SELECT` sobre `compliance.log_auditoria` (decisión explícita del usuario) para poder leer la trazabilidad de un ticket. **Fase 5**: el detalle de ticket fusiona mensajes + transiciones de estado en una sola línea de tiempo cronológica (antes 2 listas separadas), y sugiere artículos de KB relacionados por coincidencia de etiqueta con la categoría del ticket |
 
 **No visible para este rol**: nada de administración de plataforma (no hay ruta para crear/administrar tenants ajenos).
 
@@ -118,9 +118,20 @@ role_platform_admin
 └── Informes compuestos: Tenants
 
 role_tenant_admin
-├── Workpanel: Usuarios, API Keys, Licencias (solo lectura), AODB, FIDS,
-│              Gates, Ground Ops, Billing/Facturas, Tarifarios,
-│              Compliance Hub, Soporte (completo)
+├── Workpanel: Usuarios, API Keys (ver detalles), Licencias (ver detalles),
+│              AODB/FIDS/Gates/Ground Ops/Billing/Tarifarios en SOLO
+│              LECTURA (perdió escritura en Fase 1, D1(a)), Compliance
+│              Hub (bloqueado por falta de GRANT, hallazgo pre-existente),
+│              Soporte (completo, incluye trazabilidad de ticket
+│              ganada en Fase 3)
 ├── Informes simples: AODB, Gates, Ground Ops, Billing, Tenants, Compliance
 └── Informes compuestos: AODB, Gates, Ground Ops, Billing, Tenants, Compliance
+
+role_operations_controller / role_ramp_agent / role_airline_coordinator /
+role_billing_officer (capa operativa, ver docs/diseno/ROLES_POR_CAPA.md)
+├── Ven un subconjunto de las vistas de role_tenant_admin (M1/M3/M4/M5
+│   según su propio scope de módulo), pero SÍ conservan la escritura que
+│   role_tenant_admin perdió -- son los roles reales de operación diaria.
+└── role_billing_officer ganó ademas vuelos:leer en Fase 5 (item 15) para
+    poblar el selector de vuelo de "Nueva conciliación".
 ```
