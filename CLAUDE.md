@@ -1056,6 +1056,76 @@ final -- cierra `docs/diseno/PLAN_CORRECCION_MODULOS.md` completo
 explícitamente fuera de alcance por decisión de acotar a la capa
 operativa, no un pendiente olvidado).
 
+## Checklist de corrección de módulos -- guardado como referencia permanente
+
+A pedido explícito del usuario (2026-08-07): las lecciones de
+`docs/diseno/PLAN_CORRECCION_MODULOS.md` quedan guardadas como checklist
+reutilizable para no repetir los mismos errores al corregir o construir
+**cualquier otro módulo** en el futuro, no solo los que este plan tocó.
+Ver la sección **"Checklist de corrección de módulos"** más abajo en
+este mismo archivo (las 4 causas raíz A-D, el estándar de CRUD
+unificado, y los 4 chequeos previos a reportar un módulo como
+"corregido") -- escrita para leerse **antes** de tocar un módulo nuevo,
+no solo como registro histórico de lo ya hecho.
+
+## `docs/diseno/PLAN_DASHBOARDS_OPERATIVOS.md` implementado (2026-08-07)
+
+A pedido explícito del usuario, se implementó completo con las
+decisiones **recomendadas por defecto** (D1(a), D2(a), D3(a), D4(a),
+D5(a) -- el usuario pidió "iniciar la implementación" sin especificar
+otra cosa, y el propio plan documenta esas 5 como su recomendación si no
+se indica lo contrario).
+
+1. **Cambio de mecanismo**: `apps/web/src/app/informes/dashboard-informes/`
+   dejó de armar una sección por cada módulo cuyo scope el perfil tuviera
+   (barrido genérico, con lado "Compuesto · ClickHouse" + lado
+   "Simple · MonetDB" por sección) y ahora resuelve una **config fija por
+   `rol_codigo`** (`DASHBOARDS_POR_ROL` en
+   `apps/web/src/app/informes/informes-config.ts`): cada rol responde
+   **una pregunta de jornada concreta** con KPI derivados en el cliente
+   sobre los informes simples ya cargados -- nunca una llamada a
+   `GET /analytics/tactico/*`. Período por defecto: **hoy** (no "últimos
+   30 días" como antes), con atajos Hoy/24h/Esta semana.
+2. **D4(a) -- la infraestructura de ClickHouse queda intacta y sin
+   consumidor**: `aerohub_analytics_api`, `tools/sincronizar_analytics_demo.py`,
+   `GET /<módulo>/informes/compuesto` y `GET /analytics/tactico/*` no se
+   tocaron -- quedan reservados para el dashboard táctico real de la Fase
+   2/S2.4 (`ah_tactico`, ADR-016). `InformeService.obtenerInformeTactico`/
+   `InformeCompuesto`/`InformeTactico` siguen en el servicio, sin
+   consumidor del lado operativo.
+3. **Regresión aceptada explícitamente por el propio plan** (su tabla de
+   alcance ya decía "las capas táctica/estratégica/plataforma quedan
+   fuera hasta nuevo aviso"): `role_business_viewer`, `role_tenant_analyst`,
+   `role_regulatory_auditor` y `role_sre` **perdieron el enlace
+   "Dashboard"** -- antes veían fragmentos del dashboard viejo por scope
+   suelto, ahora no tienen entrada en `DASHBOARDS_POR_ROL`.
+4. **Extensión deliberada más allá del texto literal del plan**:
+   `role_platform_admin` (capa de plataforma, tampoco cubierta
+   formalmente por el plan) se preservó con una entrada propia en
+   `DASHBOARDS_POR_ROL` ("¿Cómo está la base de tenants?", informe de
+   Tenants) -- sin esto, el cambio de mecanismo le habría dejado el único
+   dashboard que ya tenía funcionando vacío de la nada, una regresión
+   silenciosa que el plan no pedía y que no tenía sentido introducir de
+   paso.
+5. **`shell.ts::puedeVerInformes`** cambió de un OR de 6 scopes sueltos a
+   `rol_codigo in DASHBOARDS_POR_ROL` -- una sola fuente de verdad
+   compartida con el componente del dashboard, en vez de que el enlace
+   del menú repita su propia lista.
+6. **Verificado en navegador real con los 5 usuarios operativos** (login
+   real, no JWT fabricado) -- cada uno ve su pregunta de jornada, sus
+   KPI correctos derivados de datos reales (ej. `role_operations_controller`:
+   "23 vuelos, 14 asignaciones, 1 turnaround, 1 no completado";
+   `role_airline_coordinator`: "23 vuelos, 0 llegadas, 23 salidas"), y
+   sus tablas filtradas al período "Hoy" por defecto. `role_platform_admin`
+   verificado por API directa (`GET /tenants/informes/simple` con JWT
+   fabricado, ya que no hay credencial demo sembrada para este rol) --
+   mismo endpoint que ya usa el resto de roles vía el mismo mecanismo, no
+   ameritaba una verificación de navegador aparte. Build de producción
+   de `apps/web` en verde (713KB, mismo warning de bundle conocido);
+   15/15 tests de integración de informes sin regresiones (backend no
+   tocado, solo se confirmó que los endpoints que el dashboard nuevo
+   consume siguen intactos).
+
 **Sin commitear todavía** -- pendiente de pedido explícito del
 usuario (Principio V).
 
@@ -1308,6 +1378,80 @@ Tres decisiones ya tomadas por el usuario (no re-preguntarlas):
 3. **Cada sprint corre su ciclo Spec Kit completo** (`specs/013-` a
    `specs/016-`), dividido así deliberadamente para no sobrecargar el
    contexto de una sola sesión.
+
+## Checklist de corrección de módulos (lecciones de `PLAN_CORRECCION_MODULOS.md`, no repetir)
+
+`docs/diseno/PLAN_CORRECCION_MODULOS.md` (Fases 1-6, cerrado 2026-08-07)
+encontró que casi todos los "errores" que un usuario reporta módulo por
+módulo se explican por un puñado de **causas raíz repetibles**, no por
+bugs sueltos distintos cada vez. **Leer esto antes de corregir o
+construir cualquier módulo nuevo** (incluido el dashboard operativo que
+sigue) — evita re-descubrir estos mismos hallazgos a mano otra vez.
+
+### Las 4 causas raíz a chequear siempre
+
+- **A. Scope de aplicación ≠ GRANT de motor.** La autorización vive en
+  dos capas independientes: el scope del JWT (`packages/contracts/
+  aerohub_contracts/roles_modulos.py`) y el `GRANT` real de MonetDB bajo
+  `SET ROLE` (`db/ddl/monetdb/9*_grants_*.sql`). Agregar un scope nuevo a
+  un rol SIN el `GRANT` correspondiente pasa el control de la aplicación
+  y muere en el motor con un 500 opaco (o 403 legible, ver causa B).
+  **Antes de agregar cualquier scope nuevo a un rol**: `grep` los
+  archivos de grants de esa(s) tabla(s) para confirmar que el rol ya
+  tiene el privilegio de motor que ese scope implica -- si no lo tiene,
+  agregarlo en el mismo cambio (ver el ejemplo de `role_billing_officer`
+  + `vuelos:leer` + `ops.vuelo_estado` en Fase 5, item 15).
+- **B. El traductor de errores de permisos debe reconocer TODAS las
+  frases del motor.** `services/gateway/main.py::_manejador_acceso_denegado_motor`
+  ya reconoce `"access denied"` (SELECT denegado) e
+  `"insufficient privileges"` (INSERT/UPDATE/DELETE denegado) -- si
+  MonetDB usa una frase nueva para un tipo de operación no visto todavía
+  (p. ej. `EXECUTE` sobre un procedimiento), hay que agregarla ahí
+  también o vuelve a aparecer un 500 en vez de un 403.
+- **C. Sin datos sembrados, un módulo correcto parece un bug.**
+  `db/seeds/generate.py` sigue el patrón `_obtener_o_crear_X` (idempotente,
+  lookup por la clave `UNIQUE` real de la tabla antes de insertar). Todo
+  módulo nuevo (o toda tabla nueva de uno existente) necesita su propio
+  helper ahí, sembrado por tenant canario en el loop principal -- de lo
+  contrario la pantalla se abre vacía tras cualquier reset y se reporta
+  como "esto no funciona" cuando en realidad nunca hubo datos que mostrar.
+- **D. Confirmar que existe un listado antes de construir la vista.**
+  Un módulo con solo `POST`/`GET /{id}` (alta + detalle puntual, sin
+  `GET` de listado) no puede tener una pantalla que "abra mostrando algo"
+  -- por diseño, no por bug. Si falta, es un hueco de API que se cierra
+  primero (nuevo caso de uso + endpoint), nunca se intenta maquillar en
+  el frontend. Ejemplo: `GET /vuelos` no existía hasta la Fase 3 de este
+  plan; sin él, M1 dependía enteramente de eventos de WebSocket.
+
+### Estándar de CRUD unificado (aplica a toda vista nueva o corregida)
+
+`crear` / `ver detalles` (contenedor único de **todas** las acciones
+propias del registro -- nunca botones de fila sueltos por cada acción) /
+`editar` (dentro del detalle) / `suspender-activar` si el dominio lo
+soporta estructuralmente (no forzarlo si la entidad no tiene un campo de
+estado para eso -- ver M3 Gates, que no tiene "activo/suspendido" y por
+lo tanto su CRUD real es solo crear+editar). **Eliminación física: nunca**
+-- si existe un botón así en una vista, se retira (el endpoint del
+backend puede quedar intacto sin consumidor, D2(b) del plan).
+
+### Antes de reportar un módulo como "corregido"
+
+1. `ruff`/`mypy`/`bandit`/`import-linter` en verde sobre el **repo
+   completo**, no solo los archivos tocados (Fase 6 encontró un import
+   propio fuera de orden que había pasado desapercibido durante 2 fases
+   enteras por revisar solo carpetas puntuales).
+2. Suite de tests completa, no solo la del módulo -- un cambio de scope
+   o de GRANT puede romper un rol que no se estaba mirando.
+3. Verificación en navegador real con **login real** (no JWT fabricado a
+   mano cuando se está probando un cambio de scope/permiso -- un JWT
+   fabricado con `codificar_jwt` puede tener scopes que la sesión real
+   nunca tendría, enmascarando el bug real).
+4. Un 500 visto una sola vez en un endpoint de catálogo/listado, que
+   desaparece al reintentar inmediatamente, es casi siempre el hallazgo
+   ya documentado de conexión obsoleta del pool (ver "Hallazgos
+   empíricos de MonetDB" más abajo) -- reintentar 2-3 veces antes de
+   investigarlo como bug nuevo, pero **nunca asumirlo sin reintentar y
+   confirmar**: no dar por sentado que "seguro es eso" sin verificarlo.
 
 ## Reglas de trabajo establecidas (no releer el historial para redescubrirlas)
 

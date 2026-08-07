@@ -11,6 +11,7 @@ import {
 } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService, mensajeDeError } from '../auth/auth.service';
+import { DASHBOARDS_POR_ROL } from '../informes/informes-config';
 import { ToastService } from '../shared/toast.service';
 
 @Component({
@@ -82,23 +83,17 @@ export class Shell {
   });
 
   // Sprint S1.18 -- informes operativos (RF-I01-04), mismo mecanismo que
-  // puedeVerTarifarios. Iteracion de S1.18 (pedido directo del usuario,
-  // 2026-08-05): antes eran 6 enlaces sueltos ("Informes · X"), uno por
-  // modulo -- se consolidaron en un unico "Panel de informes"
-  // (informes/dashboard-informes/) que decide internamente que secciones
-  // mostrar segun estos mismos scopes. El enlace del menu solo necesita
-  // saber si HAY algo que mostrar, no cual.
-  protected readonly puedeVerInformes = computed(() => {
-    const scopes = this.perfil()?.scopes ?? [];
-    return (
-      scopes.includes('vuelos:leer') ||
-      scopes.includes('puertas:leer') ||
-      scopes.includes('rampa:leer') ||
-      scopes.includes('billing:leer') ||
-      scopes.includes('tenants:administrar') ||
-      scopes.includes('compliance:leer')
-    );
-  });
+  // puedeVerTarifarios. Iteracion de S1.18 (2026-08-05): antes eran 6
+  // enlaces sueltos ("Informes · X"), uno por modulo -- se consolidaron
+  // en un unico "Panel de informes". docs/diseno/PLAN_DASHBOARDS_OPERATIVOS.md
+  // (2026-08-07, item 9 de la Fase 3) cambio el criterio de "barrido de
+  // scopes por modulo" a "el rol tiene una config de dashboard asignada"
+  // -- DASHBOARDS_POR_ROL es la MISMA fuente de verdad que ya resuelve
+  // dashboard-informes.ts, el enlace del menu no repite la lista de
+  // scopes por su cuenta.
+  protected readonly puedeVerInformes = computed(
+    () => this.perfil()?.rol_codigo !== undefined && this.perfil()!.rol_codigo in DASHBOARDS_POR_ROL,
+  );
 
   // Sprint S1.20 -- soporte D6 no es un modulo M1-M9 (research.md
   // Decision 2 de specs/022-soporte-d6/): mismo mecanismo de enlace

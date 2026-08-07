@@ -3,7 +3,7 @@
 | Campo | Contenido |
 |:---|:---|
 | **Fecha** | 2026-08-06 |
-| **Estado** | **Plan — no implementado.** Se implementa cuando el usuario lo indique. |
+| **Estado** | **Implementado (2026-08-07)** con las decisiones recomendadas por defecto (D1(a), D2(a), D3(a), D4(a), D5(a)), pedidas sin especificar otra cosa. Detalle en `CLAUDE.md`. Pendiente de commit. |
 | **Propósito** | Reemplazar el dashboard único actual (módulo-céntrico, con informes compuestos de ClickHouse) por un dashboard por rol de la **capa operativa**, alimentado exclusivamente por **informes simples sobre MonetDB**. |
 | **Alcance** | Los 5 roles de la capa operativa según `docs/diseno/ROLES_POR_CAPA.md`. Las capas táctica / estratégica / plataforma quedan fuera hasta nuevo aviso. |
 | **Fuente de verdad** | `packages/contracts/aerohub_contracts/roles_modulos.py` (scopes), los `@router.get("/informes/simple")` de cada servicio, `apps/web/src/app/informes/`. Este plan no inventa endpoints: lo que no existe está marcado como brecha. |

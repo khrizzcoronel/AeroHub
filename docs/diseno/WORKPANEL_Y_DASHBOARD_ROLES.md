@@ -2,7 +2,7 @@
 
 | Campo | Contenido |
 |:---|:---|
-| **Fecha** | 2026-08-05, actualizado 2026-08-07 (Fase 6 de `docs/diseno/PLAN_CORRECCION_MODULOS.md`, cierre de Fases 1-5) |
+| **Fecha** | 2026-08-05, actualizado 2026-08-07 dos veces: Fase 6 de `docs/diseno/PLAN_CORRECCION_MODULOS.md` (cierre de Fases 1-5), y la implementación de `docs/diseno/PLAN_DASHBOARDS_OPERATIVOS.md` (reemplaza §2-3 completas) |
 | **Propósito** | Catalogar qué ve cada rol administrativo en `apps/web`, separado por naturaleza de vista: workpanel (CRUD sobre registros) vs. informe simple (listado con filtros) vs. informe compuesto (agrupado, con subtotales y total). |
 | **Fuente de verdad** | `packages/contracts/aerohub_contracts/roles_modulos.py` (scopes reales), `apps/web/src/app/shell/shell.ts` (qué enlace se muestra y por qué), `apps/web/src/app/informes/informes-config.ts` (contrato de cada informe). Este documento no inventa nada — resume lo que el código ya decide. |
 | **No cubre** | `role_sre`, `role_regulatory_auditor` y demás roles operativos/técnicos (`role_operations_controller`, `role_ramp_agent`, `role_airline_coordinator`, `role_billing_officer`, etc.) — cada uno ve un subconjunto de las **vistas** de `role_tenant_admin` según sus propios scopes, no una superficie nueva. Ojo: desde la Fase 1 (2026-08-06, D1(a)) esto ya no es un subconjunto estricto de **acciones** — los 5 roles operativos de la capa operativa (`docs/diseno/ROLES_POR_CAPA.md`) tienen los scopes de escritura de M1/M3/M4/M5 que `role_tenant_admin` perdió, así que ven botones de crear/editar que `role_tenant_admin` ya no ve en esas mismas pantallas. |
@@ -57,55 +57,57 @@ Tiene (casi) todos los módulos M1-M9 excepto M7 (ETL/Analytics) y M8 (Observabi
 
 ---
 
-## 2. Informes simples
+## 2. Dashboard operativo por rol (reemplaza las secciones 2-3 anteriores, 2026-08-07)
 
-Todos viven en el mismo panel `/informes/dashboard` (`DashboardInformes`) — una sección por módulo, mostrada solo si el perfil tiene el scope correspondiente. El lado **simple** consulta en vivo `GET /<módulo>/informes/simple` (MonetDB), respeta el filtro de período global del dashboard, y exporta a CSV desde el mismo endpoint.
+**Cambio de mecanismo**, `docs/diseno/PLAN_DASHBOARDS_OPERATIVOS.md`, implementado con las
+decisiones recomendadas por defecto (D1(a)-D5(a), sin que el usuario especificara otra cosa
+al pedir el inicio de la implementación). El panel `/informes/dashboard` (`DashboardInformes`)
+dejó de armar una sección **por módulo visible según scope** (barrido genérico) y ahora resuelve
+**una config fija por `rol_codigo`** (`DASHBOARDS_POR_ROL` en `apps/web/src/app/informes/informes-config.ts`):
+cada rol responde una pregunta de jornada concreta, con KPI derivados **en el cliente** sobre las
+filas ya cargadas de uno o más informes simples (`GET /<módulo>/informes/simple`, MonetDB en
+vivo) — nunca una llamada a `GET /analytics/tactico/*` (ClickHouse). Período por defecto: **hoy**,
+con atajos Hoy/24h/Esta semana además del selector manual.
 
-### 2.1 `role_platform_admin`
-
-Solo tiene el scope `tenants:administrar` de los seis que habilitan una sección — ve **únicamente**:
-
-| Sección | Filtro | Columnas |
-|:---|:---|:---|
-| **Tenants** | Estado | Tenant, Código, Razón social, Plan, Estado |
-
-### 2.2 `role_tenant_admin`
-
-Tiene los seis scopes (`vuelos:leer`, `puertas:leer`, `rampa:leer`, `billing:leer`, `tenants:administrar`, `compliance:leer`) — ve las **seis** secciones:
-
-| Sección | Filtros | Columnas |
-|:---|:---|:---|
-| **AODB** | Desde/Hasta, Aerolínea (id) | Vuelo, Fecha, Aerolínea, Número, Sentido |
-| **Terminal & Gate Manager** | Desde/Hasta, Puerta (id) | Asignación, Vuelo, Puerta, Inicio, Fin, Estado |
-| **Ground Operations** | Desde/Hasta, Estado | Turnaround, Vuelo llegada, Vuelo salida, Inicio previsto, Estado |
-| **Revenue & Billing** | Desde/Hasta, Aerolínea (id), Estado | Factura, Aerolínea, Período desde/hasta, Moneda, Estado |
-| **Tenants** | Estado | Tenant, Código, Razón social, Plan, Estado |
-| **Compliance Hub** | Desde/Hasta | Evento, Esquema, Tabla, Operación, Rol, Ocurrido |
-
----
-
-## 3. Informes compuestos
-
-Mismo panel, mismas secciones — el lado **compuesto** del dashboard (gráfico de barras horizontales, badge "Compuesto · ClickHouse") NO consulta MonetDB en vivo: lee un snapshot pre-calculado en ClickHouse (`ah_tactico_demo.compuesto_informe`, sincronizado con `tools/sincronizar_analytics_demo.py`) — es una demo temporal, no reacciona al filtro de período del dashboard, y se retira cuando la Fase 2/S2.4 construya la capa analítica real (`ah_tactico`, ADR-016). El endpoint `GET /<módulo>/informes/compuesto` (MonetDB, con totales calculados en el servidor) sigue existiendo y es lo que ese script usa para poblar el snapshot.
-
-### 3.1 `role_platform_admin`
-
-| Sección | Agrupado por | Métricas | Subtotal / Total |
+| Rol | Pregunta que responde | Secciones (informes simples) | KPI derivados |
 |:---|:---|:---|:---|
-| **Tenants** | Plan × Estado | Usuarios activos, Licencias vigentes | Cantidad de tenants por grupo / total general |
+| `role_operations_controller` | ¿Cómo viene la operación del turno? | AODB, Gates, Ground Ops | Vuelos · Asignaciones · Turnarounds · Turnarounds no completados |
+| `role_billing_officer` | ¿Qué facturas requieren acción? | Revenue & Billing | Emitidas · Pagadas · Vencidas · Disputadas |
+| `role_airline_coordinator` | ¿Cómo van los vuelos de mi aerolínea? | AODB | Vuelos · Llegadas · Salidas |
+| `role_ramp_agent` | ¿Qué tengo que hacer ahora? | Ground Ops | Turnarounds · En curso · Interrumpidos |
+| `role_tenant_admin` | ¿Cómo va la operación de mi tenant hoy? | AODB, Gates, Ground Ops, Billing | Vuelos · Asignaciones · Turnarounds · Facturas |
+| `role_platform_admin` *(fuera del alcance formal del plan, preservado para no regresionar)* | ¿Cómo está la base de tenants? | Tenants | Tenants · Activos · Suspendidos |
 
-### 3.2 `role_tenant_admin`
+**Decisiones tomadas** (recomendación por defecto del plan, D1-D5, opción "a" en las 5):
+- **D1(a)** `role_ramp_agent` usa el informe de turnarounds del tenant tal cual (no se construyó
+  el endpoint "mis tareas del período" que habría requerido backend nuevo).
+- **D2(a)** M6 Passenger queda fuera de todos los dashboards (sin informe simple, y
+  `GET /passenger/tiempos-espera` exige `terminal_id`+`fecha` puntuales, no rango).
+- **D3(a)** M2 FIDS queda fuera del dashboard de `role_tenant_admin` (tiene listados pero no
+  informe simple).
+- **D4(a)** La infraestructura de ClickHouse (`aerohub_analytics_api`, `tools/sincronizar_analytics_demo.py`,
+  `GET /<módulo>/informes/compuesto`, `GET /analytics/tactico/*`) **se conserva intacta y sin
+  consumidor** en el dashboard operativo — reservada para el dashboard **táctico** real que
+  llegue con la Fase 2/S2.4 (`ah_tactico`, ADR-016). Los badges "Compuesto · ClickHouse" /
+  "Simple · MonetDB" y el gráfico de barras horizontales se retiraron del dashboard operativo
+  (con una sola fuente de dato, distinguir el origen dejó de tener sentido).
+- **D5(a)** Un solo componente (`DashboardInformes`) configurado por rol, no cinco componentes
+  independientes.
 
-| Sección | Agrupado por | Métricas | Subtotal / Total |
-|:---|:---|:---|:---|
-| **AODB** | Aerolínea | Con llegada registrada, % Puntualidad | Cantidad de vuelos / total del período |
-| **Terminal & Gate Manager** | Puerta | Con conflicto (solapamiento de intervalos) | Cantidad de asignaciones / total |
-| **Ground Operations** | Tipo de tarea | Completadas, Con incidencia | Cantidad de tareas / total |
-| **Revenue & Billing** | Concepto de cargo | Líneas | Suma de monto facturado / total general — cierra RF-E02 |
-| **Tenants** | Plan × Estado | Usuarios activos, Licencias vigentes | Cantidad de tenants / total |
-| **Compliance Hub** | Tipo de reporte DGAC | *(sin métricas adicionales)* | Cantidad de reportes emitidos / total |
+**Regresión aceptada explícitamente por el propio plan** (tabla "Alcance" de
+`PLAN_DASHBOARDS_OPERATIVOS.md`: *"Las capas táctica / estratégica / plataforma quedan fuera
+hasta nuevo aviso"*): `role_business_viewer`, `role_tenant_analyst`, `role_regulatory_auditor` y
+`role_sre` **ya no tienen entrada en `DASHBOARDS_POR_ROL`** — antes veían fragmentos del
+dashboard viejo por scope (billing/vuelos-puertas-rampa-billing/compliance respectivamente), el
+enlace "Dashboard" ahora no aparece para ellos (`shell.ts::puedeVerInformes` verifica
+pertenencia a `DASHBOARDS_POR_ROL`, no scopes sueltos). `role_platform_admin` es la única
+excepción de plataforma preservada, por decisión explícita de este pase (evitar que un cambio de
+mecanismo le rompa silenciosamente lo único que ya tenía).
 
-En todos los casos, la regla no negociable del sprint que los creó (S1.18, PLAN v3.0 §8-bis.0) sigue vigente: **ningún total se calcula en el navegador** — el subtotal y el total general vienen ya resueltos del backend (o del snapshot de ClickHouse), el frontend solo los muestra.
+La regla no negociable de S1.18 (PLAN v3.0 §8-bis.0) se mantiene igual, adaptada a que ya no hay
+lado compuesto en este dashboard: **ningún KPI se inventa una agregación de servidor** — es
+`filas.length` o un `filter().length` sobre datos que el informe simple ya trajo, nunca una
+llamada nueva.
 
 ---
 
@@ -114,8 +116,8 @@ En todos los casos, la regla no negociable del sprint que los creó (S1.18, PLAN
 ```text
 role_platform_admin
 ├── Workpanel: Tenants, Soporte (KB + changelog, sin tickets)
-├── Informes simples: Tenants
-└── Informes compuestos: Tenants
+└── Dashboard: "¿Cómo está la base de tenants?" -- Tenants (preservado
+    fuera del alcance formal del plan de dashboards, ver §2)
 
 role_tenant_admin
 ├── Workpanel: Usuarios, API Keys (ver detalles), Licencias (ver detalles),
@@ -124,14 +126,23 @@ role_tenant_admin
 │              Hub (bloqueado por falta de GRANT, hallazgo pre-existente),
 │              Soporte (completo, incluye trazabilidad de ticket
 │              ganada en Fase 3)
-├── Informes simples: AODB, Gates, Ground Ops, Billing, Tenants, Compliance
-└── Informes compuestos: AODB, Gates, Ground Ops, Billing, Tenants, Compliance
+└── Dashboard: "¿Cómo va la operación de mi tenant hoy?" -- AODB, Gates,
+    Ground Ops, Billing (union de los 4 informes operativos; M2/M6/M9/
+    Tenancy quedan fuera, ver §2)
 
 role_operations_controller / role_ramp_agent / role_airline_coordinator /
 role_billing_officer (capa operativa, ver docs/diseno/ROLES_POR_CAPA.md)
 ├── Ven un subconjunto de las vistas de role_tenant_admin (M1/M3/M4/M5
 │   según su propio scope de módulo), pero SÍ conservan la escritura que
 │   role_tenant_admin perdió -- son los roles reales de operación diaria.
-└── role_billing_officer ganó ademas vuelos:leer en Fase 5 (item 15) para
-    poblar el selector de vuelo de "Nueva conciliación".
+├── role_billing_officer ganó ademas vuelos:leer en Fase 5 (item 15) para
+│   poblar el selector de vuelo de "Nueva conciliación".
+└── Dashboard: cada uno con su propia pregunta de jornada (ver tabla de §2)
+    -- controlador ve 3 secciones, los otros 3 ven 1 sola.
+
+role_business_viewer / role_tenant_analyst / role_regulatory_auditor / role_sre
+└── Sin Dashboard desde este pase (regresión aceptada explícitamente por
+    el plan -- capas táctica/estratégica/técnica "quedan fuera hasta
+    nuevo aviso", ver §2). Sus workpanels/vistas propias, si las tienen,
+    no cambiaron.
 ```
