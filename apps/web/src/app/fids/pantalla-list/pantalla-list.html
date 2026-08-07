@@ -8,6 +8,15 @@
     </div>
   </div>
 
+  <p class="consola__resumen">
+    Plantillas de contenido y pantallas físicas del salón de pasajeros.
+    @if (resumenFids()) {
+      <strong [class.resumen-critico]="pantallasSinSenal() > 0">{{ resumenFids() }}</strong>.
+    } @else {
+      Todo en orden.
+    }
+  </p>
+
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
   }
@@ -46,7 +55,12 @@
   </div>
 
   @if (plantillas().length === 0) {
-    <p class="ah-vacio">Sin plantillas publicadas todavía.</p>
+    <p class="ah-vacio">
+      Sin plantillas publicadas todavía.
+      <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalPlantilla()">
+        Nueva plantilla
+      </button>
+    </p>
   } @else if (plantillasFiltradas().length === 0) {
     <p class="ah-vacio">Ninguna plantilla coincide con la búsqueda.</p>
   } @else {
@@ -119,7 +133,14 @@
   </div>
 
   @if (pantallas().length === 0) {
-    <p class="ah-vacio">Sin pantallas registradas todavía.</p>
+    <p class="ah-vacio">
+      Sin pantallas registradas todavía.
+      @if (plantillas().length > 0) {
+        <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalRegistrar()">
+          Nueva pantalla
+        </button>
+      }
+    </p>
   } @else if (pantallasFiltradas().length === 0) {
     <p class="ah-vacio">Ninguna pantalla coincide con la búsqueda.</p>
   } @else {

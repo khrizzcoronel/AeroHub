@@ -1129,6 +1129,90 @@ se indica lo contrario).
 **Sin commitear todavía** -- pendiente de pedido explícito del
 usuario (Principio V).
 
+## `docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md` -- puntos 1 y 2 implementados (2026-08-07)
+
+Extiende `PLAN_DASHBOARDS_OPERATIVOS.md` y `PLAN_CORRECCION_MODULOS.md` a los
+10 roles/módulos que ambos habían dejado fuera a propósito. Antes de
+implementar nada se verificó permiso real por rol (scope de aplicación +
+`GRANT` de motor, causa raíz A del checklist) -- ver la matriz completa en
+el propio documento del plan.
+
+**Hallazgo central**: de los 10 roles restantes, solo `role_sre` y
+`role_regulatory_auditor` tienen `GRANT` de motor real sobre algo que un
+informe simple ya expone (`compliance.log_auditoria`,
+`93_grants_compliance.sql:25/27`). `role_tenant_analyst` y
+`role_business_viewer` tienen scope de *aplicación* de lectura sobre
+varios módulos, pero la matriz 4.3.1 les niega el `GRANT` de motor a
+propósito (`96_grants_ops.sql:26-27`, `97_grants_rampa.sql:8-9`) --
+dejados fuera deliberadamente (decisión pendiente entre el usuario:
+dejarlos fuera hasta la capa táctica real, o abrirles `GRANT`s que hoy
+no tienen, ver §2.2 del plan).
+
+**Punto 1 -- dashboard para `role_sre`/`role_regulatory_auditor`**: 2
+entradas nuevas en `DASHBOARDS_POR_ROL`
+(`apps/web/src/app/informes/informes-config.ts`), ambas sobre
+`CONFIG_INFORME_COMPLIANCE` (que ganó `campoAgrupacion: 'tabla'` --
+el log de auditoría no tiene un campo de estado propio, agrupar por
+tabla responde la pregunta real de "qué tabla concentra la actividad
+auditada"). Sin backend nuevo, sin `GRANT` nuevo -- ambos roles ya
+podían leer `GET /compliance/informes/simple`. **Nota de refactor**:
+`CONFIG_INFORME_COMPLIANCE` tuvo que moverse antes de `DASHBOARDS_POR_ROL`
+en el archivo -- un `const` referenciado antes de su propia declaración
+revienta en TDZ al cargar el módulo, no es solo un problema de orden de
+lectura.
+
+**Punto 2 -- comprensibilidad (items 13/17 pendientes de Fase 5 de
+`PLAN_CORRECCION_MODULOS.md`)**: línea de apertura + KPI en vivo +
+estado vacío con CTA, mismo patrón ya aplicado a M1/M3/M4/M5/D6, ahora
+en las 4 vistas que habían quedado fuera: `compliance/panel-compliance`
+(incidentes abiertos, post-mortems sin publicar), `fids/pantalla-list`
+(pantallas sin señal, plantillas sin pantalla asignada),
+`tenants/tenant-list` (tenants en onboarding, suspendidos), y
+`usuarios/usuario-list` + `api-keys/api-key-list` +
+`licencias/licencia-list` (suspendidos/sin rol, activas/por expirar,
+vigentes/por vencer -- ventana de 30 días calculada en el cliente sobre
+`expira_en`/`activa_hasta` ya cargados).
+
+**Hallazgo propio corregido durante la verificación**: el primer intento
+armaba la oración de resumen con `@if` anidados en el template
+(`@if (b) { @if (a) {, } ... }`) para insertar una coma solo cuando
+había 2 cláusulas -- el whitespace de indentación entre bloques `@if`
+se colapsa a un espacio real en el HTML renderizado, dejando
+`"24 activas , 8 por expirar"` (espacio de más antes de la coma).
+Corregido armando la oración completa como un `computed<string>` en
+TypeScript (`resumenLlaves`/`resumenTenants`/`resumenUsuarios`/
+`resumenLicencias`/`resumenFids`/`resumenCompliance`) y consumiéndola
+como una sola interpolación en el template -- patrón a reusar en
+cualquier resumen futuro que una 2+ cláusulas condicionales con coma.
+
+**Hallazgo no relacionado, de proceso**: la contraseña real de
+`canario@mec.aerohub.test` (el `role_tenant_admin` canario, sembrado por
+`db/seeds/generate.py`) es `canario-dev-password` -- **no**
+`aerohub-demo-2026`, que es la contraseña fija que usa
+`tools/crear_usuarios_demo_roles.py` para los 6 roles que esa
+herramienta crea aparte. Son 2 orígenes de credenciales distintos;
+confundirlos da un 401 que parece bloqueo por fuerza bruta pero es
+simplemente la contraseña equivocada.
+
+**Verificado**: build de producción de `apps/web` en verde (726KB,
+mismo warning de bundle conocido) en 2 corridas (antes y después del
+arreglo de la coma). Verificado en navegador real: `auditor@mec.aerohub.test`
+(`role_regulatory_auditor`) ve su dashboard de Compliance con gráfico +
+KPI + "Ver detalle" sobre 1872 eventos reales, agrupados por tabla;
+`canario@mec.aerohub.test` (`role_tenant_admin`) confirma los 6 KPI
+nuevos con datos reales ("22 sin rol asignado", "24 activas, 8 por
+expirar en 30 días", "6 vigentes", "25 sin señal, 9 plantillas sin
+pantalla asignada", "Sin pendientes abiertos"). El `403`/`acceso
+denegado` visto en `compliance/panel` con `role_tenant_admin` es el
+hallazgo pre-existente ya documentado desde S1.7/S1.19 (sin `GRANT` de
+motor de `role_tenant_admin` sobre `compliance.*`), no una regresión.
+**Punto 3 del plan (`role_tenant_analyst`/`role_business_viewer`) sigue
+en pausa** -- decisión pendiente del usuario entre (a) dejarlos fuera
+o (b) abrirles `GRANT`s de motor.
+
+**Sin commitear todavía** -- pendiente de pedido explícito del usuario
+(Principio V).
+
 ## Rediseño de interfaz (S1.11–S1.14)
 
 La capa operativa (S0.1–S1.10) está **completa y commiteada**. Lo siguiente

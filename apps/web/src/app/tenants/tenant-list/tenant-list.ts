@@ -103,6 +103,23 @@ export class TenantList {
   private readonly tenantService = inject(TenantService);
   private readonly toast = inject(ToastService);
 
+  // Item 13 de docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md
+  // §2.3 -- KPI en vivo sobre datos ya cargados.
+  protected readonly tenantsEnOnboarding = computed(
+    () => this.tenants().filter((t) => t.estado === 'en_onboarding').length,
+  );
+  protected readonly tenantsSuspendidos = computed(
+    () => this.tenants().filter((t) => t.estado === 'suspendido').length,
+  );
+  // Sentencia armada en TS (no en el template) -- ver la nota equivalente
+  // en api-key-list.ts.
+  protected readonly resumenTenants = computed(() => {
+    const clausulas: string[] = [];
+    if (this.tenantsEnOnboarding() > 0) clausulas.push(`${this.tenantsEnOnboarding()} en onboarding`);
+    if (this.tenantsSuspendidos() > 0) clausulas.push(`${this.tenantsSuspendidos()} suspendidos`);
+    return clausulas.join(', ');
+  });
+
   constructor() {
     this.cargarTenants();
     this.tenantService.listarPlanes().subscribe({ next: (r) => this.planes.set(r) });

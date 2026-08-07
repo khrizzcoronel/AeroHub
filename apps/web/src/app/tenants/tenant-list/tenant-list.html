@@ -3,6 +3,13 @@
     <h1>Tenants</h1>
   </div>
 
+  <p class="consola__resumen">
+    Organizaciones dadas de alta en la plataforma, su plan y su estado.
+    @if (resumenTenants()) {
+      <strong [class.resumen-critico]="tenantsSuspendidos() > 0">{{ resumenTenants() }}</strong>.
+    }
+  </p>
+
   <div class="ah-panel">
     <h2 class="ah-panel__titulo">Buscar tenants</h2>
     <div class="ah-panel__campos">
@@ -55,7 +62,10 @@
   }
 
   @if (tenants().length === 0) {
-    <p class="ah-vacio">Sin tenants todavia.</p>
+    <p class="ah-vacio">
+      Sin tenants todavia.
+      <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalCrear()">Nuevo</button>
+    </p>
   } @else if (tenantsFiltrados().length === 0) {
     <p class="ah-vacio">Ningun tenant coincide con el filtro.</p>
   } @else {

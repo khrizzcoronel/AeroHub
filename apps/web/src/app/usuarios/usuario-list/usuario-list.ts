@@ -94,6 +94,26 @@ export class UsuarioList implements OnInit {
     return this.usuariosFiltrados().slice(inicio, inicio + this.registrosPorPagina);
   });
 
+  // Item 13 de docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md
+  // §2.3 -- KPI en vivo sobre datos ya cargados. UsuarioResumen no trae
+  // email_verificado (solo el propio perfil lo expone via /auth/perfil),
+  // asi que el KPI usa lo que esta lista si tiene: suspendidos y sin rol
+  // asignado (rol_codigo null -- usuario creado sin invitacion con rol).
+  protected readonly usuariosSuspendidos = computed(
+    () => this.usuarios().filter((u) => u.estado === 'suspendido').length,
+  );
+  protected readonly usuariosSinRol = computed(
+    () => this.usuarios().filter((u) => u.rol_codigo === null).length,
+  );
+  // Sentencia armada en TS (no en el template) -- ver la nota equivalente
+  // en api-key-list.ts.
+  protected readonly resumenUsuarios = computed(() => {
+    const clausulas: string[] = [];
+    if (this.usuariosSuspendidos() > 0) clausulas.push(`${this.usuariosSuspendidos()} suspendidos`);
+    if (this.usuariosSinRol() > 0) clausulas.push(`${this.usuariosSinRol()} sin rol asignado`);
+    return clausulas.join(', ');
+  });
+
   ngOnInit(): void {
     this.cargarUsuarios();
   }

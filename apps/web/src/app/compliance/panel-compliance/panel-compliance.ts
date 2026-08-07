@@ -217,6 +217,28 @@ export class PanelCompliance {
     (this.authService.perfil()?.scopes ?? []).includes('compliance:escribir'),
   );
 
+  // Item 13 de docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md
+  // §2.3 -- KPI en vivo sobre datos ya cargados, mismo criterio que M1/M3/
+  // M4/M5/D6 en Fase 5 de PLAN_CORRECCION_MODULOS.md.
+  protected readonly incidentesAbiertos = computed(
+    () => this.incidentes().filter((i) => i.estado !== 'cerrado').length,
+  );
+  protected readonly postMortemsSinPublicar = computed(
+    () => this.postMortems().filter((p) => p.estado !== 'publicado').length,
+  );
+  // Sentencia armada en TS (no en el template) -- ver la nota equivalente
+  // en api-key-list.ts.
+  protected readonly resumenCompliance = computed(() => {
+    const clausulas: string[] = [];
+    if (this.incidentesAbiertos() > 0) {
+      clausulas.push(`${this.incidentesAbiertos()} ${this.incidentesAbiertos() === 1 ? 'incidente abierto' : 'incidentes abiertos'}`);
+    }
+    if (this.postMortemsSinPublicar() > 0) {
+      clausulas.push(`${this.postMortemsSinPublicar()} post-mortems sin publicar`);
+    }
+    return clausulas.join(', ');
+  });
+
   constructor() {
     this.cargarTodo();
   }

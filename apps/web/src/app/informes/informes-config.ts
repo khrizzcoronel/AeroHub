@@ -207,6 +207,32 @@ export const CONFIG_INFORME_TENANTS: ConfigInforme = {
   },
 };
 
+export const CONFIG_INFORME_COMPLIANCE: ConfigInforme = {
+  titulo: 'Compliance Hub',
+  moduloCodigo: 'compliance',
+  endpointSimple: '/compliance/informes/simple',
+  endpointCompuesto: '/compliance/informes/compuesto',
+  filtros: [
+    { id: 'periodo_inicio', etiqueta: 'Desde', tipo: 'fecha' },
+    { id: 'periodo_fin', etiqueta: 'Hasta', tipo: 'fecha' },
+  ],
+  columnasSimple: [
+    { campo: 'evento_id', etiqueta: 'Evento' },
+    { campo: 'esquema', etiqueta: 'Esquema' },
+    { campo: 'tabla', etiqueta: 'Tabla' },
+    { campo: 'operacion', etiqueta: 'Operación' },
+    { campo: 'rol_codigo', etiqueta: 'Rol' },
+    { campo: 'ocurrido_en', etiqueta: 'Ocurrido' },
+  ],
+  columnaGrupo: 'Tipo de reporte DGAC',
+  columnasMetricas: [],
+  // El log de auditoria no tiene un campo de "estado" propio -- agrupar
+  // por tabla es lo que responde la pregunta real de un auditor/SRE
+  // ("que tabla concentra la actividad auditada"), sin semaforo (no es
+  // un valor evaluativo bueno/malo).
+  campoAgrupacion: 'tabla',
+};
+
 // ---------------------------------------------------------------------------
 // Dashboards operativos por rol (docs/diseno/PLAN_DASHBOARDS_OPERATIVOS.md,
 // implementado 2026-08-07). Reemplaza el barrido "una seccion por scope de
@@ -337,25 +363,30 @@ export const DASHBOARDS_POR_ROL: Record<string, DashboardRolConfig> = {
       { etiqueta: 'Suspendidos', seccionIndice: 0, calculo: contarPorValor('estado', 'suspendido') },
     ],
   },
-};
-
-export const CONFIG_INFORME_COMPLIANCE: ConfigInforme = {
-  titulo: 'Compliance Hub',
-  moduloCodigo: 'compliance',
-  endpointSimple: '/compliance/informes/simple',
-  endpointCompuesto: '/compliance/informes/compuesto',
-  filtros: [
-    { id: 'periodo_inicio', etiqueta: 'Desde', tipo: 'fecha' },
-    { id: 'periodo_fin', etiqueta: 'Hasta', tipo: 'fecha' },
-  ],
-  columnasSimple: [
-    { campo: 'evento_id', etiqueta: 'Evento' },
-    { campo: 'esquema', etiqueta: 'Esquema' },
-    { campo: 'tabla', etiqueta: 'Tabla' },
-    { campo: 'operacion', etiqueta: 'Operación' },
-    { campo: 'rol_codigo', etiqueta: 'Rol' },
-    { campo: 'ocurrido_en', etiqueta: 'Ocurrido' },
-  ],
-  columnaGrupo: 'Tipo de reporte DGAC',
-  columnasMetricas: [],
+  // docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md §2.1 --
+  // unicos 2 de los 10 roles restantes con GRANT de motor real verificado
+  // (compliance.log_auditoria, 93_grants_compliance.sql:25/27). El resto
+  // (role_tenant_analyst, role_business_viewer) queda fuera a proposito:
+  // tienen scope de aplicacion pero la matriz 4.3.1 les niega el GRANT,
+  // un dashboard ahi solo devolveria 403 en cada seccion.
+  role_sre: {
+    rolCodigo: 'role_sre',
+    pregunta: '¿Qué actividad de auditoría requiere atención?',
+    secciones: [CONFIG_INFORME_COMPLIANCE],
+    kpis: [
+      { etiqueta: 'Eventos del período', seccionIndice: 0, calculo: contarTotal },
+      { etiqueta: 'Inserciones', seccionIndice: 0, calculo: contarPorValor('operacion', 'INSERT') },
+      { etiqueta: 'Actualizaciones', seccionIndice: 0, calculo: contarPorValor('operacion', 'UPDATE') },
+    ],
+  },
+  role_regulatory_auditor: {
+    rolCodigo: 'role_regulatory_auditor',
+    pregunta: '¿Qué eventos de auditoría se registraron?',
+    secciones: [CONFIG_INFORME_COMPLIANCE],
+    kpis: [
+      { etiqueta: 'Eventos del período', seccionIndice: 0, calculo: contarTotal },
+      { etiqueta: 'Inserciones', seccionIndice: 0, calculo: contarPorValor('operacion', 'INSERT') },
+      { etiqueta: 'Actualizaciones', seccionIndice: 0, calculo: contarPorValor('operacion', 'UPDATE') },
+    ],
+  },
 };

@@ -33,6 +33,16 @@
   flex-wrap: wrap;
 }
 
+.consola__resumen {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ah-ink-600);
+}
+
+.resumen-critico {
+  color: var(--ah-estado-critico);
+}
+
 // Scroll horizontal contenido a la tabla, nunca a la pagina -- la regla
 // general del sistema (DIRECCION_VISUAL.md §4) para cualquier contenido
 // ancho en movil.

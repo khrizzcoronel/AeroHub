@@ -108,6 +108,27 @@ export class PantallaList implements OnInit {
   protected readonly errorReasignar = signal<string | null>(null);
   protected readonly reasignando = signal(false);
 
+  // Item 13 de docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md
+  // §2.3 -- KPI en vivo sobre datos ya cargados, mismo criterio que el
+  // resto de modulos desde Fase 5 de PLAN_CORRECCION_MODULOS.md.
+  protected readonly pantallasSinSenal = computed(
+    () => this.pantallas().filter((p) => p.estado === 'sin_senal').length,
+  );
+  protected readonly plantillasSinPantalla = computed(() => {
+    const asignadas = new Set(this.pantallas().map((p) => p.plantilla_id));
+    return this.plantillas().filter((pl) => !asignadas.has(pl.id)).length;
+  });
+  // Sentencia armada en TS (no en el template) -- ver la nota equivalente
+  // en api-key-list.ts.
+  protected readonly resumenFids = computed(() => {
+    const clausulas: string[] = [];
+    if (this.pantallasSinSenal() > 0) clausulas.push(`${this.pantallasSinSenal()} sin señal`);
+    if (this.plantillasSinPantalla() > 0) {
+      clausulas.push(`${this.plantillasSinPantalla()} plantillas sin pantalla asignada`);
+    }
+    return clausulas.join(', ');
+  });
+
   ngOnInit(): void {
     this.cargarTodo();
   }

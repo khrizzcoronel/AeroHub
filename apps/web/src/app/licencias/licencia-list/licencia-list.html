@@ -3,6 +3,13 @@
     <h1>Licencias y Módulos Contratados</h1>
   </div>
 
+  <p class="consola__resumen">
+    Módulos habilitados para esta organización según su plan.
+    @if (resumenLicencias()) {
+      <strong [class.resumen-critico]="licenciasPorVencer() > 0">{{ resumenLicencias() }}</strong>.
+    }
+  </p>
+
   <div class="consola__acciones">
     <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarLicencias()" [disabled]="cargando()">
       Actualizar

@@ -3,6 +3,13 @@
     <h1>Usuarios del Equipo</h1>
   </div>
 
+  <p class="consola__resumen">
+    Cuentas con acceso a este tenant y el rol que cada una tiene asignado.
+    @if (resumenUsuarios()) {
+      <strong [class.resumen-critico]="usuariosSuspendidos() > 0">{{ resumenUsuarios() }}</strong>.
+    }
+  </p>
+
   <div class="ah-panel">
     <h2 class="ah-panel__titulo">Buscar usuarios</h2>
     <div class="ah-panel__campos">
@@ -54,7 +61,12 @@
   }
 
   @if (usuarios().length === 0) {
-    <p class="ah-vacio">Sin usuarios registrados todavía.</p>
+    <p class="ah-vacio">
+      Sin usuarios registrados todavía.
+      <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalInvitar()">
+        Invitar Usuario
+      </button>
+    </p>
   } @else if (usuariosFiltrados().length === 0) {
     <p class="ah-vacio">Ningún usuario coincide con la búsqueda.</p>
   } @else {

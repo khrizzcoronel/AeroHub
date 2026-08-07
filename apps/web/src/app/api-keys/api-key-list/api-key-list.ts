@@ -50,6 +50,32 @@ export class ApiKeyList implements OnInit {
     return this.apiKeysFiltradas().slice(inicio, inicio + this.registrosPorPagina);
   });
 
+  // Item 13 de docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md
+  // §2.3 -- KPI en vivo sobre datos ya cargados.
+  protected readonly apiKeysActivas = computed(
+    () => this.apiKeys().filter((k) => k.estado === 'activa').length,
+  );
+  protected readonly apiKeysPorExpirar = computed(() => {
+    const limite = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    return this.apiKeys().filter(
+      (k) => k.estado === 'activa' && k.expira_en !== null && new Date(k.expira_en).getTime() <= limite,
+    ).length;
+  });
+  // Sentencia armada en TS, no en el template -- unir clausulas con
+  // @if anidados en HTML deja un espacio de mas antes de la coma
+  // (whitespace de indentacion entre bloques @if, HTML lo colapsa a un
+  // espacio real). Construir el string aca evita el problema de raiz.
+  protected readonly resumenLlaves = computed(() => {
+    const clausulas: string[] = [];
+    if (this.apiKeysActivas() > 0) {
+      clausulas.push(`${this.apiKeysActivas()} ${this.apiKeysActivas() === 1 ? 'activa' : 'activas'}`);
+    }
+    if (this.apiKeysPorExpirar() > 0) {
+      clausulas.push(`${this.apiKeysPorExpirar()} por expirar en 30 días`);
+    }
+    return clausulas.join(', ');
+  });
+
   ngOnInit(): void {
     this.cargarApiKeys();
   }

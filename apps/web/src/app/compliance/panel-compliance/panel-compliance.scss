@@ -25,6 +25,16 @@
   flex-wrap: wrap;
 }
 
+.consola__resumen {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ah-ink-600);
+}
+
+.resumen-critico {
+  color: var(--ah-estado-critico);
+}
+
 .tabla-envoltorio {
   overflow-x: auto;
   border: 1px solid var(--ah-line-200);

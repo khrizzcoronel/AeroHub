@@ -3,6 +3,13 @@
     <h1>API Keys e Integraciones</h1>
   </div>
 
+  <p class="consola__resumen">
+    Llaves de integración de este tenant y su vigencia.
+    @if (resumenLlaves()) {
+      <strong [class.resumen-critico]="apiKeysPorExpirar() > 0">{{ resumenLlaves() }}</strong>.
+    }
+  </p>
+
   <div class="ah-panel">
     <h2 class="ah-panel__titulo">Buscar por prefijo</h2>
     <div class="ah-panel__campos">
@@ -34,7 +41,12 @@
   }
 
   @if (apiKeys().length === 0) {
-    <p class="ah-vacio">Sin API Keys generadas todavía.</p>
+    <p class="ah-vacio">
+      Sin API Keys generadas todavía.
+      <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="crearNuevaApiKey()" [disabled]="procesando()">
+        Generar API Key
+      </button>
+    </p>
   } @else if (apiKeysFiltradas().length === 0) {
     <p class="ah-vacio">Ninguna API Key coincide con la búsqueda.</p>
   } @else {
