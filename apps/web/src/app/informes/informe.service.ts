@@ -29,6 +29,24 @@ export interface InformeCompuesto {
   total: number;
 }
 
+// Sprint S1.18-iteracion (2026-08-05) -- panel tactico sobre ClickHouse
+// (M7, aerohub_analytics_api), forma distinta a InformeCompuesto porque
+// no tiene "parametros"/"generado_en" (esos existen del lado de MonetDB,
+// que SI recibe filtros de periodo por request; el snapshot tactico se
+// sincroniza aparte, ver tools/sincronizar_analytics_demo.py).
+export interface GrupoTactico {
+  clave: string;
+  subtotal: number;
+  metrica_principal: string | null;
+}
+
+export interface InformeTactico {
+  modulo_codigo: string;
+  grupos: GrupoTactico[];
+  total_general: number;
+  calculado_en: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class InformeService {
   private readonly http = inject(HttpClient);
@@ -49,6 +67,10 @@ export class InformeService {
     return this.http.get<InformeCompuesto>(`${API_BASE_URL}${ruta}`, {
       params: this.aParams(filtros),
     });
+  }
+
+  obtenerInformeTactico(moduloCodigo: string): Observable<InformeTactico> {
+    return this.http.get<InformeTactico>(`${API_BASE_URL}/analytics/tactico/${moduloCodigo}`);
   }
 
   // Sprint S1.18, research.md Decision 3 -- el CSV se pide al MISMO

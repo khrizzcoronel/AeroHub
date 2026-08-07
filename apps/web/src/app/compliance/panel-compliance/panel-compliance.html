@@ -19,8 +19,25 @@
       <button type="button" class="ah-btn" (click)="abrirModalIncidente()">Registrar incidente</button>
     }
   </div>
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar incidente</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroIncidente">Descripción o tipo</label>
+        <input
+          id="filtroIncidente"
+          type="text"
+          [ngModel]="filtroIncidente()"
+          (ngModelChange)="actualizarFiltroIncidente($event)"
+          name="filtroIncidente"
+        />
+      </div>
+    </div>
+  </div>
   @if (incidentes().length === 0) {
     <p class="ah-vacio">Sin incidentes registrados todavía.</p>
+  } @else if (incidentesFiltrados().length === 0) {
+    <p class="ah-vacio">Ningún incidente coincide con el filtro.</p>
   } @else {
     <div class="tabla-envoltorio">
       <table class="ah-tabla">
@@ -34,17 +51,28 @@
           </tr>
         </thead>
         <tbody>
-          @for (i of incidentes(); track i.id) {
+          @for (i of incidentesPagina(); track i.id) {
             <tr>
               <td>{{ nombreTipoIncidente(i.tipo_incidente_id) }}</td>
               <td>{{ i.descripcion }}</td>
               <td>{{ i.severidad }}</td>
               <td>{{ i.detectado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
-              <td>{{ i.estado }}</td>
+              <td>
+                <span class="ah-pill" [class]="claseEstadoIncidente(i.estado)">{{ etiquetaEstadoIncidente(i.estado) }}</span>
+              </td>
             </tr>
           }
         </tbody>
       </table>
+    </div>
+    <div class="ah-paginacion">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorIncidente()" [disabled]="paginaActualIncidente() === 1">
+        Anterior
+      </button>
+      <span class="ah-paginacion__estado">Pagina {{ paginaActualIncidente() }} de {{ totalPaginasIncidente() }}</span>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguienteIncidente()" [disabled]="paginaActualIncidente() === totalPaginasIncidente()">
+        Siguiente
+      </button>
     </div>
   }
 
@@ -55,8 +83,25 @@
       <button type="button" class="ah-btn" (click)="abrirModalPostMortem()">Nuevo post-mortem</button>
     }
   </div>
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar post-mortem</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroPostMortem">Referencia del incidente</label>
+        <input
+          id="filtroPostMortem"
+          type="text"
+          [ngModel]="filtroPostMortem()"
+          (ngModelChange)="actualizarFiltroPostMortem($event)"
+          name="filtroPostMortem"
+        />
+      </div>
+    </div>
+  </div>
   @if (postMortems().length === 0) {
     <p class="ah-vacio">Sin post-mortems todavía.</p>
+  } @else if (postMortemsFiltrados().length === 0) {
+    <p class="ah-vacio">Ningún post-mortem coincide con el filtro.</p>
   } @else {
     <div class="tabla-envoltorio">
       <table class="ah-tabla">
@@ -71,12 +116,12 @@
           </tr>
         </thead>
         <tbody>
-          @for (p of postMortems(); track p.id) {
+          @for (p of postMortemsPagina(); track p.id) {
             <tr>
               <td>{{ p.incidente_ref }}</td>
               <td>{{ p.severidad }}</td>
               <td>
-                <span class="ah-pill" [class.ah-pill--ok]="p.estado === 'publicado'">{{ p.estado }}</span>
+                <span class="ah-pill" [class]="claseEstadoPostMortem(p.estado)">{{ etiquetaEstadoPostMortem(p.estado) }}</span>
               </td>
               <td>{{ p.iniciado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
               <td>{{ p.publicado_en ? (p.publicado_en | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
@@ -90,6 +135,15 @@
         </tbody>
       </table>
     </div>
+    <div class="ah-paginacion">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorPostMortem()" [disabled]="paginaActualPostMortem() === 1">
+        Anterior
+      </button>
+      <span class="ah-paginacion__estado">Pagina {{ paginaActualPostMortem() }} de {{ totalPaginasPostMortem() }}</span>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguientePostMortem()" [disabled]="paginaActualPostMortem() === totalPaginasPostMortem()">
+        Siguiente
+      </button>
+    </div>
   }
 
   <!-- ============ Reportes DGAC ============ -->
@@ -99,8 +153,25 @@
       <button type="button" class="ah-btn" (click)="abrirModalReporte()">Emitir reporte</button>
     }
   </div>
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar reporte</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroReporte">Tipo de reporte</label>
+        <input
+          id="filtroReporte"
+          type="text"
+          [ngModel]="filtroReporte()"
+          (ngModelChange)="actualizarFiltroReporte($event)"
+          name="filtroReporte"
+        />
+      </div>
+    </div>
+  </div>
   @if (reportesDgac().length === 0) {
     <p class="ah-vacio">Sin reportes emitidos todavía.</p>
+  } @else if (reportesDgacFiltrados().length === 0) {
+    <p class="ah-vacio">Ningún reporte coincide con el filtro.</p>
   } @else {
     <div class="tabla-envoltorio">
       <table class="ah-tabla">
@@ -114,7 +185,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (r of reportesDgac(); track r.id) {
+          @for (r of reportesDgacPagina(); track r.id) {
             <tr>
               <td>{{ nombreTipoReporte(r.tipo_reporte_id) }}</td>
               <td>{{ r.periodo_inicio }} – {{ r.periodo_fin }}</td>
@@ -126,6 +197,15 @@
         </tbody>
       </table>
     </div>
+    <div class="ah-paginacion">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorReporte()" [disabled]="paginaActualReporte() === 1">
+        Anterior
+      </button>
+      <span class="ah-paginacion__estado">Pagina {{ paginaActualReporte() }} de {{ totalPaginasReporte() }}</span>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguienteReporte()" [disabled]="paginaActualReporte() === totalPaginasReporte()">
+        Siguiente
+      </button>
+    </div>
   }
 
   <!-- ============ Accesos de auditor ============ -->
@@ -135,8 +215,25 @@
       <button type="button" class="ah-btn" (click)="abrirModalAcceso()">Otorgar acceso</button>
     }
   </div>
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar acceso</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroAcceso">Usuario auditor</label>
+        <input
+          id="filtroAcceso"
+          type="text"
+          [ngModel]="filtroAcceso()"
+          (ngModelChange)="actualizarFiltroAcceso($event)"
+          name="filtroAcceso"
+        />
+      </div>
+    </div>
+  </div>
   @if (accesosAuditor().length === 0) {
     <p class="ah-vacio">Sin accesos otorgados todavía.</p>
+  } @else if (accesosAuditorFiltrados().length === 0) {
+    <p class="ah-vacio">Ningún acceso coincide con el filtro.</p>
   } @else {
     <div class="tabla-envoltorio">
       <table class="ah-tabla">
@@ -148,7 +245,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (a of accesosAuditor(); track a.id) {
+          @for (a of accesosAuditorPagina(); track a.id) {
             <tr>
               <td>{{ a.auditor_usuario_id }}</td>
               <td>{{ a.inicio | date: 'dd/MM/yyyy HH:mm' }} – {{ a.fin | date: 'dd/MM/yyyy HH:mm' }}</td>
@@ -157,6 +254,15 @@
           }
         </tbody>
       </table>
+    </div>
+    <div class="ah-paginacion">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorAcceso()" [disabled]="paginaActualAcceso() === 1">
+        Anterior
+      </button>
+      <span class="ah-paginacion__estado">Pagina {{ paginaActualAcceso() }} de {{ totalPaginasAcceso() }}</span>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguienteAcceso()" [disabled]="paginaActualAcceso() === totalPaginasAcceso()">
+        Siguiente
+      </button>
     </div>
   }
 
@@ -167,8 +273,25 @@
       <button type="button" class="ah-btn" (click)="abrirModalEvidencia()">Registrar evidencia</button>
     }
   </div>
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar evidencia</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="filtroEvidencia">Control</label>
+        <input
+          id="filtroEvidencia"
+          type="text"
+          [ngModel]="filtroEvidencia()"
+          (ngModelChange)="actualizarFiltroEvidencia($event)"
+          name="filtroEvidencia"
+        />
+      </div>
+    </div>
+  </div>
   @if (evidenciaSoc2().length === 0) {
     <p class="ah-vacio">Sin evidencia registrada todavía.</p>
+  } @else if (evidenciaSoc2Filtrada().length === 0) {
+    <p class="ah-vacio">Ninguna evidencia coincide con el filtro.</p>
   } @else {
     <div class="tabla-envoltorio">
       <table class="ah-tabla">
@@ -181,7 +304,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (e of evidenciaSoc2(); track e.id) {
+          @for (e of evidenciaSoc2Pagina(); track e.id) {
             <tr>
               <td>{{ nombreControlSoc2(e.control_soc2_id) }}</td>
               <td>{{ e.periodo_inicio }} – {{ e.periodo_fin }}</td>
@@ -191,6 +314,15 @@
           }
         </tbody>
       </table>
+    </div>
+    <div class="ah-paginacion">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorEvidencia()" [disabled]="paginaActualEvidencia() === 1">
+        Anterior
+      </button>
+      <span class="ah-paginacion__estado">Pagina {{ paginaActualEvidencia() }} de {{ totalPaginasEvidencia() }}</span>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguienteEvidencia()" [disabled]="paginaActualEvidencia() === totalPaginasEvidencia()">
+        Siguiente
+      </button>
     </div>
   }
 </section>

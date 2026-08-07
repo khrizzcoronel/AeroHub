@@ -353,6 +353,66 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /tenants/informes/simple:
+    get:
+      tags:
+      - tenants
+      summary: Informe Tenants Simple Endpoint
+      operationId: informe_tenants_simple_endpoint_tenants_informes_simple_get
+      parameters:
+      - name: estado
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Estado
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /tenants/informes/compuesto:
+    get:
+      tags:
+      - tenants
+      summary: Informe Tenants Compuesto Endpoint
+      operationId: informe_tenants_compuesto_endpoint_tenants_informes_compuesto_get
+      parameters:
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /auth/login:
     post:
       tags:
@@ -756,6 +816,28 @@ paths:
                 type: array
                 title: Response Listar Tipos Vuelo Endpoint Vuelos Catalogo Tipos
                   Vuelo Get
+  /vuelos/catalogo/aeropuertos:
+    get:
+      tags:
+      - vuelos
+      summary: Listar Aeropuertos Endpoint
+      description: 'Redeclarado aqui bajo ''vuelos:leer'' (hallazgo empirico, ver
+
+        consultas_catalogo.py): GET /catalogo/aeropuertos de aerohub_tenancy
+
+        exige ''tenants:crear'', que un rol operativo no tiene.'
+      operationId: listar_aeropuertos_endpoint_vuelos_catalogo_aeropuertos_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/AeropuertoResponse'
+                type: array
+                title: Response Listar Aeropuertos Endpoint Vuelos Catalogo Aeropuertos
+                  Get
   /vuelos:
     post:
       tags:
@@ -764,11 +846,11 @@ paths:
       description: Da de alta un vuelo para el tenant del llamador (RF-O02 parcial).
       operationId: crear_vuelo_vuelos_post
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/VueloCrearRequest'
-        required: true
       responses:
         '201':
           description: Successful Response
@@ -776,6 +858,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VueloCrearResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - vuelos
+      summary: Listar Vuelos Endpoint
+      description: 'Listado de vuelos del tenant, mas reciente primero, con filtros
+
+        opcionales de fecha y estado actual (Fase 3 de
+
+        docs/diseno/PLAN_CORRECCION_MODULOS.md, causa raiz D): antes de este
+
+        endpoint la vista nucleo no podia mostrar nada al entrar, solo tras
+
+        un evento de WebSocket.'
+      operationId: listar_vuelos_endpoint_vuelos_get
+      parameters:
+      - name: fecha_operacion
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Fecha Operacion
+      - name: codigo_estado
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Codigo Estado
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VueloListadoResponse'
+                title: Response Listar Vuelos Endpoint Vuelos Get
         '422':
           description: Validation Error
           content:
@@ -844,7 +974,113 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /vuelos/informes/simple:
+    get:
+      tags:
+      - vuelos
+      summary: Informe Vuelos Simple Endpoint
+      operationId: informe_vuelos_simple_endpoint_vuelos_informes_simple_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: aerolinea_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Aerolinea Id
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /vuelos/informes/compuesto:
+    get:
+      tags:
+      - vuelos
+      summary: Informe Vuelos Compuesto Endpoint
+      operationId: informe_vuelos_compuesto_endpoint_vuelos_informes_compuesto_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /fids/plantillas:
+    get:
+      tags:
+      - fids
+      summary: Listar Plantillas Endpoint
+      description: 'Listado de plantillas -- solo la ultima version de cada nombre
+
+        (Sprint S1.16, research.md Decision 2).'
+      operationId: listar_plantillas_endpoint_fids_plantillas_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/PlantillaResumenResponse'
+                type: array
+                title: Response Listar Plantillas Endpoint Fids Plantillas Get
     post:
       tags:
       - fids
@@ -871,6 +1107,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /fids/pantallas:
+    get:
+      tags:
+      - fids
+      summary: Listar Pantallas Endpoint
+      description: 'Tablero de telemetria: pantallas del tenant con su estado y ultima
+
+        senal (Sprint S1.16, research.md Decision 3).'
+      operationId: listar_pantallas_endpoint_fids_pantallas_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/PantallaResumenResponse'
+                type: array
+                title: Response Listar Pantallas Endpoint Fids Pantallas Get
     post:
       tags:
       - fids
@@ -896,6 +1150,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /fids/catalogo/terminales:
+    get:
+      tags:
+      - fids
+      summary: Listar Terminales Endpoint
+      description: 'Catalogo de terminales del tenant, para el select del formulario
+
+        de registro de pantalla (Sprint S1.16, research.md Decision 4).'
+      operationId: listar_terminales_endpoint_fids_catalogo_terminales_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TerminalResponse'
+                type: array
+                title: Response Listar Terminales Endpoint Fids Catalogo Terminales
+                  Get
   /fids/pantallas/{pantalla_id}/plantilla:
     patch:
       tags:
@@ -1035,6 +1309,114 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /puertas/terminales:
+    get:
+      tags:
+      - puertas
+      summary: Listar Terminales Endpoint
+      operationId: listar_terminales_endpoint_puertas_terminales_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TerminalListadoResponse'
+                type: array
+                title: Response Listar Terminales Endpoint Puertas Terminales Get
+    post:
+      tags:
+      - puertas
+      summary: Crear Terminal Endpoint
+      description: 'Alta de terminal (Fase 3 de docs/diseno/PLAN_CORRECCION_MODULOS.md,
+
+        causa raiz backend: M3 no tenia forma de crear terminales, solo se
+
+        veian si un seed las insertaba a mano).'
+      operationId: crear_terminal_endpoint_puertas_terminales_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TerminalCrearRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalCrearResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /puertas:
+    post:
+      tags:
+      - puertas
+      summary: Crear Puerta Endpoint
+      description: 'Alta de puerta (Fase 3 de docs/diseno/PLAN_CORRECCION_MODULOS.md,
+
+        causa raiz backend: el tablero solo listaba puertas ya existentes,
+
+        ninguna forma de crearlas desde la API).'
+      operationId: crear_puerta_endpoint_puertas_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PuertaCrearRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PuertaCrearResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /puertas/{puerta_id}:
+    patch:
+      tags:
+      - puertas
+      summary: Editar Puerta Endpoint
+      description: 'Edicion de puerta -- terminal, codigo, tipo, envergadura y pasarela
+
+        (Fase 3, mismo hallazgo que el alta: no existia ninguna forma de
+
+        editar una puerta ya creada).'
+      operationId: editar_puerta_endpoint_puertas__puerta_id__patch
+      parameters:
+      - name: puerta_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Puerta Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PuertaEditarRequest'
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /puertas/tablero:
     get:
       tags:
@@ -1068,6 +1450,94 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AsignacionAutomaticaResponse'
+  /puertas/informes/simple:
+    get:
+      tags:
+      - puertas
+      summary: Informe Asignaciones Simple Endpoint
+      operationId: informe_asignaciones_simple_endpoint_puertas_informes_simple_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: puerta_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Puerta Id
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /puertas/informes/compuesto:
+    get:
+      tags:
+      - puertas
+      summary: Informe Asignaciones Compuesto Endpoint
+      operationId: informe_asignaciones_compuesto_endpoint_puertas_informes_compuesto_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /rampa/turnarounds:
     get:
       tags:
@@ -1233,7 +1703,136 @@ paths:
                   $ref: '#/components/schemas/IncidenciaResponse'
                 type: array
                 title: Response Listar Incidencias Endpoint Rampa Incidencias Get
+  /rampa/catalogo/tipos-tarea:
+    get:
+      tags:
+      - rampa
+      summary: Listar Tipos Tarea Endpoint
+      description: 'Catalogo global de tipos de tarea de rampa -- reemplaza el id
+        a
+
+        mano del formulario de ''iniciar tarea'' por un <select> real (cierre
+
+        de brecha de workpanel post-S1.20).'
+      operationId: listar_tipos_tarea_endpoint_rampa_catalogo_tipos_tarea_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TipoTareaResponse'
+                type: array
+                title: Response Listar Tipos Tarea Endpoint Rampa Catalogo Tipos Tarea
+                  Get
+  /rampa/informes/simple:
+    get:
+      tags:
+      - rampa
+      summary: Informe Turnarounds Simple Endpoint
+      operationId: informe_turnarounds_simple_endpoint_rampa_informes_simple_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: estado
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Estado
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /rampa/informes/compuesto:
+    get:
+      tags:
+      - rampa
+      summary: Informe Turnarounds Compuesto Endpoint
+      operationId: informe_turnarounds_compuesto_endpoint_rampa_informes_compuesto_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /billing/tarifarios:
+    get:
+      tags:
+      - facturacion
+      summary: Listar Tarifarios Endpoint
+      description: 'Historial completo del tenant (todos los estados), no solo el
+
+        vigente -- Sprint S1.17, cierra RF-T10 en el fondo (spec.md US2).'
+      operationId: listar_tarifarios_endpoint_billing_tarifarios_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TarifarioResponse'
+                type: array
+                title: Response Listar Tarifarios Endpoint Billing Tarifarios Get
     post:
       tags:
       - facturacion
@@ -1312,6 +1911,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /billing/catalogo/conceptos-cargo:
+    get:
+      tags:
+      - facturacion
+      summary: Listar Conceptos Cargo Endpoint
+      description: 'Catalogo de solo lectura para el <select> de alta de concepto
+        de
+
+        tarifario -- Sprint S1.17, nunca ids pegados a mano.'
+      operationId: listar_conceptos_cargo_endpoint_billing_catalogo_conceptos_cargo_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ConceptoCargoResponse'
+                type: array
+                title: Response Listar Conceptos Cargo Endpoint Billing Catalogo Conceptos
+                  Cargo Get
   /billing/facturacion/calcular:
     post:
       tags:
@@ -1482,6 +2102,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /billing/conciliaciones:
+    get:
+      tags:
+      - facturacion
+      summary: Listar Conciliaciones Endpoint
+      description: Todas las conciliaciones del tenant -- Sprint S1.17 (spec.md US3).
+      operationId: listar_conciliaciones_endpoint_billing_conciliaciones_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ConciliacionResponse'
+                type: array
+                title: Response Listar Conciliaciones Endpoint Billing Conciliaciones
+                  Get
     post:
       tags:
       - facturacion
@@ -1551,6 +2188,107 @@ paths:
       responses:
         '204':
           description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/informes/simple:
+    get:
+      tags:
+      - facturacion
+      summary: Informe Facturas Simple Endpoint
+      operationId: informe_facturas_simple_endpoint_billing_informes_simple_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: aerolinea_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Aerolinea Id
+      - name: estado
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Estado
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /billing/informes/compuesto:
+    get:
+      tags:
+      - facturacion
+      summary: Informe Facturacion Compuesto Endpoint
+      description: 'RF-I04: la emision de este informe (validez externa, cierra
+
+        RF-E02) queda registrada en compliance.log_auditoria (research.md
+
+        Decision 4).'
+      operationId: informe_facturacion_compuesto_endpoint_billing_informes_compuesto_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
         '422':
           description: Validation Error
           content:
@@ -1669,6 +2407,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /compliance/post-mortems:
+    get:
+      tags:
+      - compliance
+      summary: Listar Post Mortems Endpoint
+      description: Sprint S1.19 -- listado que faltaba desde S1.7 (spec.md FR-007).
+      operationId: listar_post_mortems_endpoint_compliance_post_mortems_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/PostMortemResumenResponse'
+                type: array
+                title: Response Listar Post Mortems Endpoint Compliance Post Mortems
+                  Get
     post:
       tags:
       - compliance
@@ -1855,6 +2610,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /compliance/reportes-dgac:
+    get:
+      tags:
+      - compliance
+      summary: Listar Reportes Dgac Endpoint
+      operationId: listar_reportes_dgac_endpoint_compliance_reportes_dgac_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ReporteDgacResumenResponse'
+                type: array
+                title: Response Listar Reportes Dgac Endpoint Compliance Reportes
+                  Dgac Get
     post:
       tags:
       - compliance
@@ -1880,6 +2651,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /compliance/accesos-auditor:
+    get:
+      tags:
+      - compliance
+      summary: Listar Accesos Auditor Endpoint
+      operationId: listar_accesos_auditor_endpoint_compliance_accesos_auditor_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/AccesoAuditorResumenResponse'
+                type: array
+                title: Response Listar Accesos Auditor Endpoint Compliance Accesos
+                  Auditor Get
     post:
       tags:
       - compliance
@@ -1905,6 +2692,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /compliance/evidencia-soc2:
+    get:
+      tags:
+      - compliance
+      summary: Listar Evidencia Soc2 Endpoint
+      operationId: listar_evidencia_soc2_endpoint_compliance_evidencia_soc2_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/EvidenciaSoc2ResumenResponse'
+                type: array
+                title: Response Listar Evidencia Soc2 Endpoint Compliance Evidencia
+                  Soc2 Get
     post:
       tags:
       - compliance
@@ -1929,6 +2732,163 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/informes/simple:
+    get:
+      tags:
+      - compliance
+      summary: Informe Auditoria Simple Endpoint
+      operationId: informe_auditoria_simple_endpoint_compliance_informes_simple_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/informes/compuesto:
+    get:
+      tags:
+      - compliance
+      summary: Informe Reportes Dgac Compuesto Endpoint
+      description: 'RF-I04: la emision de este informe (validez regulatoria) queda
+
+        registrada en compliance.log_auditoria (research.md Decision 4).'
+      operationId: informe_reportes_dgac_compuesto_endpoint_compliance_informes_compuesto_get
+      parameters:
+      - name: periodo_inicio
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Inicio
+      - name: periodo_fin
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+          title: Periodo Fin
+      - name: formato
+        in: query
+        required: false
+        schema:
+          type: string
+          default: json
+          title: Formato
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /compliance/catalogo/tipos-incidente:
+    get:
+      tags:
+      - compliance
+      summary: Listar Tipos Incidente Endpoint
+      operationId: listar_tipos_incidente_endpoint_compliance_catalogo_tipos_incidente_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TipoIncidenteResponse'
+                type: array
+                title: Response Listar Tipos Incidente Endpoint Compliance Catalogo
+                  Tipos Incidente Get
+  /compliance/catalogo/tipos-reporte:
+    get:
+      tags:
+      - compliance
+      summary: Listar Tipos Reporte Endpoint
+      operationId: listar_tipos_reporte_endpoint_compliance_catalogo_tipos_reporte_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TipoReporteRegulatorioResponse'
+                type: array
+                title: Response Listar Tipos Reporte Endpoint Compliance Catalogo
+                  Tipos Reporte Get
+  /compliance/catalogo/controles-soc2:
+    get:
+      tags:
+      - compliance
+      summary: Listar Controles Soc2 Endpoint
+      operationId: listar_controles_soc2_endpoint_compliance_catalogo_controles_soc2_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ControlSoc2Response'
+                type: array
+                title: Response Listar Controles Soc2 Endpoint Compliance Catalogo
+                  Controles Soc2 Get
+  /support/catalogo/categorias-ticket:
+    get:
+      tags:
+      - soporte
+      summary: Listar Categorias Ticket Endpoint
+      description: 'Sprint S1.20 -- catalogo global para el select del formulario
+        de
+
+        alta de ticket (antes no existia ningun listado, solo el id se
+
+        conocia via GET/POST de un ticket ya creado).'
+      operationId: listar_categorias_ticket_endpoint_support_catalogo_categorias_ticket_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/CategoriaTicketResponse'
+                type: array
+                title: Response Listar Categorias Ticket Endpoint Support Catalogo
+                  Categorias Ticket Get
   /support/tickets:
     post:
       tags:
@@ -2012,6 +2972,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TicketDetalleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /support/tickets/{ticket_id}/transiciones:
+    get:
+      tags:
+      - soporte
+      summary: Listar Transiciones Ticket Endpoint
+      description: 'Linea de tiempo de cambios de estado del ticket (Fase 3 de
+
+        docs/diseno/PLAN_CORRECCION_MODULOS.md, item 8): completa el hilo de
+
+        mensajes con quien cambio el estado, cuando y a que -- antes de este
+
+        endpoint ese dato ya se registraba (compliance.log_auditoria) pero
+
+        nunca se exponia.'
+      operationId: listar_transiciones_ticket_endpoint_support_tickets__ticket_id__transiciones_get
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Ticket Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransicionResponse'
+                title: Response Listar Transiciones Ticket Endpoint Support Tickets  Ticket
+                  Id  Transiciones Get
         '422':
           description: Validation Error
           content:
@@ -2244,8 +3243,61 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /analytics/tactico/{modulo_codigo}:
+    get:
+      tags:
+      - analytics-tactico
+      summary: Obtener Informe Tactico Endpoint
+      operationId: obtener_informe_tactico_endpoint_analytics_tactico__modulo_codigo__get
+      parameters:
+      - name: modulo_codigo
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Modulo Codigo
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InformeTacticoResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
+    AccesoAuditorResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        auditor_usuario_id:
+          type: string
+          title: Auditor Usuario Id
+        inicio:
+          type: string
+          format: date-time
+          title: Inicio
+        fin:
+          type: string
+          format: date-time
+          title: Fin
+        motivo:
+          type: string
+          title: Motivo
+      type: object
+      required:
+      - id
+      - auditor_usuario_id
+      - inicio
+      - fin
+      - motivo
+      title: AccesoAuditorResumenResponse
     AccionResponse:
       properties:
         id:
@@ -2724,6 +3776,23 @@ components:
       required:
       - vuelo_estado_id
       title: CambioEstadoResponse
+    CategoriaTicketResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        nombre:
+          type: string
+          title: Nombre
+      type: object
+      required:
+      - id
+      - codigo
+      - nombre
+      title: CategoriaTicketResponse
     ChangelogResponse:
       properties:
         id:
@@ -2752,6 +3821,63 @@ components:
       - publicado_en
       - items
       title: ChangelogResponse
+    ConceptoCargoResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        nombre:
+          type: string
+          title: Nombre
+        unidad_medida:
+          type: string
+          title: Unidad Medida
+        base_calculo:
+          type: string
+          title: Base Calculo
+      type: object
+      required:
+      - id
+      - codigo
+      - nombre
+      - unidad_medida
+      - base_calculo
+      title: ConceptoCargoResponse
+    ConceptoTarifarioResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        concepto_cargo_id:
+          type: string
+          title: Concepto Cargo Id
+        tarifa_unitaria:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Tarifa Unitaria
+        monto_minimo:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Monto Minimo
+        monto_maximo:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Monto Maximo
+      type: object
+      required:
+      - id
+      - concepto_cargo_id
+      - tarifa_unitaria
+      - monto_minimo
+      - monto_maximo
+      title: ConceptoTarifarioResponse
     ConciliacionResponse:
       properties:
         id:
@@ -2792,6 +3918,27 @@ components:
       - fuente_reporte
       - conciliado_en
       title: ConciliacionResponse
+    ControlSoc2Response:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo_control:
+          type: string
+          title: Codigo Control
+        nombre:
+          type: string
+          title: Nombre
+        categoria:
+          type: string
+          title: Categoria
+      type: object
+      required:
+      - id
+      - codigo_control
+      - nombre
+      - categoria
+      title: ControlSoc2Response
     CrearIncidenteRequest:
       properties:
         tipo_incidente_id:
@@ -2972,6 +4119,42 @@ components:
       required:
       - causa_raiz
       title: EditarCausaRaizRequest
+    EvidenciaSoc2ResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        control_soc2_id:
+          type: string
+          title: Control Soc2 Id
+        periodo_inicio:
+          type: string
+          format: date
+          title: Periodo Inicio
+        periodo_fin:
+          type: string
+          format: date
+          title: Periodo Fin
+        ruta_artefacto:
+          type: string
+          title: Ruta Artefacto
+        hash_artefacto:
+          type: string
+          title: Hash Artefacto
+        generado_en:
+          type: string
+          format: date-time
+          title: Generado En
+      type: object
+      required:
+      - id
+      - control_soc2_id
+      - periodo_inicio
+      - periodo_fin
+      - ruta_artefacto
+      - hash_artefacto
+      - generado_en
+      title: EvidenciaSoc2ResumenResponse
     FacturaDetalleResponse:
       properties:
         factura:
@@ -3124,6 +4307,25 @@ components:
       - muestra_n
       - calculado_en
       title: FranjaTiempoEsperaResponse
+    GrupoTacticoResponse:
+      properties:
+        clave:
+          type: string
+          title: Clave
+        subtotal:
+          type: integer
+          title: Subtotal
+        metrica_principal:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Metrica Principal
+      type: object
+      required:
+      - clave
+      - subtotal
+      - metrica_principal
+      title: GrupoTacticoResponse
     HTTPValidationError:
       properties:
         detail:
@@ -3202,6 +4404,31 @@ components:
       - detectado_en
       - estado
       title: IncidenteResponse
+    InformeTacticoResponse:
+      properties:
+        modulo_codigo:
+          type: string
+          title: Modulo Codigo
+        grupos:
+          items:
+            $ref: '#/components/schemas/GrupoTacticoResponse'
+          type: array
+          title: Grupos
+        total_general:
+          type: integer
+          title: Total General
+        calculado_en:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Calculado En
+      type: object
+      required:
+      - modulo_codigo
+      - grupos
+      - total_general
+      - calculado_en
+      title: InformeTacticoResponse
     IniciarTareaRequest:
       properties:
         tipo_tarea_id:
@@ -3512,6 +4739,49 @@ components:
       required:
       - pantalla_id
       title: PantallaRegistrarResponse
+    PantallaResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        terminal_id:
+          type: string
+          title: Terminal Id
+        codigo:
+          type: string
+          title: Codigo
+        plantilla_id:
+          type: string
+          title: Plantilla Id
+        ubicacion_descripcion:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ubicacion Descripcion
+        estado:
+          type: string
+          title: Estado
+        ultima_senal_en:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ultima Senal En
+        version_firmware:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Firmware
+      type: object
+      required:
+      - id
+      - terminal_id
+      - codigo
+      - plantilla_id
+      - ubicacion_descripcion
+      - estado
+      - ultima_senal_en
+      - version_firmware
+      title: PantallaResumenResponse
     PerfilResponse:
       properties:
         usuario_id:
@@ -3629,6 +4899,32 @@ components:
       - plantilla_id
       - version
       title: PlantillaPublicarResponse
+    PlantillaResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        nombre:
+          type: string
+          title: Nombre
+        definicion_json:
+          additionalProperties: true
+          type: object
+          title: Definicion Json
+        version:
+          type: integer
+          title: Version
+        vigente_desde:
+          type: string
+          title: Vigente Desde
+      type: object
+      required:
+      - id
+      - nombre
+      - definicion_json
+      - version
+      - vigente_desde
+      title: PlantillaResumenResponse
     PostMortemDetalleResponse:
       properties:
         post_mortem:
@@ -3688,6 +4984,39 @@ components:
       - publicado_en
       - tiempo_resolucion_min
       title: PostMortemResponse
+    PostMortemResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        incidente_ref:
+          type: string
+          title: Incidente Ref
+        severidad:
+          type: string
+          title: Severidad
+        estado:
+          type: string
+          title: Estado
+        iniciado_en:
+          type: string
+          format: date-time
+          title: Iniciado En
+        publicado_en:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Publicado En
+      type: object
+      required:
+      - id
+      - incidente_ref
+      - severidad
+      - estado
+      - iniciado_en
+      - publicado_en
+      title: PostMortemResumenResponse
     PublicarArticuloRequest:
       properties:
         titulo:
@@ -3748,6 +5077,69 @@ components:
       required:
       - changelog_id
       title: PublicarChangelogResponse
+    PuertaCrearRequest:
+      properties:
+        terminal_id:
+          type: integer
+          title: Terminal Id
+        codigo:
+          type: string
+          maxLength: 10
+          minLength: 1
+          title: Codigo
+        tipo:
+          type: string
+          title: Tipo
+        envergadura_max_m:
+          type: number
+          title: Envergadura Max M
+        tiene_pasarela:
+          type: boolean
+          title: Tiene Pasarela
+          default: false
+      type: object
+      required:
+      - terminal_id
+      - codigo
+      - tipo
+      - envergadura_max_m
+      title: PuertaCrearRequest
+    PuertaCrearResponse:
+      properties:
+        puerta_id:
+          type: string
+          title: Puerta Id
+      type: object
+      required:
+      - puerta_id
+      title: PuertaCrearResponse
+    PuertaEditarRequest:
+      properties:
+        terminal_id:
+          type: integer
+          title: Terminal Id
+        codigo:
+          type: string
+          maxLength: 10
+          minLength: 1
+          title: Codigo
+        tipo:
+          type: string
+          title: Tipo
+        envergadura_max_m:
+          type: number
+          title: Envergadura Max M
+        tiene_pasarela:
+          type: boolean
+          title: Tiene Pasarela
+          default: false
+      type: object
+      required:
+      - terminal_id
+      - codigo
+      - tipo
+      - envergadura_max_m
+      title: PuertaEditarRequest
     PuertaTableroResponse:
       properties:
         id:
@@ -3928,6 +5320,42 @@ components:
       required:
       - reporte_id
       title: RegistrarReporteResponse
+    ReporteDgacResumenResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        tipo_reporte_id:
+          type: string
+          title: Tipo Reporte Id
+        periodo_inicio:
+          type: string
+          format: date
+          title: Periodo Inicio
+        periodo_fin:
+          type: string
+          format: date
+          title: Periodo Fin
+        contenido_ref:
+          type: string
+          title: Contenido Ref
+        hash_contenido:
+          type: string
+          title: Hash Contenido
+        emitido_en:
+          type: string
+          format: date-time
+          title: Emitido En
+      type: object
+      required:
+      - id
+      - tipo_reporte_id
+      - periodo_inicio
+      - periodo_fin
+      - contenido_ref
+      - hash_contenido
+      - emitido_en
+      title: ReporteDgacResumenResponse
     ResponderTicketRequest:
       properties:
         cuerpo:
@@ -4019,6 +5447,45 @@ components:
       - fin_real
       - estado
       title: TareaResponse
+    TarifarioResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        nombre:
+          type: string
+          title: Nombre
+        moneda:
+          type: string
+          title: Moneda
+        vigente_desde:
+          type: string
+          format: date
+          title: Vigente Desde
+        vigente_hasta:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Vigente Hasta
+        estado:
+          type: string
+          title: Estado
+        conceptos:
+          items:
+            $ref: '#/components/schemas/ConceptoTarifarioResponse'
+          type: array
+          title: Conceptos
+      type: object
+      required:
+      - id
+      - nombre
+      - moneda
+      - vigente_desde
+      - vigente_hasta
+      - estado
+      - conceptos
+      title: TarifarioResponse
     TenantActualizarRequest:
       properties:
         razon_social:
@@ -4136,6 +5603,66 @@ components:
       - estado
       - es_sandbox
       title: TenantResumenResponse
+    TerminalCrearRequest:
+      properties:
+        codigo:
+          type: string
+          maxLength: 10
+          minLength: 1
+          title: Codigo
+        nombre:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Nombre
+      type: object
+      required:
+      - codigo
+      - nombre
+      title: TerminalCrearRequest
+    TerminalCrearResponse:
+      properties:
+        terminal_id:
+          type: string
+          title: Terminal Id
+      type: object
+      required:
+      - terminal_id
+      title: TerminalCrearResponse
+    TerminalListadoResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        nombre:
+          type: string
+          title: Nombre
+      type: object
+      required:
+      - id
+      - codigo
+      - nombre
+      title: TerminalListadoResponse
+    TerminalResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        nombre:
+          type: string
+          title: Nombre
+      type: object
+      required:
+      - id
+      - codigo
+      - nombre
+      title: TerminalResponse
     TicketDetalleResponse:
       properties:
         ticket:
@@ -4232,6 +5759,73 @@ components:
       - fecha
       - franjas
       title: TiemposEsperaResponse
+    TipoIncidenteResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        descripcion:
+          type: string
+          title: Descripcion
+        categoria:
+          type: string
+          title: Categoria
+      type: object
+      required:
+      - id
+      - codigo
+      - descripcion
+      - categoria
+      title: TipoIncidenteResponse
+    TipoReporteRegulatorioResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        nombre:
+          type: string
+          title: Nombre
+        periodicidad:
+          type: string
+          title: Periodicidad
+        autoridad:
+          type: string
+          title: Autoridad
+      type: object
+      required:
+      - id
+      - codigo
+      - nombre
+      - periodicidad
+      - autoridad
+      title: TipoReporteRegulatorioResponse
+    TipoTareaResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        codigo:
+          type: string
+          title: Codigo
+        nombre:
+          type: string
+          title: Nombre
+        duracion_estandar_min:
+          type: integer
+          title: Duracion Estandar Min
+      type: object
+      required:
+      - id
+      - codigo
+      - nombre
+      - duracion_estandar_min
+      title: TipoTareaResponse
     TipoVueloResponse:
       properties:
         id:
@@ -4249,6 +5843,42 @@ components:
       - codigo
       - descripcion
       title: TipoVueloResponse
+    TransicionResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        usuario_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Usuario Id
+        rol_codigo:
+          type: string
+          title: Rol Codigo
+        estado_anterior:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Estado Anterior
+        estado_nuevo:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Estado Nuevo
+        ocurrido_en:
+          type: string
+          format: date-time
+          title: Ocurrido En
+      type: object
+      required:
+      - id
+      - usuario_id
+      - rol_codigo
+      - estado_anterior
+      - estado_nuevo
+      - ocurrido_en
+      title: TransicionResponse
     TurnaroundResponse:
       properties:
         id:
@@ -4572,6 +6202,70 @@ components:
       required:
       - vuelo_id
       title: VueloCrearResponse
+    VueloListadoResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        aerolinea_id:
+          type: string
+          title: Aerolinea Id
+        aeronave_id:
+          type: string
+          title: Aeronave Id
+        numero_vuelo:
+          type: string
+          title: Numero Vuelo
+        tipo_vuelo_id:
+          type: string
+          title: Tipo Vuelo Id
+        fecha_operacion:
+          type: string
+          format: date
+          title: Fecha Operacion
+        sentido:
+          type: string
+          title: Sentido
+        aeropuerto_origen_id:
+          type: string
+          title: Aeropuerto Origen Id
+        aeropuerto_destino_id:
+          type: string
+          title: Aeropuerto Destino Id
+        sta_utc:
+          type: string
+          format: date-time
+          title: Sta Utc
+        std_utc:
+          type: string
+          format: date-time
+          title: Std Utc
+        pax_estimado:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Pax Estimado
+        codigo_estado:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Codigo Estado
+      type: object
+      required:
+      - id
+      - aerolinea_id
+      - aeronave_id
+      - numero_vuelo
+      - tipo_vuelo_id
+      - fecha_operacion
+      - sentido
+      - aeropuerto_origen_id
+      - aeropuerto_destino_id
+      - sta_utc
+      - std_utc
+      - pax_estimado
+      - codigo_estado
+      title: VueloListadoResponse
 tags:
 - name: auth
   description: Login, sesion, perfil de acceso, invitaciones y ciclo de vida de la

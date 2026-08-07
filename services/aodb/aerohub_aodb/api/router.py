@@ -33,6 +33,7 @@ from ..application import (
     consultar_tipos_vuelo,
     consultar_vuelo,
     desuscribir_de_estado_vuelo,
+    listar_vuelos,
     registrar_cambio_estado,
     suscribir_a_estado_vuelo,
 )
@@ -88,6 +89,22 @@ class VueloConsultaResponse(BaseModel):
     sta_utc: datetime
     std_utc: datetime
     pax_estimado: int | None
+
+
+class VueloListadoResponse(BaseModel):
+    id: str
+    aerolinea_id: str
+    aeronave_id: str
+    numero_vuelo: str
+    tipo_vuelo_id: str
+    fecha_operacion: date
+    sentido: str
+    aeropuerto_origen_id: str
+    aeropuerto_destino_id: str
+    sta_utc: datetime
+    std_utc: datetime
+    pax_estimado: int | None
+    codigo_estado: str | None
 
 
 class CambioEstadoRequest(BaseModel):
@@ -221,6 +238,39 @@ def crear_vuelo(cuerpo: VueloCrearRequest) -> VueloCrearResponse:
     except VueloInvalido as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return VueloCrearResponse(vuelo_id=str(resultado.vuelo_id))
+
+
+@router.get(
+    "",
+    response_model=list[VueloListadoResponse],
+    dependencies=[Depends(requiere_scope("vuelos:leer"))],
+)
+def listar_vuelos_endpoint(
+    fecha_operacion: date | None = None, codigo_estado: str | None = None
+) -> list[VueloListadoResponse]:
+    """Listado de vuelos del tenant, mas reciente primero, con filtros
+    opcionales de fecha y estado actual (Fase 3 de
+    docs/diseno/PLAN_CORRECCION_MODULOS.md, causa raiz D): antes de este
+    endpoint la vista nucleo no podia mostrar nada al entrar, solo tras
+    un evento de WebSocket."""
+    return [
+        VueloListadoResponse(
+            id=str(v.id),
+            aerolinea_id=str(v.aerolinea_id),
+            aeronave_id=str(v.aeronave_id),
+            numero_vuelo=v.numero_vuelo,
+            tipo_vuelo_id=str(v.tipo_vuelo_id),
+            fecha_operacion=v.fecha_operacion,
+            sentido=v.sentido,
+            aeropuerto_origen_id=str(v.aeropuerto_origen_id),
+            aeropuerto_destino_id=str(v.aeropuerto_destino_id),
+            sta_utc=v.sta_utc,
+            std_utc=v.std_utc,
+            pax_estimado=v.pax_estimado,
+            codigo_estado=v.codigo_estado,
+        )
+        for v in listar_vuelos(fecha_operacion=fecha_operacion, codigo_estado=codigo_estado)
+    ]
 
 
 @router.get(

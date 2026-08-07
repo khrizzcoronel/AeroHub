@@ -10,7 +10,7 @@ from aerohub_repository.contexto import contexto_tenant_id
 from sqlalchemy import BigInteger, Column, MetaData, Numeric, String, Table, select
 from sqlalchemy.engine import Connection, Row
 
-from .tablas import asignacion_puerta, puerta, vuelo
+from .tablas import asignacion_puerta, puerta, terminal, vuelo
 
 _metadata_catalogo = MetaData()
 
@@ -56,6 +56,32 @@ def obtener_asignacion_por_id(conn: Connection, asignacion_id: int) -> Row | Non
 def listar_puertas(conn: Connection) -> list[Row]:
     stmt = select(puerta).where(puerta.c.tenant_id == contexto_tenant_id())
     return list(conn.execute(stmt))
+
+
+def listar_terminales(conn: Connection) -> list[Row]:
+    stmt = select(terminal).where(terminal.c.tenant_id == contexto_tenant_id())
+    return list(conn.execute(stmt))
+
+
+def obtener_terminal_por_id(conn: Connection, terminal_id: int) -> Row | None:
+    stmt = select(terminal).where(
+        terminal.c.tenant_id == contexto_tenant_id(), terminal.c.id == terminal_id
+    )
+    return conn.execute(stmt).first()
+
+
+def obtener_terminal_por_codigo(conn: Connection, codigo: str) -> Row | None:
+    stmt = select(terminal).where(
+        terminal.c.tenant_id == contexto_tenant_id(), terminal.c.codigo == codigo
+    )
+    return conn.execute(stmt).first()
+
+
+def obtener_puerta_por_codigo(conn: Connection, codigo: str) -> Row | None:
+    stmt = select(puerta).where(
+        puerta.c.tenant_id == contexto_tenant_id(), puerta.c.codigo == codigo
+    )
+    return conn.execute(stmt).first()
 
 
 def listar_asignaciones_que_ocupan_puerta(conn: Connection, *, puerta_id: int) -> list[Row]:

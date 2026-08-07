@@ -11,10 +11,10 @@ from dataclasses import dataclass
 from aerohub_kernel import ahora_utc
 
 from ..domain import TransicionUsuarioInvalida, validar_transicion_estado_usuario
-from .gestionar_invitacion import RolDestinoInvalido
 from ..infrastructure import (
     actualizar_estado_usuario as _actualizar_estado_usuario,
 )
+from ..infrastructure import contexto_tenant_id as _contexto_tenant_id
 from ..infrastructure import (
     contexto_usuario_id,
     escribir_journal,
@@ -24,8 +24,8 @@ from ..infrastructure import (
     reintentar_en_conflicto,
     sesion,
 )
-from ..infrastructure import contexto_tenant_id as _contexto_tenant_id
 from ..infrastructure import obtener_usuario_con_rol_por_id as _obtener_usuario_con_rol_por_id
+from .gestionar_invitacion import RolDestinoInvalido
 
 
 class UsuarioDelTenantNoEncontrado(Exception):
@@ -120,7 +120,9 @@ def cambiar_estado_usuario(*, usuario_id: int, estado_nuevo: str) -> UsuarioDeta
         except TransicionUsuarioInvalida:
             raise
 
-        _actualizar_estado_usuario(conn, id=usuario_id, estado_nuevo=estado_nuevo)
+        _actualizar_estado_usuario(
+            conn, id=usuario_id, tenant_id=tenant_id, estado_nuevo=estado_nuevo
+        )
         escribir_journal(
             conn,
             esquema="tenants",

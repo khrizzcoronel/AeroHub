@@ -47,14 +47,35 @@
   color: var(--ah-danger-600);
 }
 
-.accion-inactiva {
-  font-size: 0.8rem;
-  color: var(--ah-ink-400);
-  font-style: italic;
-}
-
 .modal-secreto {
   border-top: 4px solid var(--ah-brand-500);
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-titulo-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.modal-titulo-grupo h2 {
+  margin: 0;
+}
+
+.modal-separador {
+  border-top: 1px solid var(--ah-line-200);
+  margin: 0.25rem 0;
+}
+
+.modal-acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .secreto-aviso {

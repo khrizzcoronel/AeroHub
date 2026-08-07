@@ -22,13 +22,14 @@ from .comandos import (
 )
 from .consultas import (
     buscar_articulos_kb,
-    listar_changelog,
     listar_categorias_ticket,
+    listar_changelog,
     listar_etiquetas_de_articulo,
     listar_items_de_changelog,
     listar_mensajes_de_ticket,
     listar_tickets_de_tenant,
     listar_tickets_global,
+    listar_transiciones_estado_ticket,
     obtener_articulo_kb_por_id,
     obtener_categoria_ticket_por_id,
     obtener_etiqueta_por_nombre,
@@ -54,6 +55,7 @@ __all__ = [
     "listar_tickets_de_tenant",
     "listar_tickets_global",
     "listar_mensajes_de_ticket",
+    "listar_transiciones_estado_ticket",
     "obtener_version_maxima_articulo",
     "obtener_articulo_kb_por_id",
     "obtener_etiqueta_por_nombre",

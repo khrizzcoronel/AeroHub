@@ -59,16 +59,9 @@
               <td>{{ k.creada_en | date: 'dd/MM/yyyy HH:mm' }}</td>
               <td>{{ k.rotada_en ? (k.rotada_en | date: 'dd/MM/yyyy HH:mm') : '-' }}</td>
               <td>
-                @if (k.estado === 'activa') {
-                  <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="rotar(k)" [disabled]="procesando()">
-                    Rotar
-                  </button>
-                  <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm btn-revocar" (click)="revocar(k)" [disabled]="procesando()">
-                    Revocar
-                  </button>
-                } @else {
-                  <span class="accion-inactiva">Sin acciones</span>
-                }
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalle(k)">
+                  Ver detalles
+                </button>
               </td>
             </tr>
           }
@@ -94,6 +87,46 @@
     }
   }
 </section>
+
+@if (apiKeyViendoDetalle(); as k) {
+  <div class="ah-modal-fondo" (click)="cerrarDetalle()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <div class="modal-titulo-grupo">
+          <h2><code>{{ k.prefijo }}</code></h2>
+          <span class="ah-pill" [class]="claseEstado(k.estado)">{{ k.estado }}</span>
+        </div>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarDetalle()" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="formulario">
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Fecha de creación</span>
+          <p>{{ k.creada_en | date: 'dd/MM/yyyy HH:mm' }}</p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Última rotación</span>
+          <p>{{ k.rotada_en ? (k.rotada_en | date: 'dd/MM/yyyy HH:mm') : 'Nunca rotada' }}</p>
+        </div>
+
+        @if (k.estado === 'activa') {
+          <div class="modal-separador"></div>
+          <p class="ah-campo__etiqueta">Acciones -- una llave no se edita, solo se rota o se revoca</p>
+          <div class="modal-acciones">
+            <button type="button" class="ah-btn ah-btn--secundario" (click)="rotar(k)" [disabled]="procesando()">
+              Rotar
+            </button>
+            <button type="button" class="ah-btn ah-btn--secundario btn-revocar" (click)="revocar(k)" [disabled]="procesando()">
+              Revocar
+            </button>
+          </div>
+        } @else {
+          <div class="modal-separador"></div>
+          <p class="ah-vacio">Esta llave ya no está activa -- sin acciones disponibles.</p>
+        }
+      </div>
+    </div>
+  </div>
+}
 
 @if (secretoGenerado(); as secreto) {
   <div class="ah-modal-fondo" (click)="cerrarModalSecreto()">

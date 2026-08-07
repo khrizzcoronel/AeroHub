@@ -3,6 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { BillingService, Factura, FacturaDetalle } from '../billing.service';
+import { AuthService } from '../../auth/auth.service';
 
 // Semaforo de estado de factura (Sprint S1.13, research.md Decision 1):
 // mapeo exhaustivo de los 5 valores de chk_factura_estado.
@@ -17,6 +18,18 @@ export function claseEstadoFactura(estado: string): string {
     return 'ah-pill--ok';
   }
   return ''; // 'borrador' -- neutro
+}
+
+const ETIQUETAS_ESTADO_FACTURA: Record<string, string> = {
+  borrador: 'Borrador',
+  emitida: 'Emitida',
+  pagada: 'Pagada',
+  vencida: 'Vencida',
+  disputada: 'Disputada',
+};
+
+export function etiquetaEstadoFactura(estado: string): string {
+  return ETIQUETAS_ESTADO_FACTURA[estado] ?? estado;
 }
 
 const ESTADOS_FACTURA = ['borrador', 'emitida', 'pagada', 'vencida', 'disputada'] as const;
@@ -43,6 +56,7 @@ export class PanelFacturas {
   protected readonly motivoDisputa = signal('');
 
   protected readonly claseEstadoFactura = claseEstadoFactura;
+  protected readonly etiquetaEstadoFactura = etiquetaEstadoFactura;
   protected readonly ESTADOS_FACTURA = ESTADOS_FACTURA;
 
   // Panel de busqueda + paginacion (S1.14, §3.0) -- sobre la lista ya
@@ -72,6 +86,24 @@ export class PanelFacturas {
   protected readonly mostrarModalCalcular = signal(false);
 
   private readonly billingService = inject(BillingService);
+  private readonly auth = inject(AuthService);
+
+  // Fase 1 de docs/diseno/PLAN_CORRECCION_MODULOS.md (2026-08-06, D1(a)):
+  // role_tenant_admin perdio billing:escribir (la matriz reserva billing
+  // a role_billing_officer) -- ocultar "Calcular facturacion", "Emitir
+  // factura" y "Disputar factura" para quien no tiene el scope.
+  protected readonly puedeEscribir = computed(() =>
+    (this.auth.perfil()?.scopes ?? []).includes('billing:escribir'),
+  );
+
+  // Hallazgo de UX (pedido directo del usuario, 2026-08-05): la vista no
+  // mostraba nada hasta presionar "Cargar facturas" -- listarFacturas()
+  // no recibe parametros (el filtro es 100% client-side), asi que no hay
+  // motivo para no cargar de entrada, mismo criterio que el resto de
+  // paneles (tarifarios, compliance, soporte) desde su propio sprint.
+  constructor() {
+    this.cargarFacturas();
+  }
 
   protected cargarFacturas(): void {
     this.error.set(null);

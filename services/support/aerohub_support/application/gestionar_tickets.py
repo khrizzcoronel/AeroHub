@@ -32,6 +32,7 @@ from ..infrastructure import (
     listar_mensajes_de_ticket,
     listar_tickets_de_tenant,
     listar_tickets_global,
+    listar_transiciones_estado_ticket,
     obtener_categoria_ticket_por_id,
     obtener_ticket_por_id_de_tenant,
     obtener_ticket_por_id_global,
@@ -118,6 +119,16 @@ class MensajeTablero:
     cuerpo: str
     enviado_en: datetime
     es_interno: bool
+
+
+@dataclass(frozen=True, slots=True)
+class TransicionTablero:
+    id: int
+    usuario_id: int | None
+    rol_codigo: str
+    estado_anterior: str | None
+    estado_nuevo: str | None
+    ocurrido_en: datetime
 
 
 def _es_role_support() -> bool:
@@ -395,6 +406,46 @@ def consultar_ticket(*, ticket_id: int) -> tuple[TicketTablero, list[MensajeTabl
         todos = listar_mensajes_de_ticket(conn, ticket_id=ticket_id)
         mensajes = [m for m in todos if not m.es_interno]
     return _a_tablero(fila), [_mensaje_a_tablero(m) for m in mensajes]
+
+
+def consultar_transiciones_ticket(*, ticket_id: int) -> list[TransicionTablero]:
+    """Fase 3 de docs/diseno/PLAN_CORRECCION_MODULOS.md (item 8):
+    linea de tiempo de cambios de estado de un ticket, para completar el
+    hilo de mensajes con "quien cambio el estado y cuando" -- el dato ya
+    se registraba en compliance.log_auditoria desde S1.8, solo faltaba
+    exponerlo. Mismo patron de 2 ramas que consultar_ticket: role_support
+    ve las transiciones de cualquier tenant (alcance_global), el resto
+    solo las de su propio tenant (PN-01, filtro explicito por
+    tenant_id porque log_auditoria es alcance 'interno', el guardian no
+    lo filtra automaticamente)."""
+    es_support = _es_role_support()
+
+    if es_support:
+        with alcance_global(motivo=_MOTIVO_ALCANCE_GLOBAL, rol=_ROL_SUPPORT), sesion() as conn:
+            if obtener_ticket_por_id_global(conn, ticket_id=ticket_id) is None:
+                raise TicketNoEncontrado(f"ticket {ticket_id} no encontrado")
+            filas = listar_transiciones_estado_ticket(conn, ticket_id=ticket_id, tenant_id=None)
+        return [_transicion_a_tablero(f) for f in filas]
+
+    tenant_id = contexto_tenant_id()
+    with sesion() as conn:
+        if obtener_ticket_por_id_de_tenant(conn, ticket_id=ticket_id) is None:
+            raise TicketNoEncontrado(f"ticket {ticket_id} no encontrado")
+        filas = listar_transiciones_estado_ticket(conn, ticket_id=ticket_id, tenant_id=tenant_id)
+    return [_transicion_a_tablero(f) for f in filas]
+
+
+def _transicion_a_tablero(fila) -> TransicionTablero:  # noqa: ANN001
+    anteriores = fila.valores_anteriores or {}
+    nuevos = fila.valores_nuevos or {}
+    return TransicionTablero(
+        id=fila.id,
+        usuario_id=fila.usuario_id,
+        rol_codigo=fila.rol_codigo,
+        estado_anterior=anteriores.get("estado"),
+        estado_nuevo=nuevos.get("estado"),
+        ocurrido_en=fila.ocurrido_en,
+    )
 
 
 def consultar_tickets(

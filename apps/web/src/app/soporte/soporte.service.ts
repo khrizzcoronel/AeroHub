@@ -40,6 +40,15 @@ export interface TicketDetalle {
   mensajes: Mensaje[];
 }
 
+export interface Transicion {
+  id: string;
+  usuario_id: string | null;
+  rol_codigo: string;
+  estado_anterior: string | null;
+  estado_nuevo: string | null;
+  ocurrido_en: string;
+}
+
 export interface CrearTicketRequest {
   categoria_id: string;
   severidad: 'baja' | 'media' | 'alta' | 'critica';
@@ -118,6 +127,13 @@ export class SoporteService {
 
   obtenerTicket(id: string): Observable<TicketDetalle> {
     return this.http.get<TicketDetalle>(`${API_BASE_URL}/support/tickets/${id}`);
+  }
+
+  // Fase 3/4 de docs/diseno/PLAN_CORRECCION_MODULOS.md -- linea de tiempo
+  // de cambios de estado, cerrada en el backend en Fase 3 sin ningun
+  // consumidor de interfaz hasta ahora.
+  listarTransicionesTicket(id: string): Observable<Transicion[]> {
+    return this.http.get<Transicion[]>(`${API_BASE_URL}/support/tickets/${id}/transiciones`);
   }
 
   responderTicket(

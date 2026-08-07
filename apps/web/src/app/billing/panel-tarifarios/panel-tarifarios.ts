@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { mensajeDeError } from '../../auth/auth.service';
+import { AuthService, mensajeDeError } from '../../auth/auth.service';
 import { ToastService } from '../../shared/toast.service';
 import {
   BillingService,
@@ -38,9 +38,18 @@ export function etiquetaEstadoTarifario(estado: string): string {
 export class PanelTarifarios {
   private readonly billingService = inject(BillingService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
 
   protected readonly claseEstadoTarifario = claseEstadoTarifario;
   protected readonly etiquetaEstadoTarifario = etiquetaEstadoTarifario;
+
+  // Fase 1 de docs/diseno/PLAN_CORRECCION_MODULOS.md (2026-08-06, D1(a)):
+  // role_tenant_admin perdio billing:escribir -- ocultar "Nuevo
+  // tarifario", "Agregar concepto", "Activar", "Nueva conciliación" y
+  // "Conciliar" para quien no tiene el scope.
+  protected readonly puedeEscribir = computed(() =>
+    (this.auth.perfil()?.scopes ?? []).includes('billing:escribir'),
+  );
 
   protected readonly cargando = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -190,6 +199,9 @@ export class PanelTarifarios {
   }
 
   protected abrirModalAgregarConcepto(t: Tarifario): void {
+    // Cierra el modal de detalles antes de abrir este (mismo criterio que
+    // tenant-list: nunca dos modales superpuestos a la vez).
+    this.tarifarioViendoConceptos.set(null);
     this.errorAgregarConcepto.set(null);
     this.conceptoCargoId.set('');
     this.tarifaUnitaria.set('');
@@ -229,6 +241,7 @@ export class PanelTarifarios {
   // Activar (US1, FR-003) -- el modal muestra el aviso de inmutabilidad
   // ANTES de invocar el endpoint, nunca activa directo desde la fila.
   protected abrirModalActivar(t: Tarifario): void {
+    this.tarifarioViendoConceptos.set(null);
     this.errorActivar.set(null);
     this.tarifarioActivando.set(t);
   }

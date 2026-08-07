@@ -15,8 +15,11 @@ GRANT SELECT, INSERT, UPDATE ON tenants.sesion TO role_platform_admin;
 GRANT SELECT, INSERT, UPDATE ON tenants.token_acceso TO role_platform_admin;
 GRANT SELECT, INSERT ON tenants.intento_acceso TO role_platform_admin;
 
+-- role_tenant_admin ya tiene este GRANT desde 92_grants_tenants.sql --
+-- repetirlo aqui hacia fallar `db/migrations/apply.py` contra un motor
+-- recien creado con "01007!GRANT: ... already has this privilege"
+-- (hallazgo real, 2026-08-06, al aplicar el DDL completo desde cero).
 GRANT SELECT, INSERT, UPDATE ON tenants.invitacion TO role_platform_admin;
-GRANT SELECT, INSERT, UPDATE ON tenants.invitacion TO role_tenant_admin;
 
 -- Diagnostico de soporte/SRE sobre intentos de acceso, mismo criterio que
 -- la lectura de journal_mutacion (94_grants_continuidad.sql).

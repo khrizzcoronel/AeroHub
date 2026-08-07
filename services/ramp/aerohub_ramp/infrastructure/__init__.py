@@ -16,6 +16,7 @@ from .comandos import (
 from .consultas import (
     listar_incidencias,
     listar_tareas_de_turnaround,
+    listar_tipos_tarea,
     listar_turnarounds,
     obtener_tarea_turnaround_por_id,
     obtener_tipo_incidencia_por_codigo,
@@ -42,6 +43,7 @@ __all__ = [
     "obtener_turnaround_por_vuelo_llegada",
     "obtener_tarea_turnaround_por_id",
     "listar_tareas_de_turnaround",
+    "listar_tipos_tarea",
     "listar_turnarounds",
     "listar_incidencias",
     "sesion",

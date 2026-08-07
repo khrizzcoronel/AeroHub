@@ -12,6 +12,18 @@ from .consultar_asignaciones import (
     PuertaTablero,
     consultar_tablero_de_puertas,
 )
+from .gestionar_puertas import (
+    PuertaDuplicada,
+    ResultadoCrearPuerta,
+    ResultadoCrearTerminal,
+    TerminalDuplicada,
+    TerminalListado,
+    TerminalNoEncontrada,
+    actualizar_puerta,
+    crear_puerta,
+    crear_terminal,
+    listar_terminales_del_tenant,
+)
 from .informes import (
     GrupoInforme,
     InformeCompuesto,
@@ -38,4 +50,14 @@ __all__ = [
     "InformeSimple",
     "InformeCompuesto",
     "GrupoInforme",
+    "crear_terminal",
+    "listar_terminales_del_tenant",
+    "crear_puerta",
+    "actualizar_puerta",
+    "TerminalListado",
+    "ResultadoCrearTerminal",
+    "ResultadoCrearPuerta",
+    "TerminalDuplicada",
+    "PuertaDuplicada",
+    "TerminalNoEncontrada",
 ]

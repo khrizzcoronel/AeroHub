@@ -26,6 +26,11 @@ export class ApiKeyList implements OnInit {
   // Modal para mostrar el secreto recién generado (una sola vez)
   protected readonly secretoGenerado = signal<string | null>(null);
 
+  // Ver detalles (Fase 4 de docs/diseno/PLAN_CORRECCION_MODULOS.md, item
+  // 12): rotar/revocar viven dentro del detalle, nunca como botones de
+  // fila -- sin edición de información (una llave no se edita).
+  protected readonly apiKeyViendoDetalle = signal<ApiKeyResumen | null>(null);
+
   // Paginación
   protected readonly paginaActual = signal(1);
   protected readonly registrosPorPagina = 10;
@@ -87,6 +92,7 @@ export class ApiKeyList implements OnInit {
     this.apiKeyService.rotarApiKey(key.id).subscribe({
       next: (res) => {
         this.procesando.set(false);
+        this.apiKeyViendoDetalle.set(null);
         this.secretoGenerado.set(res.api_key_en_claro);
         this.cargarApiKeys();
         this.toast.mostrar(`API Key con prefijo ${key.prefijo} rotada con éxito`, 'exito');
@@ -104,6 +110,7 @@ export class ApiKeyList implements OnInit {
     this.apiKeyService.revocarApiKey(key.id).subscribe({
       next: () => {
         this.procesando.set(false);
+        this.apiKeyViendoDetalle.set(null);
         this.cargarApiKeys();
         this.toast.mostrar(`API Key ${key.prefijo} revocada de inmediato`, 'exito');
       },
@@ -122,6 +129,14 @@ export class ApiKeyList implements OnInit {
 
   protected cerrarModalSecreto(): void {
     this.secretoGenerado.set(null);
+  }
+
+  protected verDetalle(key: ApiKeyResumen): void {
+    this.apiKeyViendoDetalle.set(key);
+  }
+
+  protected cerrarDetalle(): void {
+    this.apiKeyViendoDetalle.set(null);
   }
 
   protected claseEstado(estado: string): string {

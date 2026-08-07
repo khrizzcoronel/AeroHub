@@ -5,7 +5,14 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService, mensajeDeError } from '../../auth/auth.service';
 import { ToastService } from '../../shared/toast.service';
-import { Aerolinea, Aeronave, Aeropuerto, TipoVuelo, VueloService } from '../vuelo.service';
+import {
+  Aerolinea,
+  Aeronave,
+  Aeropuerto,
+  TipoVuelo,
+  VueloConsultado,
+  VueloService,
+} from '../vuelo.service';
 
 // URL del backend compuesto (services/gateway/main.py, Sprint S1.1/S1.2).
 // Ver el comentario equivalente en tenants/tenant.service.ts -- se mueve a
@@ -90,6 +97,16 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
   protected readonly claseDeEstado = claseDeEstado;
   protected readonly etiquetaEstado = etiquetaEstado;
 
+  // Fase 1 de docs/diseno/PLAN_CORRECCION_MODULOS.md (2026-08-06, D1(a)):
+  // role_tenant_admin perdio vuelos:escribir (la matriz de roles reserva
+  // crear vuelos/cambiar estado a role_operations_controller/
+  // role_airline_coordinator) -- ocultar "Nuevo vuelo" y "Cambiar estado"
+  // para quien no tiene el scope, en vez de dejar un boton que siempre
+  // devuelve 403.
+  protected readonly puedeEscribir = computed(() =>
+    (this.auth.perfil()?.scopes ?? []).includes('vuelos:escribir'),
+  );
+
   protected readonly filtroVuelo = signal('');
   protected readonly eventosFiltrados = computed(() => {
     const q = this.filtroVuelo().trim().toLowerCase();
@@ -143,9 +160,12 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
   protected readonly stdUtc = signal('');
   protected readonly paxEstimado = signal<number | null>(null);
 
-  // Modal de cambio de estado -- el vuelo_id viaja de la fila ya cargada
-  // en `eventos`, nunca pedido a mano (research.md Decision 5).
-  protected readonly vueloEditandoEstadoId = signal<string | null>(null);
+  // Ver detalles (Fase 4 de docs/diseno/PLAN_CORRECCION_MODULOS.md, item
+  // 11): la fila ya no abre "Cambiar estado" directo -- abre el detalle
+  // completo del vuelo (GET /vuelos/{id}) y el cambio de estado vive
+  // DENTRO de ese modal, como una accion propia del registro.
+  protected readonly vueloDetalle = signal<VueloConsultado | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected readonly estadoNuevo = signal('');
 
   ngOnInit(): void {
@@ -200,18 +220,44 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
       });
   }
 
-  protected abrirModalCambiarEstado(vueloId: string): void {
+  protected verDetalles(vueloId: string): void {
     this.errorFormulario.set(null);
     this.estadoNuevo.set('');
-    this.vueloEditandoEstadoId.set(vueloId);
+    this.vueloDetalle.set(null);
+    this.cargandoDetalle.set(true);
+    this.vueloService.obtenerVuelo(vueloId).subscribe({
+      next: (v) => {
+        this.vueloDetalle.set(v);
+        this.cargandoDetalle.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.errorFormulario.set(mensajeDeError(err));
+        this.cargandoDetalle.set(false);
+      },
+    });
   }
 
-  protected cerrarModalCambiarEstado(): void {
-    this.vueloEditandoEstadoId.set(null);
+  protected cerrarModalDetalle(): void {
+    this.vueloDetalle.set(null);
+  }
+
+  protected nombreAerolineaDe(id: string): string {
+    const a = this.aerolineas().find((item) => item.id === id);
+    return a ? `${a.nombre} (${a.codigo_iata})` : id;
+  }
+
+  protected nombreAeronaveDe(id: string): string {
+    const a = this.aeronaves().find((item) => item.id === id);
+    return a ? `${a.matricula} — ${a.fabricante} ${a.modelo}` : id;
+  }
+
+  protected nombreAeropuertoDe(id: string): string {
+    const a = this.aeropuertos().find((item) => item.id === id);
+    return a ? `${a.nombre} (${a.codigo_iata})` : id;
   }
 
   protected cambiarEstado(): void {
-    const vueloId = this.vueloEditandoEstadoId();
+    const vueloId = this.vueloDetalle()?.id;
     if (!vueloId) return;
     this.guardando.set(true);
     this.errorFormulario.set(null);
@@ -223,7 +269,7 @@ export class EstadoTiempoReal implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.guardando.set(false);
-          this.vueloEditandoEstadoId.set(null);
+          this.vueloDetalle.set(null);
           // El WS ya conectado recibe el evento en <1s (RNF-P01) y agrega
           // la fila -- no se sintetiza una fila local para no arriesgar
           // una fila duplicada si el evento real llega mientras tanto.

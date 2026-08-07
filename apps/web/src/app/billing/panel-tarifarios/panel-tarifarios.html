@@ -31,9 +31,11 @@
     </div>
   </div>
 
-  <div class="consola__acciones">
-    <button type="button" class="ah-btn" (click)="abrirModalTarifario()">Nuevo tarifario</button>
-  </div>
+  @if (puedeEscribir()) {
+    <div class="consola__acciones">
+      <button type="button" class="ah-btn" (click)="abrirModalTarifario()">Nuevo tarifario</button>
+    </div>
+  }
 
   @if (tarifarios().length === 0) {
     <p class="ah-vacio">Sin tarifarios creados todavía.</p>
@@ -65,14 +67,8 @@
               </td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verConceptos(t)">
-                  Ver conceptos ({{ t.conceptos.length }})
+                  Ver detalles
                 </button>
-                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalAgregarConcepto(t)">
-                  Agregar concepto
-                </button>
-                @if (t.estado === 'borrador') {
-                  <button type="button" class="ah-btn ah-btn--sm" (click)="abrirModalActivar(t)">Activar</button>
-                }
               </td>
             </tr>
           }
@@ -100,9 +96,11 @@
     </div>
   </div>
 
-  <div class="consola__acciones">
-    <button type="button" class="ah-btn" (click)="abrirModalConciliacion()">Nueva conciliación</button>
-  </div>
+  @if (puedeEscribir()) {
+    <div class="consola__acciones">
+      <button type="button" class="ah-btn" (click)="abrirModalConciliacion()">Nueva conciliación</button>
+    </div>
+  }
 
   @if (errorConciliar()) {
     <p class="ah-alerta" role="alert">{{ errorConciliar() }}</p>
@@ -144,7 +142,7 @@
                 }
               </td>
               <td>
-                @if (!c.conciliado_en) {
+                @if (!c.conciliado_en && puedeEscribir()) {
                   <button
                     type="button"
                     class="ah-btn ah-btn--sm"
@@ -205,14 +203,22 @@
   </div>
 }
 
-<!-- Modal: Ver conceptos (US2) -->
+<!-- Modal: Ver detalles de tarifario (US2) -- conceptos + acciones propias -->
 @if (tarifarioViendoConceptos(); as t) {
   <div class="ah-modal-fondo" (click)="cerrarModalConceptos()">
     <div class="ah-modal" (click)="$event.stopPropagation()">
       <div class="ah-modal__cabecera">
-        <h2>Conceptos de {{ t.nombre }}</h2>
+        <div class="modal-titulo-grupo">
+          <h2>{{ t.nombre }}</h2>
+          <span class="ah-pill" [class]="claseEstadoTarifario(t.estado)">{{ etiquetaEstadoTarifario(t.estado) }}</span>
+        </div>
         <button type="button" class="ah-modal__cerrar" (click)="cerrarModalConceptos()" aria-label="Cerrar">✕</button>
       </div>
+
+      <p class="ah-campo__etiqueta">
+        {{ t.moneda }} &middot; vigente desde {{ t.vigente_desde | date: 'dd/MM/yyyy' }}
+        @if (t.vigente_hasta) { hasta {{ t.vigente_hasta | date: 'dd/MM/yyyy' }} }
+      </p>
 
       @if (t.conceptos.length === 0) {
         <p class="ah-vacio">Este tarifario todavía no tiene conceptos agregados.</p>
@@ -236,6 +242,20 @@
           </table>
         </div>
       }
+
+      @if (puedeEscribir()) {
+        <div class="modal-separador"></div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="abrirModalAgregarConcepto(t)">
+            Agregar concepto
+          </button>
+          @if (t.estado === 'borrador') {
+            <button type="button" class="ah-btn" (click)="abrirModalActivar(t)">Activar</button>
+          }
+        </div>
+      }
+
+      <div class="modal-separador"></div>
       <div class="modal-acciones">
         <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalConceptos()">Cerrar</button>
       </div>

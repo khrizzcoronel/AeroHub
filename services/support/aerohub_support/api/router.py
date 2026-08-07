@@ -37,6 +37,7 @@ from ..application import (
     consultar_changelog,
     consultar_ticket,
     consultar_tickets,
+    consultar_transiciones_ticket,
     crear_ticket,
     obtener_articulo,
     obtener_uptime_y_error_budget,
@@ -120,6 +121,15 @@ class ResponderTicketResponse(BaseModel):
 
 class CambiarEstadoTicketRequest(BaseModel):
     estado: Literal["en_progreso", "esperando_cliente", "resuelto", "cerrado"]
+
+
+class TransicionResponse(BaseModel):
+    id: str
+    usuario_id: str | None
+    rol_codigo: str
+    estado_anterior: str | None
+    estado_nuevo: str | None
+    ocurrido_en: datetime
 
 
 def _ticket_response(t) -> TicketResponse:  # noqa: ANN001 -- TicketTablero de application/
@@ -206,6 +216,34 @@ def obtener_ticket_endpoint(ticket_id: int) -> TicketDetalleResponse:
             for m in mensajes
         ],
     )
+
+
+@router.get(
+    "/tickets/{ticket_id}/transiciones",
+    response_model=list[TransicionResponse],
+    dependencies=[Depends(requiere_scope("support:leer"))],
+)
+def listar_transiciones_ticket_endpoint(ticket_id: int) -> list[TransicionResponse]:
+    """Linea de tiempo de cambios de estado del ticket (Fase 3 de
+    docs/diseno/PLAN_CORRECCION_MODULOS.md, item 8): completa el hilo de
+    mensajes con quien cambio el estado, cuando y a que -- antes de este
+    endpoint ese dato ya se registraba (compliance.log_auditoria) pero
+    nunca se exponia."""
+    try:
+        transiciones = consultar_transiciones_ticket(ticket_id=ticket_id)
+    except TicketNoEncontrado as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return [
+        TransicionResponse(
+            id=str(t.id),
+            usuario_id=str(t.usuario_id) if t.usuario_id is not None else None,
+            rol_codigo=t.rol_codigo,
+            estado_anterior=t.estado_anterior,
+            estado_nuevo=t.estado_nuevo,
+            ocurrido_en=t.ocurrido_en,
+        )
+        for t in transiciones
+    ]
 
 
 @router.get(

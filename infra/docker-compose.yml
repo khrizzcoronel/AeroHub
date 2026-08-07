@@ -212,10 +212,17 @@ services:
       AEROHUB_SMTP_TLS: "true"
       AEROHUB_SMTP_REMITENTE: "kacoronelg@gmail.com"
       AEROHUB_URL_BASE_APP: "http://localhost:4200"
+      # Panel táctico demo (M7, pedido del 2026-08-05) -- ver
+      # services/analytics_api/aerohub_analytics_api/infrastructure/__init__.py.
+      # Host interno de la red de Compose, no "localhost" (mismo criterio
+      # que AEROHUB_DB_DSN de arriba).
+      AEROHUB_CLICKHOUSE_HOST: "clickhouse"
     ports:
       - "8000:8000"
     depends_on:
       monetdb:
+        condition: service_healthy
+      clickhouse:
         condition: service_healthy
 
   web:

@@ -10,6 +10,7 @@ from .asignacion_puerta import (
     verificar_compatibilidad_envergadura,
     verificar_no_solapamiento,
 )
+from .puerta import TIPOS_PUERTA, PuertaInvalida, TerminalInvalida, validar_puerta, validar_terminal
 
 __all__ = [
     "AsignacionPuerta",
@@ -22,4 +23,9 @@ __all__ = [
     "puerta_ocupa_intervalo",
     "verificar_compatibilidad_envergadura",
     "verificar_no_solapamiento",
+    "TIPOS_PUERTA",
+    "PuertaInvalida",
+    "TerminalInvalida",
+    "validar_puerta",
+    "validar_terminal",
 ]

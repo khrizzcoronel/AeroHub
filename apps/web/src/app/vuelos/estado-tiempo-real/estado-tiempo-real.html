@@ -18,9 +18,11 @@
       >
         Desconectar
       </button>
-      <button type="button" class="ah-btn" (click)="abrirModalNuevoVuelo()">
-        Nuevo vuelo
-      </button>
+      @if (puedeEscribir()) {
+        <button type="button" class="ah-btn" (click)="abrirModalNuevoVuelo()">
+          Nuevo vuelo
+        </button>
+      }
     </div>
   </div>
 
@@ -78,9 +80,9 @@
                 <button
                   type="button"
                   class="ah-btn ah-btn--secundario ah-btn--sm"
-                  (click)="abrirModalCambiarEstado(evento.vuelo_id)"
+                  (click)="verDetalles(evento.vuelo_id)"
                 >
-                  Cambiar estado
+                  Ver detalles
                 </button>
               </td>
             </tr>
@@ -209,12 +211,12 @@
   </div>
 }
 
-@if (vueloEditandoEstadoId(); as vueloId) {
-  <div class="ah-modal-fondo" (click)="cerrarModalCambiarEstado()">
+@if (vueloDetalle(); as v) {
+  <div class="ah-modal-fondo" (click)="cerrarModalDetalle()">
     <div class="ah-modal" (click)="$event.stopPropagation()">
       <div class="ah-modal__cabecera">
-        <h2>Cambiar estado -- vuelo {{ vueloId }}</h2>
-        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalCambiarEstado()" aria-label="Cerrar">✕</button>
+        <h2>Vuelo {{ v.numero_vuelo }}</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalDetalle()" aria-label="Cerrar">✕</button>
       </div>
 
       @if (errorFormulario()) {
@@ -223,21 +225,50 @@
 
       <div class="formulario">
         <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="estadoNuevo">Nuevo estado</label>
+          <span class="ah-campo__etiqueta">Aerolinea</span>
+          <p>{{ nombreAerolineaDe(v.aerolinea_id) }}</p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Aeronave</span>
+          <p>{{ nombreAeronaveDe(v.aeronave_id) }}</p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Ruta</span>
+          <p>{{ nombreAeropuertoDe(v.aeropuerto_origen_id) }} &rarr; {{ nombreAeropuertoDe(v.aeropuerto_destino_id) }}</p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Fecha de operacion</span>
+          <p>{{ v.fecha_operacion }} ({{ v.sentido === 'L' ? 'llegada' : 'salida' }})</p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Horarios estimados (UTC)</span>
+          <p>STA {{ v.sta_utc }} &middot; STD {{ v.std_utc }}</p>
+        </div>
+        @if (v.pax_estimado !== null) {
+          <div class="ah-campo">
+            <span class="ah-campo__etiqueta">Pax estimado</span>
+            <p>{{ v.pax_estimado }}</p>
+          </div>
+        }
+      </div>
+
+      @if (puedeEscribir()) {
+        <div class="modal-separador"></div>
+        <p class="ah-campo__etiqueta">Cambiar estado</p>
+        <div class="formulario">
           <select id="estadoNuevo" [ngModel]="estadoNuevo()" (ngModelChange)="estadoNuevo.set($event)" name="estadoNuevo">
             <option value="" disabled selected>Seleccionar...</option>
             @for (op of opcionesEstado; track op.value) {
               <option [value]="op.value">{{ op.label }}</option>
             }
           </select>
+          <div class="modal-acciones">
+            <button type="button" class="ah-btn" (click)="cambiarEstado()" [disabled]="guardando() || !estadoNuevo()">
+              Guardar
+            </button>
+          </div>
         </div>
-        <div class="modal-acciones">
-          <button type="button" class="ah-btn" (click)="cambiarEstado()" [disabled]="guardando() || !estadoNuevo()">
-            Guardar
-          </button>
-          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalCambiarEstado()">Cancelar</button>
-        </div>
-      </div>
+      }
     </div>
   </div>
 }

@@ -186,9 +186,6 @@ export class TenantList {
       });
   }
 
-  protected readonly tenantAEliminar = signal<TenantResumen | null>(null);
-  protected readonly eliminando = signal(false);
-
   protected cambiarEstadoDesdeModal(tenantId: string, estadoNuevo: string): void {
     this.error.set(null);
     this.tenantService.cambiarEstadoTenant(tenantId, estadoNuevo).subscribe({
@@ -198,34 +195,6 @@ export class TenantList {
         this.toast.mostrar(`Estado actualizado a: ${etiquetaEstadoTenant(estadoNuevo)}`, 'exito');
       },
       error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
-    });
-  }
-
-  protected solicitarEliminacionFisica(t: TenantResumen): void {
-    this.tenantEditando.set(null);
-    this.tenantAEliminar.set(t);
-  }
-
-  protected cancelarEliminacionFisica(): void {
-    this.tenantAEliminar.set(null);
-  }
-
-  protected confirmarEliminacionFisica(): void {
-    const t = this.tenantAEliminar();
-    if (!t) return;
-    this.eliminando.set(true);
-    this.error.set(null);
-    this.tenantService.eliminarTenantFisico(t.id).subscribe({
-      next: () => {
-        this.eliminando.set(false);
-        this.tenantAEliminar.set(null);
-        this.cargarTenants();
-        this.toast.mostrar(`Organización '${t.codigo}' eliminada permanentemente de la base de datos`, 'exito');
-      },
-      error: (err: HttpErrorResponse) => {
-        this.error.set(mensajeDeError(err));
-        this.eliminando.set(false);
-      },
     });
   }
 

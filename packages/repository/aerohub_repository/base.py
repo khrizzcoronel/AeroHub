@@ -44,7 +44,20 @@ def obtener_engine() -> Engine:
     """
     global _engine
     if _engine is None:
-        _engine = create_engine(_dsn(), pool_pre_ping=True)
+        # pool_pre_ping=True no basta por si solo -- hallazgo empirico
+        # (2026-08-05): pymonetdb puede dejar un socket ya cerrado del
+        # lado del servidor sin que el "ping" de SQLAlchemy lo detecte a
+        # tiempo (el `assert self.sock` de pymonetdb/mapi.py salta recien
+        # al ejecutar la consulta real, no durante el pre-ping), lo que
+        # se manifiesta como un 500 en el endpoint -- que ademas el
+        # navegador reporta como bloqueado por CORS (ver
+        # AutenticacionJWTMiddleware, que ahora convierte cualquier
+        # excepcion no prevista en una Response antes de propagarla, para
+        # que CORSMiddleware si le agregue los headers). pool_recycle
+        # fuerza descartar y reabrir cualquier conexion mas vieja que el
+        # umbral, reduciendo drasticamente la ventana en la que un socket
+        # puede quedar obsoleto en el pool.
+        _engine = create_engine(_dsn(), pool_pre_ping=True, pool_recycle=180)
         event.listens_for(_engine, "before_execute", retval=True)(_antes_de_ejecutar)
     return _engine
 

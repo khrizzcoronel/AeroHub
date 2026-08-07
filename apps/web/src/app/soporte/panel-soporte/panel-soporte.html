@@ -64,11 +64,11 @@
             </tr>
           </thead>
           <tbody>
-            @for (t of tickets(); track t.id) {
+            @for (t of ticketsPagina(); track t.id) {
               <tr>
                 <td>{{ t.asunto }}</td>
                 <td>{{ t.severidad }}</td>
-                <td><span class="ah-pill">{{ t.estado }}</span></td>
+                <td><span class="ah-pill" [class]="claseEstadoTicket(t.estado)">{{ etiquetaEstadoTicket(t.estado) }}</span></td>
                 <td>
                   <span class="ah-punto" [class]="indicadorSla(t).vencido ? 'ah-punto--critico' : 'ah-punto--ok'"></span>
                   {{ indicadorSla(t).texto }}
@@ -82,6 +82,11 @@
             }
           </tbody>
         </table>
+      </div>
+      <div class="ah-paginacion">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorTickets()" [disabled]="paginaActualTickets() === 1">Anterior</button>
+        <span class="ah-paginacion__estado">Pagina {{ paginaActualTickets() }} de {{ totalPaginasTickets() }}</span>
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguienteTickets()" [disabled]="paginaActualTickets() === totalPaginasTickets()">Siguiente</button>
       </div>
     }
   }
@@ -140,7 +145,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (a of articulos(); track a.id) {
+          @for (a of articulosPagina(); track a.id) {
             <tr>
               <td>{{ a.titulo }}</td>
               <td>{{ a.version }}</td>
@@ -151,10 +156,31 @@
         </tbody>
       </table>
     </div>
+    <div class="ah-paginacion">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorArticulos()" [disabled]="paginaActualArticulos() === 1">Anterior</button>
+      <span class="ah-paginacion__estado">Pagina {{ paginaActualArticulos() }} de {{ totalPaginasArticulos() }}</span>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguienteArticulos()" [disabled]="paginaActualArticulos() === totalPaginasArticulos()">Siguiente</button>
+    </div>
   }
 
   <!-- ============ Sección Changelog (US3) ============ -->
   <h2>Changelog</h2>
+
+  <div class="ah-panel">
+    <h2 class="ah-panel__titulo">Buscar entrada</h2>
+    <div class="ah-panel__campos">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="busquedaChangelog">Versión o contenido</label>
+        <input
+          id="busquedaChangelog"
+          type="text"
+          [ngModel]="busquedaChangelog()"
+          (ngModelChange)="actualizarBusquedaChangelog($event)"
+          name="busquedaChangelog"
+        />
+      </div>
+    </div>
+  </div>
 
   @if (puedeEscribirChangelog()) {
     <div class="consola__acciones">
@@ -162,10 +188,10 @@
     </div>
   }
 
-  @if (changelog().length === 0) {
-    <p class="ah-vacio">Sin entradas de changelog publicadas todavía.</p>
+  @if (changelogFiltrado().length === 0) {
+    <p class="ah-vacio">Sin entradas de changelog que coincidan.</p>
   } @else {
-    @for (c of changelog(); track c.id) {
+    @for (c of changelogPagina(); track c.id) {
       <div class="ah-panel">
         <h2 class="ah-panel__titulo">{{ c.version_producto }} — {{ c.publicado_en | date: 'dd/MM/yyyy' }}</h2>
         <p>{{ c.resumen }}</p>
@@ -191,6 +217,11 @@
         </div>
       </div>
     }
+    <div class="ah-paginacion">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorChangelog()" [disabled]="paginaActualChangelog() === 1">Anterior</button>
+      <span class="ah-paginacion__estado">Pagina {{ paginaActualChangelog() }} de {{ totalPaginasChangelog() }}</span>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguienteChangelog()" [disabled]="paginaActualChangelog() === totalPaginasChangelog()">Siguiente</button>
+    </div>
   }
 </section>
 
@@ -268,7 +299,7 @@
       }
 
       <p>
-        <span class="ah-pill">{{ d.ticket.estado }}</span>
+        <span class="ah-pill" [class]="claseEstadoTicket(d.ticket.estado)">{{ etiquetaEstadoTicket(d.ticket.estado) }}</span>
         · {{ nombreCategoriaDe(d.ticket.categoria_id) }} · {{ d.ticket.severidad }}
       </p>
 
@@ -284,6 +315,21 @@
               }
               <p>{{ m.cuerpo }}</p>
               <span class="hilo__meta">{{ m.enviado_en | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </li>
+          }
+        </ul>
+      }
+
+      @if (transiciones().length > 0) {
+        <h3>Historial de estado</h3>
+        <ul class="hilo">
+          @for (t of transiciones(); track t.id) {
+            <li class="hilo__mensaje">
+              <p>
+                {{ etiquetaEstadoTicket(t.estado_anterior ?? '') }} &rarr; {{ etiquetaEstadoTicket(t.estado_nuevo ?? '') }}
+                <span class="ah-pill">{{ t.rol_codigo }}</span>
+              </p>
+              <span class="hilo__meta">{{ t.ocurrido_en | date: 'dd/MM/yyyy HH:mm' }}</span>
             </li>
           }
         </ul>

@@ -21,20 +21,28 @@
   </div>
 
   <div class="consola__acciones">
-    <button type="button" class="ah-btn" (click)="cargarTablero()" [disabled]="cargando()">
-      Cargar tablero
+    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTablero()" [disabled]="cargando()">
+      Actualizar
     </button>
-    <button type="button" class="ah-btn" (click)="abrirModalAsignar()">
-      Asignar puerta manualmente
-    </button>
-    <button
-      type="button"
-      class="ah-btn ah-btn--secundario"
-      (click)="ejecutarAutomatica()"
-      [disabled]="cargando()"
-    >
-      Ejecutar asignacion automatica
-    </button>
+    @if (puedeEscribir()) {
+      <button type="button" class="ah-btn" (click)="abrirModalAsignar()">
+        Asignar puerta manualmente
+      </button>
+      <button
+        type="button"
+        class="ah-btn ah-btn--secundario"
+        (click)="ejecutarAutomatica()"
+        [disabled]="cargando()"
+      >
+        Ejecutar asignacion automatica
+      </button>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="abrirModalTerminal()">
+        Nueva terminal
+      </button>
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="abrirModalPuerta()">
+        Nueva puerta
+      </button>
+    }
   </div>
 
   @if (error()) {
@@ -81,13 +89,9 @@
                 }
               </td>
               <td>
-                @if (asignacionesDeEsta.length > 0) {
-                  <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verAsignaciones(puerta)">
-                    Ver asignaciones
-                  </button>
-                } @else {
-                  <span class="accion-inactiva">Sin asignaciones</span>
-                }
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalles(puerta)">
+                  Ver detalles
+                </button>
               </td>
             </tr>
           }
@@ -170,43 +174,194 @@
   <div class="ah-modal-fondo" (click)="cerrarModalAsignaciones()">
     <div class="ah-modal" (click)="$event.stopPropagation()">
       <div class="ah-modal__cabecera">
-        <h2>Asignaciones de {{ p.codigo }}</h2>
+        <h2>{{ p.codigo }}</h2>
         <button type="button" class="ah-modal__cerrar" (click)="cerrarModalAsignaciones()" aria-label="Cerrar">✕</button>
       </div>
       @if (error()) {
         <p class="ah-alerta" role="alert">{{ error() }}</p>
       }
-      <table class="ah-tabla">
-        <thead>
-          <tr>
-            <th>Vuelo</th>
-            <th>Inicio previsto</th>
-            <th>Fin previsto</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (asignacion of asignacionesPorPuerta().get(p.id) ?? []; track asignacion.id) {
+
+      @if (editandoPuerta()) {
+        @if (errorPuerta()) {
+          <p class="ah-alerta" role="alert">{{ errorPuerta() }}</p>
+        }
+        <div class="formulario">
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="terminalIdEdit">Terminal</label>
+            <select id="terminalIdEdit" [ngModel]="terminalIdPuerta()" (ngModelChange)="terminalIdPuerta.set($event)" name="terminalIdEdit">
+              @for (t of terminales(); track t.id) {
+                <option [value]="t.id">{{ t.nombre }} ({{ t.codigo }})</option>
+              }
+            </select>
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="codigoPuertaEdit">Codigo</label>
+            <input id="codigoPuertaEdit" type="text" maxlength="10" [ngModel]="codigoPuerta()" (ngModelChange)="codigoPuerta.set($event)" name="codigoPuertaEdit" />
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="tipoPuertaEdit">Tipo</label>
+            <select id="tipoPuertaEdit" [ngModel]="tipoPuerta()" (ngModelChange)="tipoPuerta.set($event)" name="tipoPuertaEdit">
+              <option value="contacto">Contacto</option>
+              <option value="remota">Remota</option>
+            </select>
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="envergaduraPuertaEdit">Envergadura maxima (m)</label>
+            <input id="envergaduraPuertaEdit" type="number" step="0.01" [ngModel]="envergaduraPuerta()" (ngModelChange)="envergaduraPuerta.set($event)" name="envergaduraPuertaEdit" />
+          </div>
+          <label class="ah-campo__etiqueta">
+            <input type="checkbox" [ngModel]="tienePasarelaPuerta()" (ngModelChange)="tienePasarelaPuerta.set($event)" name="tienePasarelaEdit" />
+            Tiene pasarela
+          </label>
+          <div class="modal-acciones">
+            <button type="button" class="ah-btn" (click)="guardarEdicionPuerta()" [disabled]="guardandoPuerta() || !codigoPuerta() || !tipoPuerta() || !terminalIdPuerta()">
+              Guardar
+            </button>
+            <button type="button" class="ah-btn ah-btn--secundario" (click)="cancelarEdicionPuerta()">Cancelar</button>
+          </div>
+        </div>
+      } @else {
+        <p class="ah-campo__etiqueta">
+          {{ nombreTerminalDe(p.terminal_id) }} &middot; {{ p.tipo }} &middot; {{ p.envergadura_max_m }}m
+          @if (p.tiene_pasarela) { &middot; con pasarela }
+        </p>
+        @if (puedeEscribir()) {
+          <div class="modal-acciones">
+            <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirEdicionPuerta()">Editar</button>
+          </div>
+        }
+      }
+
+      <div class="modal-separador"></div>
+      <p class="ah-campo__etiqueta">Asignaciones</p>
+      @if ((asignacionesPorPuerta().get(p.id) ?? []).length === 0) {
+        <p class="ah-vacio">Sin asignaciones para esta puerta.</p>
+      } @else {
+        <table class="ah-tabla">
+          <thead>
             <tr>
-              <td>{{ asignacion.numero_vuelo }}</td>
-              <td>{{ asignacion.inicio_previsto }}</td>
-              <td>{{ asignacion.fin_previsto }}</td>
-              <td>{{ asignacion.estado }}</td>
-              <td>
-                <button
-                  type="button"
-                  class="ah-btn ah-btn--secundario ah-btn--sm"
-                  (click)="cancelar(asignacion)"
-                  [disabled]="cancelando()"
-                >
-                  Cancelar
-                </button>
-              </td>
+              <th>Vuelo</th>
+              <th>Inicio previsto</th>
+              <th>Fin previsto</th>
+              <th>Estado</th>
+              <th>Acciones</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (asignacion of asignacionesPorPuerta().get(p.id) ?? []; track asignacion.id) {
+              <tr>
+                <td>{{ asignacion.numero_vuelo }}</td>
+                <td>{{ asignacion.inicio_previsto }}</td>
+                <td>{{ asignacion.fin_previsto }}</td>
+                <td>{{ asignacion.estado }}</td>
+                <td>
+                  @if (puedeEscribir()) {
+                    <button
+                      type="button"
+                      class="ah-btn ah-btn--secundario ah-btn--sm"
+                      (click)="cancelar(asignacion)"
+                      [disabled]="cancelando()"
+                    >
+                      Cancelar
+                    </button>
+                  } @else {
+                    <span class="ah-accion-inactiva">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+}
+
+@if (mostrarModalTerminal()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalTerminal()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Nueva terminal</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalTerminal()" aria-label="Cerrar">✕</button>
+      </div>
+      @if (errorTerminal()) {
+        <p class="ah-alerta" role="alert">{{ errorTerminal() }}</p>
+      }
+      <div class="formulario">
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="codigoTerminal">Codigo</label>
+          <input id="codigoTerminal" type="text" maxlength="10" [ngModel]="codigoTerminal()" (ngModelChange)="codigoTerminal.set($event)" name="codigoTerminal" />
+        </div>
+        <div class="ah-campo">
+          <label class="ah-campo__etiqueta" for="nombreTerminal">Nombre</label>
+          <input id="nombreTerminal" type="text" [ngModel]="nombreTerminal()" (ngModelChange)="nombreTerminal.set($event)" name="nombreTerminal" />
+        </div>
+        <div class="modal-acciones">
+          <button type="button" class="ah-btn" (click)="crearTerminal()" [disabled]="guardandoTerminal() || !codigoTerminal() || !nombreTerminal()">
+            Crear
+          </button>
+          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalTerminal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@if (mostrarModalPuerta()) {
+  <div class="ah-modal-fondo" (click)="cerrarModalPuerta()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>Nueva puerta</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarModalPuerta()" aria-label="Cerrar">✕</button>
+      </div>
+      @if (errorPuerta()) {
+        <p class="ah-alerta" role="alert">{{ errorPuerta() }}</p>
+      }
+      @if (terminales().length === 0) {
+        <p class="ah-vacio ah-vacio--compacto">Sin terminales todavía -- cree una terminal primero.</p>
+      } @else {
+        <div class="formulario">
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="terminalIdPuerta">Terminal</label>
+            <select id="terminalIdPuerta" [ngModel]="terminalIdPuerta()" (ngModelChange)="terminalIdPuerta.set($event)" name="terminalIdPuerta">
+              <option value="" disabled selected>Seleccionar...</option>
+              @for (t of terminales(); track t.id) {
+                <option [value]="t.id">{{ t.nombre }} ({{ t.codigo }})</option>
+              }
+            </select>
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="codigoPuerta">Codigo</label>
+            <input id="codigoPuerta" type="text" maxlength="10" [ngModel]="codigoPuerta()" (ngModelChange)="codigoPuerta.set($event)" name="codigoPuerta" />
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="tipoPuerta">Tipo</label>
+            <select id="tipoPuerta" [ngModel]="tipoPuerta()" (ngModelChange)="tipoPuerta.set($event)" name="tipoPuerta">
+              <option value="contacto">Contacto</option>
+              <option value="remota">Remota</option>
+            </select>
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="envergaduraPuerta">Envergadura maxima (m)</label>
+            <input id="envergaduraPuerta" type="number" step="0.01" [ngModel]="envergaduraPuerta()" (ngModelChange)="envergaduraPuerta.set($event)" name="envergaduraPuerta" />
+          </div>
+          <label class="ah-campo__etiqueta">
+            <input type="checkbox" [ngModel]="tienePasarelaPuerta()" (ngModelChange)="tienePasarelaPuerta.set($event)" name="tienePasarela" />
+            Tiene pasarela
+          </label>
+          <div class="modal-acciones">
+            <button
+              type="button"
+              class="ah-btn"
+              (click)="crearPuerta()"
+              [disabled]="guardandoPuerta() || !terminalIdPuerta() || !codigoPuerta() || !envergaduraPuerta()"
+            >
+              Crear
+            </button>
+            <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalPuerta()">Cancelar</button>
+          </div>
+        </div>
+      }
     </div>
   </div>
 }

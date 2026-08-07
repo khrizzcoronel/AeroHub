@@ -57,19 +57,37 @@
             <th>Nombre</th>
             <th>Versión</th>
             <th>Vigente desde</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          @for (p of plantillasFiltradas(); track p.id) {
+          @for (p of plantillasPagina(); track p.id) {
             <tr>
               <td>{{ p.nombre }}</td>
               <td>{{ p.version }}</td>
               <td>{{ p.vigente_desde | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetallePlantilla(p)">
+                  Ver detalles
+                </button>
+              </td>
             </tr>
           }
         </tbody>
       </table>
     </div>
+
+    @if (totalPaginasPlantilla() > 1) {
+      <div class="ah-paginacion">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorPlantilla()" [disabled]="paginaActualPlantilla() === 1">
+          Anterior
+        </button>
+        <span class="ah-paginacion__estado">Pagina {{ paginaActualPlantilla() }} de {{ totalPaginasPlantilla() }}</span>
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguientePlantilla()" [disabled]="paginaActualPlantilla() === totalPaginasPlantilla()">
+          Siguiente
+        </button>
+      </div>
+    }
   }
 
   <!-- ============ Sección Pantallas (US1) ============ -->
@@ -118,7 +136,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (p of pantallasFiltradas(); track p.id) {
+          @for (p of pantallasPagina(); track p.id) {
             <tr>
               <td>{{ p.codigo }}</td>
               <td>{{ codigoTerminalDe(p.terminal_id) }}</td>
@@ -129,7 +147,7 @@
               <td>{{ p.ultima_senal_en ? (p.ultima_senal_en | date: 'dd/MM/yyyy HH:mm') : 'Nunca' }}</td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalReasignar(p)">
-                  Asignar plantilla
+                  Ver detalles
                 </button>
               </td>
             </tr>
@@ -137,6 +155,18 @@
         </tbody>
       </table>
     </div>
+
+    @if (totalPaginasPantalla() > 1) {
+      <div class="ah-paginacion">
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaAnteriorPantalla()" [disabled]="paginaActualPantalla() === 1">
+          Anterior
+        </button>
+        <span class="ah-paginacion__estado">Pagina {{ paginaActualPantalla() }} de {{ totalPaginasPantalla() }}</span>
+        <button type="button" class="ah-btn ah-btn--secundario" (click)="paginaSiguientePantalla()" [disabled]="paginaActualPantalla() === totalPaginasPantalla()">
+          Siguiente
+        </button>
+      </div>
+    }
   }
 </section>
 
@@ -245,33 +275,86 @@
   </div>
 }
 
-<!-- Modal: Asignar plantilla (US3) -->
+<!-- Modal: Ver detalles de pantalla + Asignar plantilla (US3) -->
 @if (pantallaReasignando(); as p) {
   <div class="ah-modal-fondo" (click)="cerrarModalReasignar()">
     <div class="ah-modal" (click)="$event.stopPropagation()">
       <div class="ah-modal__cabecera">
-        <h2>Asignar plantilla — {{ p.codigo }}</h2>
+        <div class="modal-titulo-grupo">
+          <h2>{{ p.codigo }}</h2>
+          <span class="ah-pill" [class]="claseEstadoPantalla(p.estado)">{{ etiquetaEstadoPantalla(p.estado) }}</span>
+        </div>
         <button type="button" class="ah-modal__cerrar" (click)="cerrarModalReasignar()" aria-label="Cerrar">✕</button>
       </div>
+
+      <div class="formulario">
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Terminal</span>
+          <p>{{ codigoTerminalDe(p.terminal_id) }}</p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Plantilla vigente</span>
+          <p>{{ nombrePlantillaDe(p.plantilla_id) }}</p>
+        </div>
+        @if (p.ubicacion_descripcion) {
+          <div class="ah-campo">
+            <span class="ah-campo__etiqueta">Ubicación</span>
+            <p>{{ p.ubicacion_descripcion }}</p>
+          </div>
+        }
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Última señal</span>
+          <p>{{ p.ultima_senal_en ? (p.ultima_senal_en | date: 'dd/MM/yyyy HH:mm') : 'Nunca' }}</p>
+        </div>
+      </div>
+
+      <div class="modal-separador"></div>
+      <p class="ah-campo__etiqueta">Asignar otra plantilla</p>
 
       @if (errorReasignar()) {
         <p class="ah-alerta" role="alert">{{ errorReasignar() }}</p>
       }
 
       <div class="formulario">
-        <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="plantillaIdNueva">Nueva plantilla</label>
-          <select id="plantillaIdNueva" [ngModel]="plantillaIdNueva()" (ngModelChange)="plantillaIdNueva.set($event)" name="plantillaIdNueva">
-            @for (pl of plantillas(); track pl.id) {
-              <option [value]="pl.id">{{ pl.nombre }} (v{{ pl.version }})</option>
-            }
-          </select>
-        </div>
+        <select id="plantillaIdNueva" [ngModel]="plantillaIdNueva()" (ngModelChange)="plantillaIdNueva.set($event)" name="plantillaIdNueva">
+          @for (pl of plantillas(); track pl.id) {
+            <option [value]="pl.id">{{ pl.nombre }} (v{{ pl.version }})</option>
+          }
+        </select>
         <div class="modal-acciones">
           <button type="button" class="ah-btn" (click)="confirmarReasignacion()" [disabled]="reasignando()">
             Asignar
           </button>
-          <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalReasignar()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Ver detalles de plantilla -->
+@if (plantillaViendo(); as pl) {
+  <div class="ah-modal-fondo" (click)="cerrarDetallePlantilla()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <h2>{{ pl.nombre }} (v{{ pl.version }})</h2>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarDetallePlantilla()" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="formulario">
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Vigente desde</span>
+          <p>{{ pl.vigente_desde | date: 'dd/MM/yyyy HH:mm' }}</p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Contenido</span>
+          @if (filasDeTexto(pl.definicion_json).length > 0) {
+            <ul class="lista-filas">
+              @for (fila of filasDeTexto(pl.definicion_json); track $index) {
+                <li>{{ fila }}</li>
+              }
+            </ul>
+          } @else {
+            <pre class="json-crudo">{{ pl.definicion_json | json }}</pre>
+          }
         </div>
       </div>
     </div>

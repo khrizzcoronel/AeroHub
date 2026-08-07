@@ -26,3 +26,21 @@ GRANT SELECT ON compliance.log_auditoria TO role_sre;
 GRANT SELECT ON compliance.log_auditoria TO role_data_engineer;
 GRANT SELECT ON compliance.log_auditoria TO role_regulatory_auditor;
 GRANT SELECT ON compliance.log_auditoria TO role_elt_reader;
+
+-- Fase 3 de docs/diseno/PLAN_CORRECCION_MODULOS.md (2026-08-07, item 8):
+-- trazabilidad de tickets D6 -- "el hilo muestra mensajes, pero no los
+-- cambios de estado ni quien los hizo". El dato ya existe aqui
+-- (cambiar_estado_ticket registra cada transicion via registrar_auditoria);
+-- faltaba el GRANT para poder leerlo. Se limita a los 2 roles que hoy
+-- tienen el scope de aplicacion `support:leer` fuera de los roles de
+-- plataforma ya otorgados arriba (role_tenant_admin, role_support) --
+-- decision explicita del usuario (no ampliar a los 5 roles operativos que
+-- carecen de support:leer, ver packages/contracts/aerohub_contracts/
+-- roles_modulos.py). La consulta que lo usa
+-- (aerohub_support.infrastructure.consultas::listar_transiciones_estado_ticket)
+-- siempre filtra por esquema='support' AND tabla='ticket' AND
+-- registro_id=<ticket puntual> -- el GRANT es table-wide (MonetDB no
+-- tiene seguridad a nivel de fila), pero la aplicacion nunca ejecuta una
+-- consulta mas amplia que esa contra esta tabla.
+GRANT SELECT ON compliance.log_auditoria TO role_tenant_admin;
+GRANT SELECT ON compliance.log_auditoria TO role_support;

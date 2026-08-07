@@ -133,8 +133,4 @@ export class TenantService {
       estado_nuevo: estadoNuevo,
     });
   }
-
-  eliminarTenantFisico(tenantId: string): Observable<void> {
-    return this.http.delete<void>(`${API_BASE_URL}/tenants/${tenantId}`);
-  }
 }

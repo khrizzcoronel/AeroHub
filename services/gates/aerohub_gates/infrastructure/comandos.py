@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy import insert, update
 from sqlalchemy.engine import Connection
 
-from .tablas import asignacion_puerta, puerta
+from .tablas import asignacion_puerta, puerta, terminal
 
 
 def bloquear_puerta_para_asignacion(conn: Connection, *, tenant_id: int, puerta_id: int) -> None:
@@ -62,4 +62,58 @@ def cancelar_asignacion_puerta(conn: Connection, *, id: int, tenant_id: int) -> 
         update(asignacion_puerta)
         .where(asignacion_puerta.c.id == id, asignacion_puerta.c.tenant_id == tenant_id)
         .values(estado="cancelada")
+    )
+
+
+def insertar_terminal(
+    conn: Connection, *, id: int, tenant_id: int, codigo: str, nombre: str
+) -> None:
+    conn.execute(insert(terminal).values(id=id, tenant_id=tenant_id, codigo=codigo, nombre=nombre))
+
+
+def insertar_puerta(
+    conn: Connection,
+    *,
+    id: int,
+    tenant_id: int,
+    terminal_id: int,
+    codigo: str,
+    tipo: str,
+    envergadura_max_m: float,
+    tiene_pasarela: bool,
+) -> None:
+    conn.execute(
+        insert(puerta).values(
+            id=id,
+            tenant_id=tenant_id,
+            terminal_id=terminal_id,
+            codigo=codigo,
+            tipo=tipo,
+            envergadura_max_m=envergadura_max_m,
+            tiene_pasarela=tiene_pasarela,
+        )
+    )
+
+
+def actualizar_puerta(
+    conn: Connection,
+    *,
+    id: int,
+    tenant_id: int,
+    terminal_id: int,
+    codigo: str,
+    tipo: str,
+    envergadura_max_m: float,
+    tiene_pasarela: bool,
+) -> None:
+    conn.execute(
+        update(puerta)
+        .where(puerta.c.id == id, puerta.c.tenant_id == tenant_id)
+        .values(
+            terminal_id=terminal_id,
+            codigo=codigo,
+            tipo=tipo,
+            envergadura_max_m=envergadura_max_m,
+            tiene_pasarela=tiene_pasarela,
+        )
     )

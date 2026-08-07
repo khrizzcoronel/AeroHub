@@ -29,6 +29,7 @@ class PuertaTablero:
     codigo: str
     tipo: str
     envergadura_max_m: float
+    tiene_pasarela: bool
 
 
 def consultar_tablero_de_puertas() -> tuple[list[PuertaTablero], list[AsignacionTablero]]:
@@ -43,6 +44,7 @@ def consultar_tablero_de_puertas() -> tuple[list[PuertaTablero], list[Asignacion
                 codigo=p.codigo,
                 tipo=p.tipo,
                 envergadura_max_m=float(p.envergadura_max_m),
+                tiene_pasarela=p.tiene_pasarela,
             )
             for p in puertas
         ],

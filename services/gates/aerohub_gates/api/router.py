@@ -21,17 +21,30 @@ from ..application import (
     AsignacionNoEncontrada,
     InformeCompuesto,
     InformeSimple,
+    PuertaDuplicada,
     PuertaNoEncontrada,
+    TerminalDuplicada,
+    TerminalNoEncontrada,
     UsuarioNoIdentificado,
     VueloNoEncontrado,
+    actualizar_puerta,
     asignar_puerta,
     cancelar_asignacion,
     consultar_informe_asignaciones_compuesto,
     consultar_informe_asignaciones_simple,
     consultar_tablero_de_puertas,
+    crear_puerta,
+    crear_terminal,
     ejecutar_asignacion_automatica,
+    listar_terminales_del_tenant,
 )
-from ..domain import AsignacionPuertaInvalida, PuertaIncompatible, SolapamientoPuertaInvalido
+from ..domain import (
+    AsignacionPuertaInvalida,
+    PuertaIncompatible,
+    PuertaInvalida,
+    SolapamientoPuertaInvalido,
+    TerminalInvalida,
+)
 
 router = APIRouter(prefix="/puertas", tags=["puertas"])
 
@@ -53,6 +66,7 @@ class PuertaTableroResponse(BaseModel):
     codigo: str
     tipo: str
     envergadura_max_m: float
+    tiene_pasarela: bool
 
 
 class AsignacionTableroResponse(BaseModel):
@@ -77,6 +91,41 @@ class AsignacionAutomaticaResponse(BaseModel):
         description="vuelo_id de los vuelos que no pudieron asignarse: sin "
         "puerta compatible en envergadura, o sin ventana libre sin solapar."
     )
+
+
+class TerminalCrearRequest(BaseModel):
+    codigo: str = Field(min_length=1, max_length=10)
+    nombre: str = Field(min_length=1, max_length=100)
+
+
+class TerminalCrearResponse(BaseModel):
+    terminal_id: str
+
+
+class TerminalListadoResponse(BaseModel):
+    id: str
+    codigo: str
+    nombre: str
+
+
+class PuertaCrearRequest(BaseModel):
+    terminal_id: int
+    codigo: str = Field(min_length=1, max_length=10)
+    tipo: str
+    envergadura_max_m: float
+    tiene_pasarela: bool = False
+
+
+class PuertaCrearResponse(BaseModel):
+    puerta_id: str
+
+
+class PuertaEditarRequest(BaseModel):
+    terminal_id: int
+    codigo: str = Field(min_length=1, max_length=10)
+    tipo: str
+    envergadura_max_m: float
+    tiene_pasarela: bool = False
 
 
 @router.post(
@@ -119,6 +168,90 @@ def cancelar_asignacion_endpoint(asignacion_id: int) -> None:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.post(
+    "/terminales",
+    response_model=TerminalCrearResponse,
+    status_code=201,
+    dependencies=[Depends(requiere_scope("puertas:escribir"))],
+)
+def crear_terminal_endpoint(cuerpo: TerminalCrearRequest) -> TerminalCrearResponse:
+    """Alta de terminal (Fase 3 de docs/diseno/PLAN_CORRECCION_MODULOS.md,
+    causa raiz backend: M3 no tenia forma de crear terminales, solo se
+    veian si un seed las insertaba a mano)."""
+    try:
+        resultado = crear_terminal(codigo=cuerpo.codigo, nombre=cuerpo.nombre)
+    except TerminalInvalida as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except TerminalDuplicada as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return TerminalCrearResponse(terminal_id=str(resultado.terminal_id))
+
+
+@router.get(
+    "/terminales",
+    response_model=list[TerminalListadoResponse],
+    dependencies=[Depends(requiere_scope("puertas:leer"))],
+)
+def listar_terminales_endpoint() -> list[TerminalListadoResponse]:
+    return [
+        TerminalListadoResponse(id=str(t.id), codigo=t.codigo, nombre=t.nombre)
+        for t in listar_terminales_del_tenant()
+    ]
+
+
+@router.post(
+    "",
+    response_model=PuertaCrearResponse,
+    status_code=201,
+    dependencies=[Depends(requiere_scope("puertas:escribir"))],
+)
+def crear_puerta_endpoint(cuerpo: PuertaCrearRequest) -> PuertaCrearResponse:
+    """Alta de puerta (Fase 3 de docs/diseno/PLAN_CORRECCION_MODULOS.md,
+    causa raiz backend: el tablero solo listaba puertas ya existentes,
+    ninguna forma de crearlas desde la API)."""
+    try:
+        resultado = crear_puerta(
+            terminal_id=cuerpo.terminal_id,
+            codigo=cuerpo.codigo,
+            tipo=cuerpo.tipo,
+            envergadura_max_m=cuerpo.envergadura_max_m,
+            tiene_pasarela=cuerpo.tiene_pasarela,
+        )
+    except PuertaInvalida as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except TerminalNoEncontrada as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PuertaDuplicada as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return PuertaCrearResponse(puerta_id=str(resultado.puerta_id))
+
+
+@router.patch(
+    "/{puerta_id}",
+    status_code=204,
+    dependencies=[Depends(requiere_scope("puertas:escribir"))],
+)
+def editar_puerta_endpoint(puerta_id: int, cuerpo: PuertaEditarRequest) -> None:
+    """Edicion de puerta -- terminal, codigo, tipo, envergadura y pasarela
+    (Fase 3, mismo hallazgo que el alta: no existia ninguna forma de
+    editar una puerta ya creada)."""
+    try:
+        actualizar_puerta(
+            puerta_id=puerta_id,
+            terminal_id=cuerpo.terminal_id,
+            codigo=cuerpo.codigo,
+            tipo=cuerpo.tipo,
+            envergadura_max_m=cuerpo.envergadura_max_m,
+            tiene_pasarela=cuerpo.tiene_pasarela,
+        )
+    except PuertaInvalida as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except (TerminalNoEncontrada, PuertaNoEncontrada) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PuertaDuplicada as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @router.get(
     "/tablero",
     response_model=TableroResponse,
@@ -136,6 +269,7 @@ def tablero_de_puertas_endpoint() -> TableroResponse:
                 codigo=p.codigo,
                 tipo=p.tipo,
                 envergadura_max_m=p.envergadura_max_m,
+                tiene_pasarela=p.tiene_pasarela,
             )
             for p in puertas
         ],

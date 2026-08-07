@@ -8,6 +8,7 @@ transitivamente via `ticket_id`, cuyo padre ya valido el llamador.
 
 from __future__ import annotations
 
+from aerohub_repository.audit import log_auditoria
 from aerohub_repository.contexto import contexto_tenant_id
 from sqlalchemy import and_, or_, select
 from sqlalchemy.engine import Connection, Row
@@ -79,6 +80,46 @@ def listar_mensajes_de_ticket(conn: Connection, *, ticket_id: int) -> list[Row]:
         .where(ticket_mensaje.c.ticket_id == ticket_id)
         .order_by(ticket_mensaje.c.enviado_en)
     )
+    return list(conn.execute(stmt))
+
+
+def listar_transiciones_estado_ticket(
+    conn: Connection, *, ticket_id: int, tenant_id: int | None
+) -> list[Row]:
+    """Fase 3 de docs/diseno/PLAN_CORRECCION_MODULOS.md (item 8): las
+    transiciones de estado de un ticket ya se registran en
+    compliance.log_auditoria (cambiar_estado_ticket -> registrar_auditoria)
+    pero no estaban expuestas -- el hilo del ticket solo mostraba mensajes.
+    Solo columnas escalares + las 2 columnas JSON puntuales que necesita la
+    trazabilidad (verificado empiricamente que seleccionarlas de forma
+    individual, sin `select(tabla)` completo, no dispara el hallazgo de
+    doble-decodificacion de S1.9/S1.18): valores_anteriores/valores_nuevos
+    de una fila UPDATE de esta tabla son siempre `{"estado": <codigo>}`
+    (cambiar_estado_ticket es la unica mutacion de ops.ticket que pasa por
+    UPDATE). `tenant_id=None` es el caso de role_support bajo
+    alcance_global (atiende tickets de cualquier tenant, igual que
+    obtener_ticket_por_id_global); un tenant_id explicito aisla PN-01 para
+    el resto de roles.
+    """
+    stmt = (
+        select(
+            log_auditoria.c.id,
+            log_auditoria.c.usuario_id,
+            log_auditoria.c.rol_codigo,
+            log_auditoria.c.ocurrido_en,
+            log_auditoria.c.valores_anteriores,
+            log_auditoria.c.valores_nuevos,
+        )
+        .where(
+            log_auditoria.c.esquema == "support",
+            log_auditoria.c.tabla == "ticket",
+            log_auditoria.c.registro_id == ticket_id,
+            log_auditoria.c.operacion == "UPDATE",
+        )
+        .order_by(log_auditoria.c.ocurrido_en)
+    )
+    if tenant_id is not None:
+        stmt = stmt.where(log_auditoria.c.tenant_id == tenant_id)
     return list(conn.execute(stmt))
 
 

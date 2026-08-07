@@ -26,6 +26,8 @@ export function etiquetaEstadoPantalla(estado: string): string {
   return ETIQUETAS_ESTADO_PANTALLA[estado] ?? estado;
 }
 
+const TAMANO_PAGINA = 10;
+
 @Component({
   selector: 'app-pantalla-list',
   imports: [CommonModule, FormsModule],
@@ -50,12 +52,25 @@ export class PantallaList implements OnInit {
     if (!q) return this.plantillas();
     return this.plantillas().filter((p) => p.nombre.toLowerCase().includes(q));
   });
+  protected readonly paginaActualPlantilla = signal(1);
+  protected readonly totalPaginasPlantilla = computed(() =>
+    Math.max(1, Math.ceil(this.plantillasFiltradas().length / TAMANO_PAGINA)),
+  );
+  protected readonly plantillasPagina = computed(() => {
+    const inicio = (this.paginaActualPlantilla() - 1) * TAMANO_PAGINA;
+    return this.plantillasFiltradas().slice(inicio, inicio + TAMANO_PAGINA);
+  });
 
   protected readonly mostrarModalPlantilla = signal(false);
   protected readonly nombrePlantilla = signal('');
   protected readonly definicionJsonTexto = signal('');
   protected readonly errorFormularioPlantilla = signal<string | null>(null);
   protected readonly guardandoPlantilla = signal(false);
+
+  // Ver detalles (Fase 4 de docs/diseno/PLAN_CORRECCION_MODULOS.md, item
+  // 11): una plantilla es inmutable/versionada -- sin edicion, solo
+  // muestra el contenido que hoy solo se veia al crearla.
+  protected readonly plantillaViendo = signal<Plantilla | null>(null);
 
   // --- Sección Pantallas (US1) ---
   protected readonly pantallas = signal<Pantalla[]>([]);
@@ -65,6 +80,14 @@ export class PantallaList implements OnInit {
     const q = this.filtroPantalla().trim().toLowerCase();
     if (!q) return this.pantallas();
     return this.pantallas().filter((p) => p.codigo.toLowerCase().includes(q));
+  });
+  protected readonly paginaActualPantalla = signal(1);
+  protected readonly totalPaginasPantalla = computed(() =>
+    Math.max(1, Math.ceil(this.pantallasFiltradas().length / TAMANO_PAGINA)),
+  );
+  protected readonly pantallasPagina = computed(() => {
+    const inicio = (this.paginaActualPantalla() - 1) * TAMANO_PAGINA;
+    return this.pantallasFiltradas().slice(inicio, inicio + TAMANO_PAGINA);
   });
 
   protected readonly mostrarModalRegistrar = signal(false);
@@ -111,10 +134,28 @@ export class PantallaList implements OnInit {
 
   protected actualizarFiltroPlantilla(valor: string): void {
     this.filtroPlantilla.set(valor);
+    this.paginaActualPlantilla.set(1);
   }
 
   protected actualizarFiltroPantalla(valor: string): void {
     this.filtroPantalla.set(valor);
+    this.paginaActualPantalla.set(1);
+  }
+
+  protected paginaAnteriorPlantilla(): void {
+    this.paginaActualPlantilla.update((p) => Math.max(1, p - 1));
+  }
+
+  protected paginaSiguientePlantilla(): void {
+    this.paginaActualPlantilla.update((p) => Math.min(this.totalPaginasPlantilla(), p + 1));
+  }
+
+  protected paginaAnteriorPantalla(): void {
+    this.paginaActualPantalla.update((p) => Math.max(1, p - 1));
+  }
+
+  protected paginaSiguientePantalla(): void {
+    this.paginaActualPantalla.update((p) => Math.min(this.totalPaginasPantalla(), p + 1));
   }
 
   // --- Plantillas ---
@@ -233,6 +274,22 @@ export class PantallaList implements OnInit {
         this.reasignando.set(false);
       },
     });
+  }
+
+  protected verDetallePlantilla(p: Plantilla): void {
+    this.plantillaViendo.set(p);
+  }
+
+  protected cerrarDetallePlantilla(): void {
+    this.plantillaViendo.set(null);
+  }
+
+  protected filasDeTexto(definicion: Record<string, unknown>): string[] {
+    const filas = definicion['filas'];
+    if (!Array.isArray(filas)) return [];
+    return filas
+      .map((f) => (f && typeof f === 'object' && 'texto' in f ? String((f as { texto: unknown }).texto) : null))
+      .filter((t): t is string => t !== null);
   }
 
   protected nombrePlantillaDe(plantillaId: string): string {

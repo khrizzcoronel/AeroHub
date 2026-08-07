@@ -1,11 +1,43 @@
-import { ConfigInforme } from './panel-informe/panel-informe';
+// Sprint S1.18 -- una configuracion declarativa por modulo, consumida por
+// dashboard-informes/ (unico panel de informes desde la iteracion de
+// S1.18 del 2026-08-05 -- antes por panel-informe/, un componente por
+// modulo que se retiro al consolidar los 6 en un solo panel).
 
-// Sprint S1.18 -- una configuracion declarativa por modulo, consumida
-// por el unico componente panel-informe (research.md Decision 1 de
-// specs/020-informes-operativos/).
+export interface ColumnaInforme {
+  campo: string;
+  etiqueta: string;
+}
+
+export interface FiltroInforme {
+  id: string;
+  etiqueta: string;
+  tipo: 'fecha' | 'texto' | 'select';
+  opciones?: { valor: string; etiqueta: string }[];
+}
+
+export interface ConfigInforme {
+  titulo: string;
+  // Slug consumido por GET /analytics/tactico/{moduloCodigo} (M7,
+  // ClickHouse) -- el compuesto del dashboard viene de ahi, no de
+  // endpointCompuesto (que sigue existiendo para tools/sincronizar_analytics_demo.py
+  // y como fallback documentado, ver research.md Decision X).
+  moduloCodigo: string;
+  endpointSimple: string;
+  endpointCompuesto: string;
+  filtros: FiltroInforme[];
+  columnasSimple: ColumnaInforme[];
+  columnaGrupo: string;
+  columnasMetricas: ColumnaInforme[];
+}
+
+// Titulos alineados a los nombres reales de modulo usados en el resto de
+// apps/web (roles_modulos.py::MODULOS y los <h1> de cada vista propia) --
+// antes decian "Informes de X", inconsistente con como el usuario ya
+// conoce cada modulo en el menu y en sus pantallas dedicadas.
 
 export const CONFIG_INFORME_VUELOS: ConfigInforme = {
-  titulo: 'Informes de vuelos',
+  titulo: 'AODB',
+  moduloCodigo: 'vuelos',
   endpointSimple: '/vuelos/informes/simple',
   endpointCompuesto: '/vuelos/informes/compuesto',
   filtros: [
@@ -28,7 +60,8 @@ export const CONFIG_INFORME_VUELOS: ConfigInforme = {
 };
 
 export const CONFIG_INFORME_ASIGNACIONES: ConfigInforme = {
-  titulo: 'Informes de asignaciones de puerta',
+  titulo: 'Terminal & Gate Manager',
+  moduloCodigo: 'puertas',
   endpointSimple: '/puertas/informes/simple',
   endpointCompuesto: '/puertas/informes/compuesto',
   filtros: [
@@ -49,7 +82,8 @@ export const CONFIG_INFORME_ASIGNACIONES: ConfigInforme = {
 };
 
 export const CONFIG_INFORME_TURNAROUNDS: ConfigInforme = {
-  titulo: 'Informes de turnaround',
+  titulo: 'Ground Operations',
+  moduloCodigo: 'rampa',
   endpointSimple: '/rampa/informes/simple',
   endpointCompuesto: '/rampa/informes/compuesto',
   filtros: [
@@ -72,7 +106,8 @@ export const CONFIG_INFORME_TURNAROUNDS: ConfigInforme = {
 };
 
 export const CONFIG_INFORME_FACTURACION: ConfigInforme = {
-  titulo: 'Informes de facturación',
+  titulo: 'Revenue & Billing',
+  moduloCodigo: 'billing',
   endpointSimple: '/billing/informes/simple',
   endpointCompuesto: '/billing/informes/compuesto',
   filtros: [
@@ -94,7 +129,8 @@ export const CONFIG_INFORME_FACTURACION: ConfigInforme = {
 };
 
 export const CONFIG_INFORME_TENANTS: ConfigInforme = {
-  titulo: 'Informes de tenants',
+  titulo: 'Tenants',
+  moduloCodigo: 'tenants',
   endpointSimple: '/tenants/informes/simple',
   endpointCompuesto: '/tenants/informes/compuesto',
   filtros: [{ id: 'estado', etiqueta: 'Estado', tipo: 'texto' }],
@@ -113,7 +149,8 @@ export const CONFIG_INFORME_TENANTS: ConfigInforme = {
 };
 
 export const CONFIG_INFORME_COMPLIANCE: ConfigInforme = {
-  titulo: 'Informes de compliance',
+  titulo: 'Compliance Hub',
+  moduloCodigo: 'compliance',
   endpointSimple: '/compliance/informes/simple',
   endpointCompuesto: '/compliance/informes/compuesto',
   filtros: [

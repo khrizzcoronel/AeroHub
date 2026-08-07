@@ -10,6 +10,7 @@ from . import alcances as _alcances  # noqa: F401 -- side effect: registra G1 de
 from .comandos import insertar_vuelo, insertar_vuelo_estado
 from .consultas import (
     estado_vuelo_catalogo,
+    listar_vuelos,
     obtener_estado_catalogo_por_codigo,
     obtener_estado_vuelo_actual_por_id,
     obtener_vuelo_por_id,
@@ -48,4 +49,5 @@ __all__ = [
     "listar_aeropuertos",
     "listar_vuelos_informe",
     "agrupar_vuelos_por_aerolinea",
+    "listar_vuelos",
 ]

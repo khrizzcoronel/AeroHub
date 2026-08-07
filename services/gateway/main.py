@@ -23,6 +23,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from aerohub_analytics_api.api import router as router_analytics
 from aerohub_aodb.api import router as router_aodb
 from aerohub_billing.api import router as router_billing
 from aerohub_compliance.api import router as router_compliance
@@ -127,19 +128,32 @@ def _manejador_acceso_denegado_motor(request: Request, exc: Exception) -> JSONRe
     "42000!... access denied for aerohub_app to table ...". Sin este
     handler, MonetDB filtra un OperationalError de SQLAlchemy sin traducir
     -- 500 generico, sin PN-07 (401/403 legible, sin fuga de informacion).
-    Se distingue por el mensaje ("access denied") para no enmascarar otros
-    OperationalError legitimos (p. ej. MonetDB caido) -- Starlette exige la
-    firma generica (request, Exception), el registro por tipo en
-    add_exception_handler ya garantiza que solo llega un OperationalError --
-    RuntimeError, no assert (bandit B101: un assert desaparece bajo
-    bytecode optimizado)."""
+
+    Hallazgo real (2026-08-06, docs/diseno/PLAN_CORRECCION_MODULOS.md §2):
+    MonetDB NO usa siempre la misma frase para "sin permiso" -- un SELECT
+    denegado dice "access denied", pero un INSERT/UPDATE/DELETE denegado
+    dice "insufficient privileges" (verificado con
+    "42000!INSERT INTO: insufficient privileges for user 'aerohub_app' to
+    insert into table 'vuelo'" al ejercitar POST /vuelos con un rol sin
+    GRANT de INSERT). Con el handler reconociendo solo "access denied",
+    cualquier escritura sin permiso llegaba como 500 opaco en vez de 403
+    legible -- la mayoria de los "errores de servidor" reportados por el
+    usuario en ese documento eran esto, no una falla real de la aplicacion.
+
+    Se distingue por el mensaje ("access denied" / "insufficient
+    privileges") para no enmascarar otros OperationalError legitimos (p.
+    ej. MonetDB caido) -- Starlette exige la firma generica (request,
+    Exception), el registro por tipo en add_exception_handler ya
+    garantiza que solo llega un OperationalError -- RuntimeError, no
+    assert (bandit B101: un assert desaparece bajo bytecode
+    optimizado)."""
     if not isinstance(exc, OperationalError):
         raise RuntimeError(
             f"_manejador_acceso_denegado_motor recibio {type(exc).__name__}, "
             "esperaba OperationalError"
         )
     causa_raiz = str(exc.orig) if exc.orig is not None else str(exc)
-    if "access denied" not in causa_raiz:
+    if "access denied" not in causa_raiz and "insufficient privileges" not in causa_raiz:
         raise exc
     return JSONResponse(status_code=403, content={"detail": "acceso denegado"})
 
@@ -192,11 +206,17 @@ def crear_app() -> FastAPI:
     app.include_router(router_passenger)
     app.include_router(router_compliance)
     app.include_router(router_support)
+    app.include_router(router_analytics)
     app.add_exception_handler(OperationalError, _manejador_acceso_denegado_motor)
 
     @app.exception_handler(Exception)
     async def manejador_excepciones_generales(request: Request, exc: Exception) -> JSONResponse:
-        _registro.exception("Excepción no capturada en la petición %s %s: %s", request.method, request.url.path, exc)
+        _registro.exception(
+            "Excepción no capturada en la petición %s %s: %s",
+            request.method,
+            request.url.path,
+            exc,
+        )
         return JSONResponse(
             status_code=500,
             content={"detail": "Error interno del servidor"},

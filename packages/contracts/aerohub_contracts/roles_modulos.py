@@ -123,7 +123,26 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         frozenset(
             {
                 "vuelos:leer",
-                "vuelos:escribir",
+                # Sprint S1.20-iteracion (2026-08-06, D1(a) de
+                # docs/diseno/PLAN_CORRECCION_MODULOS.md) -- hallazgo
+                # empirico: role_tenant_admin tenia vuelos:escribir/
+                # puertas:escribir/rampa:escribir/billing:escribir a
+                # nivel de scope de aplicacion, pero el GRANT de motor
+                # (db/ddl/monetdb/9*_grants_*.sql) nunca le dio INSERT
+                # sobre ops.vuelo/ops.vuelo_estado/ops.asignacion_puerta
+                # ni ningun privilegio de escritura sobre rampa.*/
+                # billing.* -- la matriz de roles del Analisis v6.0
+                # SS4.3.1 los reserva a role_operations_controller/
+                # role_airline_coordinator/role_ramp_agent/
+                # role_billing_officer (role_tenant_admin es
+                # "configuracion", no "operacion"). El scope de
+                # aplicacion pasaba el middleware y moria en el motor
+                # con un 500 opaco (o 403 desde S1.20-iteracion, ver
+                # services/gateway/main.py::_manejador_acceso_denegado_motor)
+                # -- se retiran los 4 scopes para que la capa de
+                # aplicacion deje de ofrecer una accion que el motor
+                # nunca iba a aceptar.
+                #
                 # Sprint S1.16 -- hallazgo empirico: M2 ya estaba en el
                 # conjunto de modulos de este rol (arriba), pero ningun
                 # scope fids:* existia en NINGUN rol del sistema. Los 3
@@ -134,11 +153,8 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "fids:leer",
                 "fids:administrar",
                 "puertas:leer",
-                "puertas:escribir",
                 "rampa:leer",
-                "rampa:escribir",
                 "billing:leer",
-                "billing:escribir",
                 "passenger:leer",
                 "compliance:leer",
                 "compliance:escribir",

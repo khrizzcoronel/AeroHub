@@ -18,8 +18,21 @@ export class LicenciaList implements OnInit {
   protected readonly cargando = signal(false);
   protected readonly error = signal<string | null>(null);
 
+  // Ver detalles (Fase 4 de docs/diseno/PLAN_CORRECCION_MODULOS.md, item
+  // 12): no admite edicion -- una licencia la gobierna el plan del tenant,
+  // no se administra individualmente (§5 del plan).
+  protected readonly licenciaViendoDetalle = signal<LicenciaResumen | null>(null);
+
   ngOnInit(): void {
     this.cargarLicencias();
+  }
+
+  protected verDetalle(l: LicenciaResumen): void {
+    this.licenciaViendoDetalle.set(l);
+  }
+
+  protected cerrarDetalle(): void {
+    this.licenciaViendoDetalle.set(null);
   }
 
   protected cargarLicencias(): void {

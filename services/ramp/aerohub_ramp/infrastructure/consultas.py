@@ -110,6 +110,14 @@ def listar_turnarounds(conn: Connection) -> list[Row]:
     return list(conn.execute(stmt))
 
 
+def listar_tipos_tarea(conn: Connection) -> list[Row]:
+    """Catalogo global de tipos de tarea de rampa (`rampa.tipo_tarea`, sin
+    filtro de tenant -- mismo patron que `catalogo.aerolinea` en
+    aerohub_aodb)."""
+    stmt = select(tipo_tarea)
+    return list(conn.execute(stmt))
+
+
 def listar_incidencias(conn: Connection) -> list[Row]:
     stmt = (
         select(

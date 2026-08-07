@@ -110,9 +110,10 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.16 | Fase 1.5: administración de FIDS (plantillas, pantallas, telemetría) -- corrige además el hallazgo crítico de que ningún rol tenía scopes `fids:*` | `afd9ad4` |
 | S1.17 | Fase 1.5: tarifarios (RF-T10) y conciliación de pax -- historial completo de tarifarios con conceptos, activación con aviso de inmutabilidad, conciliación con diferencia derivada | `f23bb3e` |
 | S1.18 | Fase 1.5: informes operativos (familia RF-I nueva) -- 6 informes (simple+compuesto) en M1/M3/M4/M5/Tenancy/M9, primitivo `.ah-informe`, exportación CSV, auditoría de emisión en M5/M9 | `3e066ba` |
-| S1.19 | Fase 1.5: Compliance Hub (M9) -- listados/catálogos nuevos, vista `compliance/panel`, hallazgo de scopes de `role_sre` corregido | pendiente de commit |
-| S1.20 | Fase 1.5: D6 Soporte (tickets con SLA, KB, changelog) -- cierra la Fase 1.5 completa (S1.15-S1.20) | pendiente de commit |
-| **S2.1** | **Fase 2 -- retomar en `docs/PLAN_IMPLEMENTACION_v3.0.md` §8, sprint siguiente a S1.20** | **retomar aquí** |
+| S1.19 | Fase 1.5: Compliance Hub (M9) -- listados/catálogos nuevos, vista `compliance/panel`, hallazgo de scopes de `role_sre` corregido | `7b0cc68` |
+| S1.20 | Fase 1.5: D6 Soporte (tickets con SLA, KB, changelog) -- cierra la Fase 1.5 completa (S1.15-S1.20) | `0a23e2d` |
+| **Iteración post-S1.18** | **Dashboard de informes consolidado (1 vista en vez de 6) + panel táctico demo sobre ClickHouse (M7) + 3 arreglos de autocarga -- ver sección propia más abajo, sin sprint number formal, trabajo directo del usuario 2026-08-05** | **pendiente de commit -- retomar aquí** |
+| S2.1 | Fase 2 -- retomar en `docs/PLAN_IMPLEMENTACION_v3.0.md` §8, sprint siguiente a S1.20 (después de cerrar la iteración de arriba) | pendiente |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
@@ -450,6 +451,470 @@ ingesta a bronce), la primera fase que la v3.0 deliberadamente puso
 DESPUÉS de cerrar esta superficie (§8-bis, "por qué la Fase 1.5 va
 antes de la Fase 2 y no en paralelo").
 
+## Iteración post-S1.18: dashboard de informes + panel táctico demo (2026-08-05, pendiente de commit)
+
+**Trabajo hecho directamente por el usuario** (fuera de una sesión de
+Claude Code), sin ciclo Spec Kit propio -- documentado aquí para que la
+sesión siguiente retome desde el estado real del working tree, no desde
+el último commit (`0a23e2d`, S1.20). **Punto de partida obligatorio de
+la próxima sesión**: correr `git status`/`git diff` antes de asumir que
+el árbol coincide con el último commit.
+
+1. **Consolidación del dashboard de informes (3er pase de rediseño de
+   S1.18)**: los 6 enlaces sueltos del menú ("Informes · AODB",
+   "Informes · Gates", etc., cada uno con su propia ruta/componente en
+   `informes/rutas/informes-rutas.ts`, **ahora eliminado**) se
+   reemplazaron por una vista única `informes/dashboard-informes/`.
+   Arma dinámicamente una sección por módulo según los scopes del
+   perfil (`vuelos:leer`, `puertas:leer`, `rampa:leer`, `billing:leer`,
+   `tenants:administrar`, `compliance:leer`), con un layout fijo
+   calcado de una referencia visual que aportó el usuario: 4 tarjetas
+   KPI arriba, abajo 2 columnas -- gráfico de barras horizontales
+   (**compuesto**, badge "Compuesto · ClickHouse") a la izquierda,
+   tabla (**simple**, badge "Simple · MonetDB") a la derecha. El menú
+   lateral (`shell.ts`) pasó de 6 computed (`puedeVerInformesVuelos`,
+   etc.) a un único `puedeVerInformes` -- el enlace solo decide si HAY
+   algo que mostrar, el dashboard decide qué.
+2. **Servicio nuevo `aerohub_analytics_api` (M7) -- panel "táctico"
+   DEMO sobre ClickHouse, explícitamente temporal**: endpoint
+   `GET /analytics/tactico/{modulo}` que lee un snapshot pre-calculado
+   en ClickHouse (`ah_tactico_demo.compuesto_informe`), NO una consulta
+   en vivo contra MonetDB. El propio código (`infrastructure/__init__.py`
+   y el docstring de `tools/sincronizar_analytics_demo.py`) deja
+   explícito que esto **no** es `ah_tactico`, la capa analítica real que
+   la Fase 2/S2.4 construye sobre ADR-016 -- es una demo mínima que se
+   retira cuando esa fase exista. El snapshot se llena corriendo
+   `uv run python tools/sincronizar_analytics_demo.py --tenant-codigo MEC`
+   dentro del contenedor gateway: el script llama por HTTP real a los 6
+   endpoints `/X/informes/compuesto` ya existentes desde S1.18 (respeta
+   la independencia de módulos -- no importa `domain`/`application` de
+   ningún módulo de negocio) y vuelca el resultado a ClickHouse.
+   **Reutiliza el hallazgo de grants de S1.19**: `role_tenant_admin` no
+   tiene `GRANT` de motor sobre `compliance.*`, así que el script usa
+   `role_sre` solo para ese módulo. `infra/docker-compose.yml` ahora
+   depende de un contenedor `clickhouse` con healthcheck
+   (`AEROHUB_CLICKHOUSE_HOST=clickhouse`).
+3. **3 arreglos de autocarga (hallazgo de UX, pedido directo)**:
+   `billing/panel-facturas`, `puertas/tablero-puertas` y
+   `rampa/panel-turnaround` no mostraban nada hasta presionar un botón
+   "Cargar..." -- sus métodos de listado no reciben parámetros (el
+   filtro es 100% client-side), así que no había motivo para no cargar
+   al entrar. Los 3 ganaron un `constructor()` que llama al listado de
+   entrada, mismo criterio que `panel-tarifarios`/`panel-compliance`/
+   `panel-soporte` desde su propio sprint.
+4. **Utilidad nueva `tools/crear_usuarios_demo_roles.py`** (no forma
+   parte de ningún sprint ni de `db/seeds/generate.py`): crea un usuario
+   demo por cada rol tenant-scoped en el tenant canario MEC
+   (`role_operations_controller`, `role_airline_coordinator`,
+   `role_ramp_agent`, `role_billing_officer`, `role_tenant_analyst`,
+   `role_regulatory_auditor`), contraseña fija `aerohub-demo-2026`,
+   idempotente por email -- para poder iniciar sesión y probar la
+   aplicación con cualquier rol sin pasar por el flujo de invitación.
+
+**Cierre de la iteración (misma sesión, 2026-08-05)**: el diseño del
+dashboard pasó por 3 rechazos explícitos del usuario antes de este
+layout final -- vale la pena registrarlo para no repetir los mismos
+intentos en una sesión futura:
+
+1. Primer intento: secciones apiladas verticalmente, un `.ah-panel`
+   compacto de filtros/tabla oculto detrás de un botón "Consultar
+   detalle" por módulo. Rechazado -- "no parece un dashboard real...
+   no hay gráficos ni métricas".
+2. Segundo intento: grilla de tarjetas 2-3 columnas con gráfico de
+   barras + KPI total, patrón de lectura en F (justificado como mejor
+   ajuste para contenido informativo denso repetido). Rechazado --
+   "no aplicaste el patrón Z... no hay KPIs" (el usuario quería Z, no
+   F, y 4 tarjetas KPI explícitas, no un solo total).
+3. Tercer intento (el que quedó): el usuario adjuntó 2 capturas de
+   referencia de otro proyecto (dashboard de flota tipo "UrbanFleet
+   TaxiFlow") mostrando el patrón exacto -- 4 tarjetas KPI arriba, 2
+   columnas debajo (gráfico con badge de origen a la izquierda, tabla
+   con badge de origen a la derecha). Ese patrón reveló además que el
+   badge de la referencia ("Compuesto · ClickHouse" / "Simple ·
+   MongoDB") no era decorativo: exigía que el compuesto viniera
+   realmente de una capa analítica distinta a la operativa. De ahí
+   salió la decisión de construir `aerohub_analytics_api`/ClickHouse
+   real en vez de simular el badge sobre datos de MonetDB.
+
+**Verificado tras el tercer pase**: `ruff`/`mypy`/`bandit`/
+`import-linter` en verde sobre `services/analytics_api` (contra la
+imagen reconstruida del gateway, con `clickhouse-connect` agregado a
+`services/analytics_api/pyproject.toml`); `npx nx build web
+--configuration=production` en verde (mismo warning de presupuesto de
+bundle ya conocido). Contenedor `aerohub-clickhouse` levantado y sano;
+`tools/sincronizar_analytics_demo.py` corrido con éxito (6/6 módulos,
+confirmado con `SELECT ... FROM ah_tactico_demo.compuesto_informe`
+directo contra ClickHouse). Verificado en navegador real (sesión
+logueada como `canario@mec.aerohub.test`, `role_tenant_admin`): los 6
+módulos renderizan con datos reales, sin errores de consola, badges
+"Compuesto · ClickHouse"/"Simple · MonetDB" correctos, grilla en 2
+columnas confirmada por estilos computados. `Compliance Hub` sigue
+mostrando `acceso denegado` en su lado simple -- mismo hallazgo
+pre-existente de S1.7/S1.19 (sin `GRANT` de motor de
+`role_tenant_admin` sobre `compliance.*`), no introducido por esta
+iteración.
+
+**Sin commitear todavía** -- pendiente de pedido explícito del
+usuario, igual que el resto del proyecto (Principio V).
+
+## Iteración post-S1.20: clasificación de roles + corrección transversal de módulos (2026-08-06/07, pendiente de commit)
+
+Trabajo directo del usuario tras cerrar la Fase 1.5, sin ciclo Spec Kit
+propio (revisión funcional de la aplicación completa) -- documentado
+aquí para que la sesión siguiente retome desde el estado real, no
+desde el último commit (`0a23e2d`, S1.20). **Seguir corriendo
+`git status`/`git diff` antes de asumir que el árbol coincide con el
+último commit.**
+
+1. **Reset completo de las 3 instancias de MonetDB** (primaria,
+   standby, restore-test) a pedido del usuario, para poder probar con
+   una base limpia. Volúmenes `infra_monetdata{,-standby,-restore-test}`
+   borrados y recreados, DDL reaplicado a las 3, seeds corridos solo en
+   la primaria, `tools/crear_usuarios_demo_roles.py` re-ejecutado.
+   **Hallazgo real corregido**: `db/ddl/monetdb/99_grants_identidad.sql`
+   duplicaba un `GRANT SELECT, INSERT, UPDATE ON tenants.invitacion TO
+   role_tenant_admin` que `92_grants_tenants.sql` ya otorgaba -- rompía
+   `db/migrations/apply.py` contra un motor recién creado con
+   `01007!GRANT: ... already has this privilege` (nunca se había vuelto
+   a aplicar el DDL completo desde cero desde que ese archivo se creó
+   en S1.10). Corregido eliminando el duplicado -- ver también la
+   sección de hallazgos empíricos de MonetDB más abajo.
+2. **`docs/diseno/ROLES_POR_CAPA.md`** (nuevo): clasifica los 16 roles
+   del sistema en capa operativa / táctica / estratégica / plataforma,
+   usando la misma taxonomía RF-O/RF-T/RF-E que ya usa
+   `docs/PLAN_IMPLEMENTACION_v3.0.md`. El usuario decidió trabajar
+   **solo con la capa operativa** (`role_tenant_admin`,
+   `role_operations_controller`, `role_ramp_agent`,
+   `role_airline_coordinator`, `role_billing_officer`) hasta nuevo
+   aviso -- las credenciales demo de esos 5 roles ya existen (tenant
+   MEC, `tools/crear_usuarios_demo_roles.py`).
+3. **`docs/diseno/PLAN_DASHBOARDS_OPERATIVOS.md`** (nuevo, **plan sin
+   implementar**): reemplaza el dashboard único módulo-céntrico actual
+   (que mezcla compuesto/ClickHouse con simple/MonetDB) por un
+   dashboard **por rol operativo**, alimentado solo por informes
+   simples de MonetDB -- un compuesto es horizonte táctico, no le sirve
+   a quien opera el día de hoy. Documenta 2 brechas reales (M2 FIDS y
+   M6 Passenger sin endpoint de informe) y 5 decisiones abiertas con
+   recomendación por defecto. **No implementado** -- a la espera de que
+   el usuario lo pida.
+4. **`docs/diseno/PLAN_CORRECCION_MODULOS.md`** (nuevo): revisión
+   funcional de toda la aplicación (CRUD, errores HTTP, comprensibilidad).
+   Encontró que la mayoría de los "errores de servidor" reportados se
+   explican por **4 causas raíz**, no por decenas de defectos sueltos:
+   (A) `role_tenant_admin` tenía scopes de aplicación de escritura
+   (`vuelos:escribir`/`puertas:escribir`/`rampa:escribir`/`billing:escribir`)
+   que el motor nunca le concedió (la matriz de roles los reserva a
+   los roles operativos reales) -- 500 opaco al escribir; (B) el
+   traductor de errores de permisos (`_manejador_acceso_denegado_motor`)
+   solo reconocía la frase de MonetDB para `SELECT` denegado
+   (`"access denied"`), no la de `INSERT`/`UPDATE`/`DELETE` denegado
+   (`"insufficient privileges"`) -- una escritura sin permiso llegaba
+   como 500 en vez de 403; (C) los seeds no siembran datos operativos
+   (terminales, puertas, turnarounds, facturas, pantallas FIDS,
+   artículos de KB) -- módulos vacíos tras cualquier reset; (D) M1 AODB
+   no tiene `GET /vuelos` (405) -- la vista núcleo no puede listar nada
+   al entrar. También aclara 2 cosas reportadas como bug que son reglas
+   de negocio reales sin explicar en la UI: el límite de 3 caracteres
+   en moneda de tarifario (ISO 4217, correcto, falta ser un selector) y
+   que un ticket de soporte solo cambia de estado si lo opera
+   `role_support` (regla de S1.8, el control se ocultaba sin decir por
+   qué). El plan deja **D1** (qué hacer con los scopes de
+   `role_tenant_admin`) como la decisión que condiciona todo lo demás,
+   con 4 más de menor impacto.
+
+   **D1(a) decidido por el usuario -- respetar la matriz de roles.**
+   **Fase 1 implementada y verificada**:
+   - `services/gateway/main.py::_manejador_acceso_denegado_motor`
+     reconoce ahora `"insufficient privileges"` además de
+     `"access denied"` -- cualquier escritura sin `GRANT` de motor
+     responde 403 legible, nunca 500.
+   - `packages/contracts/aerohub_contracts/roles_modulos.py`:
+     `role_tenant_admin` perdió `vuelos:escribir`/`puertas:escribir`/
+     `rampa:escribir`/`billing:escribir` -- es "configuración", no
+     "operación", según la matriz del Análisis v6.0 §4.3.1. **Ajuste
+     acordado explícitamente con el usuario**: esto rompe también el
+     botón "Cancelar" de `puertas/tablero-puertas` (una acción que hoy
+     SÍ funcionaba, por ser un `UPDATE` que el motor sí permite) --
+     aceptado a propósito ("cancelar una asignación también es
+     operar"), en vez de partir el scope en dos más finos.
+   - `tests/negative/test_escritura_permisos_motor.py` (nuevo, 6
+     tests): confirma que ninguna escritura llega a 500, que
+     `role_tenant_admin` ya no puede escribir en M1/M3/M4/M5, y que
+     `role_operations_controller`/`role_billing_officer` siguen
+     pudiendo (sin regresión). Verificado: ruff/mypy/bandit/
+     import-linter en verde; suite completa **184 tests, 0 fallos**
+     (excluidos 6 tests con dependencia externa ya conocida y ajena a
+     este cambio: 3 de `test_continuidad_shipper.py` con un problema de
+     hostname de conexión pre-existente, y 3 que dependían de
+     `mailpit`, retirado del stack en la sexta iteración post-S1.13).
+   - **Botones de escritura ocultos en el frontend** para
+     `role_tenant_admin` en los 4 módulos afectados -- nuevo computed
+     `puedeEscribir()` (mismo patrón ya usado en `panel-compliance`/
+     `panel-soporte`) en `vuelos/estado-tiempo-real` ("Nuevo vuelo",
+     "Cambiar estado"), `puertas/tablero-puertas` ("Asignar puerta
+     manualmente", "Ejecutar asignación automática", "Cancelar"),
+     `rampa/panel-turnaround` ("Crear turnaround", "Iniciar tarea",
+     "Finalizar") y `billing/panel-facturas` +
+     `billing/panel-tarifarios` ("Calcular facturación", "Emitir
+     factura", "Disputar factura", "Nuevo tarifario", "Agregar
+     concepto", "Activar", "Nueva conciliación", "Conciliar"). Primitivo
+     `.accion-inactiva` local de `tablero-puertas` promovido a
+     `.ah-accion-inactiva` en `_primitivos.scss` (el mismo patrón se
+     repite en los 5 módulos). **Hallazgo del proceso**: copiar
+     `roles_modulos.py` al contenedor con `docker cp` no alcanza para
+     que la API lo tome -- el proceso `uvicorn` ya lo tenía cargado en
+     memoria, hace falta `docker restart aerohub-gateway`. Verificado
+     en navegador real: `role_tenant_admin` ya no ve ningún control de
+     escritura en los 4 módulos; `role_operations_controller` sigue
+     viendo "Nuevo vuelo" sin regresión; build de producción en verde.
+   - **Fases 2-6 del plan (sembrar datos, cerrar huecos de API,
+     estandarizar CRUD, comprensibilidad) siguen sin implementar** --
+     retomar ahí cuando el usuario lo pida.
+
+**Fase 2 implementada** (2026-08-07, pendiente de commit): `db/seeds/generate.py`
+ampliado con siembra operativa idempotente por tenant canario (MEC/UIO) --
+1 terminal + 3 puertas (2 contacto/1 remota), 1 plantilla FIDS + 2 pantallas
+(en_linea/sin_senal), un segundo vuelo (sentido `L`) emparejado con el
+existente (sentido `S`) en 1 turnaround `en_curso` con 2 tareas (completada/
+en_curso) y 1 incidencia, 1 tarifario vigente con 3 conceptos + 1 cargo
+aeronautico + 3 facturas en 3 estados (borrador/emitida/vencida) -- y, fuera
+del loop por tenant (estas 2 tablas no tienen `tenant_id`), 2 articulos de
+KB con etiquetas y 1 entrada de changelog con 2 items. Cada helper nuevo
+sigue el patron `_obtener_o_crear_X` ya establecido en el archivo (lookup
+por la clave UNIQUE real de cada tabla antes de insertar) -- confirmado
+idempotente corriendo el script dos veces seguidas sin duplicar filas.
+**Hallazgo de bug real durante la escritura** (no de MonetDB, de copiar mal
+los codigos del propio archivo): los primeros borradores de las tareas de
+turnaround e incidencia usaban codigos que no existen en `TIPOS_TAREA`
+(`"desembarque"`, `"reabastecimiento_combustible"`) ni en
+`TIPOS_INCIDENCIA_RAMPA` (`"dano_equipo"`) -- los unicos reales son
+`"combustible"/"catering"/"limpieza"/"equipaje"` y
+`"desviacion_estandar"` (unica entrada del catalogo); corregido antes de
+correr el script contra MonetDB real. Verificado: sintaxis (`ast.parse`),
+`ruff`/`mypy`/`bandit` en verde sobre `db/seeds/generate.py` (6 errores de
+longitud de linea E501 corregidos), `lint-imports` en verde sobre el repo
+completo (no rompe ningun contrato); corrida real contra `monetdb`
+primario dentro de `aerohub-gateway` sin errores, dos veces seguidas
+(prueba de idempotencia); conteos de filas confirmados por tenant via
+`pymonetdb` directo. **Verificado en navegador real** (`canario@mec.aerohub.test`,
+`role_tenant_admin`): Terminal & Gate Manager, Ground Operations, Revenue &
+Billing, FIDS Management y Soporte (KB + changelog) ya muestran datos --
+ningun modulo operativo se abre vacio. Un 500 transitorio visto una vez en
+`GET /support/kb/articulos` ("connection closed" en el pool de SQLAlchemy/
+MonetDB, ver traceback en logs de `aerohub-gateway`) se confirmo como
+artefacto de una conexion inactiva del pool, no una regresion -- 3
+reintentos consecutivos por `curl` devolvieron 200 con los 2 articulos
+sembrados incluidos, y una recarga de la vista los mostro correctamente.
+**Fase 3 implementada** (2026-08-07, pendiente de commit): cierra los 3
+huecos de API identificados en el plan (items 6-9).
+
+1. **`GET /vuelos` con filtros de fecha y estado** (item 6, causa raiz D):
+   `aerohub_aodb` no tenia ningun listado -- la vista nucleo solo recibia
+   datos por WebSocket. `infrastructure/consultas.py::listar_vuelos` hace
+   `LEFT JOIN` contra el estado mas reciente (mismo patron de subconsulta
+   correlacionada `MAX(registrado_en)` que `obtener_estado_vuelo_actual_por_id`,
+   nunca contra `ops.v_vuelo_estado_actual` por el hallazgo ya documentado
+   de columnas a 3 partes en vistas). **Hallazgo empirico nuevo**: el
+   guardian G2 (`packages/repository/guard.py::_tiene_filtro_tenant`) solo
+   inspecciona la clausula `WHERE` de un `SELECT`, no las condiciones `ON`
+   de un `JOIN` -- un filtro de tenant puesto solo en el `ON` del
+   `outerjoin` contra `vuelo_estado` no alcanza, hace falta repetirlo en
+   `WHERE` (`(vuelo_estado.c.tenant_id == tenant_id) | (vuelo_estado.c.tenant_id.is_(None))`,
+   el `OR` con `NULL` preserva la semantica del `LEFT JOIN` para vuelos sin
+   ningun estado registrado). Nuevo caso de uso
+   `aerohub_aodb/application/listar_vuelos.py` y endpoint `GET /vuelos`.
+2. **CRUD de terminal y puerta en M3** (item 7): antes de este sprint no
+   existia ningun alta/edicion, solo el tablero de solo lectura y el flujo
+   de asignacion. Nuevo `domain/puerta.py` (`validar_terminal`/
+   `validar_puerta`, mismos 2 valores del CHECK de motor para `tipo`),
+   nuevo caso de uso `application/gestionar_puertas.py`
+   (`crear_terminal`/`listar_terminales_del_tenant`/`crear_puerta`/
+   `actualizar_puerta`, con deteccion de codigo duplicado -> 409 antes del
+   INSERT, mismo patron que `CorreoYaRegistrado` en tenancy), y 4
+   endpoints nuevos (`POST/GET /puertas/terminales`, `POST /puertas`,
+   `PATCH /puertas/{id}`). Sin `estado` en el DDL de `ops.puerta`/
+   `ops.terminal` -- no hay accion de suspender/activar para estas 2
+   tablas, el CRUD real es crear+editar. **Sin cambio de GRANT
+   necesario**: `role_operations_controller`/`role_airline_coordinator`
+   ya tenian `INSERT`/`UPDATE` de motor sobre ambas tablas desde
+   `96_grants_ops.sql` (S1.4), verificado antes de escribir codigo.
+3. **Trazabilidad de transiciones de ticket** (item 8, D6): el dato ya se
+   registraba desde S1.8 (`cambiar_estado_ticket` -> `registrar_auditoria`
+   -> `compliance.log_auditoria`), pero no habia ningun GRANT de motor que
+   permitiera leerlo desde un rol operativo (solo roles de plataforma).
+   **Decision explicita del usuario** (`AskUserQuestion`, opcion
+   recomendada): otorgar `GRANT SELECT ON compliance.log_auditoria` a los
+   2 roles que hoy tienen el scope de aplicacion `support:leer` fuera de
+   los roles de plataforma ya otorgados (`role_tenant_admin`,
+   `role_support`) -- no a los 5 roles operativos que carecen de ese
+   scope. La consulta (`listar_transiciones_estado_ticket`) siempre filtra
+   por `esquema='support' AND tabla='ticket' AND registro_id=<ticket
+   puntual>`; el GRANT es table-wide (MonetDB no tiene seguridad de fila)
+   pero la aplicacion nunca ejecuta nada mas amplio contra esa tabla.
+   Nuevo `consultar_transiciones_ticket` en `gestionar_tickets.py` (mismo
+   patron de 2 ramas que `consultar_ticket`: `role_support` ve
+   transiciones de cualquier tenant via `alcance_global`, el resto solo
+   las de su propio tenant) y endpoint
+   `GET /support/tickets/{id}/transiciones`. **Verificado empiricamente
+   que seleccionar columnas JSON individuales** (`valores_anteriores`/
+   `valores_nuevos`) **no dispara el hallazgo de doble-decodificacion de
+   S1.9/S1.18** -- ese bug es especifico de `select(tabla_completa)`, no
+   de seleccionar columnas JSON puntuales junto a otras escalares.
+4. **`docs/api/openapi.yaml` regenerado** (item 9): pasa de 72 a 97 rutas.
+   `npx spectral lint --fail-severity=error` en verde (0 errores, 66
+   warnings preexistentes de descripciones faltantes en todo el archivo,
+   no introducidos por este sprint).
+5. **Verificado**: ruff/mypy/bandit/import-linter en verde sobre
+   `aerohub_aodb`/`aerohub_gates`/`aerohub_support` (un hallazgo de
+   `UP017` preexistente en `aerohub_gates/infrastructure/consultas_informe.py`,
+   archivo no tocado por este sprint, dejado intacto). Probado uno por uno
+   con `curl`+JWT real contra los 3 roles relevantes (`role_tenant_admin`,
+   `role_operations_controller`, `role_support`): `GET /vuelos` con y sin
+   filtros, ciclo completo crear-terminal/crear-puerta/editar-puerta,
+   duplicado -> 409, tipo invalido -> 422, sin scope -> 403, ciclo
+   cambiar-estado-ticket + `GET .../transiciones` con el detalle correcto
+   de estado anterior/nuevo. Nuevo `tests/integration/test_fase3_cierre_huecos_api.py`
+   (10 tests contra MonetDB real via `TestClient`, confirmado idempotente
+   en 2 corridas seguidas). Suite completa: **211 tests pasando** (187
+   previos + 10 nuevos + 16 de una suite de aislamiento re-verificada
+   aparte + 1 test de latencia RNF-P01, ver hallazgo de entorno abajo),
+   los 6 fallos ya documentados de `mailpit`/`test_continuidad_shipper.py`
+   sin cambios. **Hallazgo de entorno nuevo** (no de codigo): correr la
+   suite COMPLETA de una sola vez agota el limite de 64 conexiones
+   concurrentes de MonetDB hacia el final de la corrida -- en aislamiento
+   cada test afectado pasa sin problema; es presion de recursos del
+   entorno de este sprint (300+ tests + 2 subprocesos `uvicorn` reales de
+   los tests de latencia RNF-P01/RNF-P02, que ademas tardan >10s en
+   terminar en `proceso.wait()` durante el teardown, sin afectar el
+   resultado del test en si -- ambos "pasan" y solo el teardown erroa),
+   no una regresion introducida por este sprint.
+
+**Fase 4 implementada parcialmente** (2026-08-07, pendiente de commit):
+items 10 y 12 completos; item 11 avanzado en los 2 módulos con el hueco
+más grande (M3 Gates, M5 Billing/tarifarios) -- M1 AODB, M2 FIDS, D6 y M9
+quedan pendientes.
+
+1. **Item 10 -- borrado físico retirado de `tenant-list`**: se quitó el
+   botón "Borrar físicamente", su modal de confirmación y los métodos
+   `solicitarEliminacionFisica`/`confirmarEliminacionFisica`/
+   `cancelarEliminacionFisica` (+ signals `tenantAEliminar`/`eliminando`)
+   de `tenant-list.ts`, y `eliminarTenantFisico()` de `tenant.service.ts`
+   (sin otro consumidor). **Decisión D2(b)** (recomendación por defecto
+   del plan, no se volvió a preguntar): el endpoint `DELETE /tenants/{id}`
+   del backend se deja intacto, sin consumidor de interfaz.
+2. **Item 12 -- Licencias y API Keys**: `licencia-list` gana "Ver
+   detalles" (módulo, vigencia, estado, y un origen textual -- no existe
+   columna `origen` en `tenants.licencia`, se explica que la licencia la
+   otorga el aprovisionamiento del tenant según su plan, sin edición
+   posible, tal como ya documentaba §5 del plan). `api-key-list` mueve
+   "Rotar"/"Revocar" de botones de fila a un modal "Ver detalles" (sin
+   edición -- una llave no se edita).
+3. **Item 11 -- M3 Gates**: UI completa para el CRUD de terminal/puerta
+   que Fase 3 dejó sin ningún consumidor. `puertas.service.ts` gana
+   `listarTerminales`/`crearTerminal`/`crearPuerta`/`editarPuerta`.
+   `tablero-puertas` gana botones "Nueva terminal"/"Nueva puerta"
+   (condicionados a `puedeEscribir()`), y el botón de fila pasa de "Ver
+   asignaciones" (solo si había alguna) a "Ver detalles" siempre visible
+   -- el modal ahora muestra terminal/tipo/envergadura/pasarela de la
+   puerta, un botón "Editar" que abre un formulario inline dentro del
+   mismo modal (patrón "las acciones viven dentro de Ver detalles"), y
+   debajo la tabla de asignaciones ya existente. **Hallazgo de API
+   durante la implementación**: `PuertaTableroResponse`/`PuertaTablero`
+   de `aerohub_gates` no exponían `tiene_pasarela` -- sin ese campo no
+   se podía prellenar el formulario de edición correctamente; se agregó
+   como campo aditivo (la fila ya lo traía de `listar_puertas`, solo
+   faltaba propagarlo por `application`/`api`).
+4. **Item 11 -- M5 Billing/tarifarios**: consolidados "Ver conceptos" +
+   "Agregar concepto" + "Activar" (3 botones de fila) en un solo "Ver
+   detalles" -- el modal de conceptos ahora es el contenedor de las 2
+   acciones propias del tarifario, que se abren cerrando primero el modal
+   de detalles (mismo criterio que `tenant-list`: nunca dos modales
+   superpuestos).
+5. **Verificado**: build de producción de `apps/web` en verde (mismo
+   warning de presupuesto de bundle ya conocido, ahora 700KB); ruff/mypy
+   en verde sobre `aerohub_gates` (un `E501` propio de Fase 3 que se
+   había colado sin corregir, encontrado y arreglado recién ahora);
+   22/22 tests de integración relacionados (gates/tarifarios/Fase 3) sin
+   regresiones. **Verificado en navegador real**
+   (`controlador@mec.aerohub.test`, `role_operations_controller`): ciclo
+   completo crear terminal → crear puerta → ver detalles → editar → el
+   cambio se refleja en la tabla, confirmado por red (`POST
+   /puertas/terminales` 201, `POST /puertas` 201, `PATCH /puertas/{id}`
+   204) y por el DOM. `licencia-list`/`api-key-list` verificados con
+   `canario@mec.aerohub.test` (`role_tenant_admin`): "Ver detalles"
+   muestra el contenido esperado en ambos. Un 500 en
+   `GET /vuelos/catalogo/tipos-vuelo` visto una vez en consola se
+   reconfirmó como el mismo artefacto transitorio de conexión ya
+   documentado en esta sesión (3/3 reintentos con `curl` dieron 200
+   inmediatamente después).
+6. **Item 11 -- resto cerrado en la misma sesión** (M1 AODB, M2 FIDS, D6
+   Soporte, M9 Compliance):
+   - **M1 AODB**: el botón "Cambiar estado" por fila se reemplaza por
+     "Ver detalles" (siempre visible, ya no requiere `puedeEscribir()`) --
+     abre un modal con `GET /vuelos/{id}` (aerolínea/aeronave/ruta/fecha/
+     horarios/pax, resueltos a nombre real via los catálogos ya cargados)
+     y el cambio de estado vive DENTRO como formulario nested, solo si
+     `puedeEscribir()`. `vueloEditandoEstadoId` se retira, reemplazado por
+     `vueloDetalle: VueloConsultado | null`.
+   - **M2 FIDS**: plantillas ganan "Ver detalles" (inmutable/versionada,
+     sin edición) mostrando el contenido real (`definicion_json`) que
+     antes solo se veía al crearla -- el campo ya viajaba en la respuesta
+     de `GET /plantillas`, solo no se mostraba. El botón de pantalla pasa
+     de "Asignar plantilla" a "Ver detalles": el modal ahora muestra
+     terminal/plantilla vigente/ubicación/última señal, con "Asignar otra
+     plantilla" como acción nested (mismo formulario de antes, sin
+     endpoint nuevo).
+   - **D6 Soporte**: el modal de detalle de ticket gana una sección
+     "Historial de estado" que consume
+     `GET /support/tickets/{id}/transiciones` (cerrado en Fase 3, sin
+     consumidor hasta ahora) -- lista simple (no aún un timeline fusionado
+     con los mensajes; eso es explícitamente Fase 5 item 16). Nuevo tipo
+     `Transicion` + `listarTransicionesTicket()` en `soporte.service.ts`.
+   - **M9 Compliance**: revisado, **sin cambios** -- post-mortem ya tenía
+     el ciclo completo crear/ver-detalles/publicar desde su propio sprint;
+     incidentes/reportes DGAC/accesos de auditor/evidencia SOC2 son
+     registros de auditoría deliberadamente inmutables (verificado contra
+     el backend: `IncidenteTablero` no tiene ningún campo que la tabla ya
+     no muestre, y no existe ninguna función de actualización de
+     `incidente_seguridad` en `application/`) -- un "Ver detalles" ahí
+     sería ruido sin información nueva, no aplica el patrón.
+   - `tenant-list`/`usuario-list`/M4 Ground Ops ya cumplían el patrón
+     desde sprints anteriores, sin cambios necesarios. **Item 11 completo
+     en los 9 módulos.**
+   - **Verificado**: build de producción de `apps/web` en verde (mismo
+     warning de bundle, 706KB); 30/30 tests de integración relacionados
+     (aodb/fids/soporte/Fase 3) sin regresiones. Verificado en navegador
+     real (`canario@mec.aerohub.test` para lectura, un JWT de
+     `role_operations_controller` fabricado por `curl` para generar
+     eventos de cambio de estado reales): el detalle de vuelo resuelve
+     nombres de aerolínea/aeronave/aeropuertos correctamente tras un
+     cambio de estado real vía WebSocket; el detalle de plantilla FIDS
+     muestra el contenido real; el detalle de pantalla FIDS muestra
+     terminal/plantilla/ubicación y permite reasignar; el historial de
+     estado de un ticket muestra "Abierto → En progreso · role_support"
+     con la marca de tiempo correcta.
+   - **Hallazgo de entorno, no de código, encontrado varias veces
+     verificando este pase**: `GET /vuelos/catalogo/aeropuertos` (y otros
+     endpoints de catálogo, ya visto antes con `/support/kb/articulos` y
+     `/vuelos/catalogo/tipos-vuelo`) devuelve intermitentemente 500
+     `pymonetdb.exceptions.Error: connection closed` tras un período de
+     inactividad -- el pool de SQLAlchemy no tiene `pool_pre_ping`, así
+     que una conexión que MonetDB cerró del lado del servidor no se
+     detecta hasta el primer intento de uso, y ese primer intento falla
+     en vez de reabrir la conexión. Siempre se resuelve solo en el
+     siguiente intento (confirmado repetidas veces con reintentos
+     inmediatos). **No es una regresión de ningún sprint** -- es
+     comportamiento pre-existente del pool de conexiones, reproducido en
+     múltiples endpoints no relacionados entre sí a lo largo de toda la
+     sesión. Se documenta aquí como hallazgo a considerar (agregar
+     `pool_pre_ping=True` al `create_engine` de
+     `packages/repository/aerohub_repository/base.py` sería el arreglo de
+     una línea), pero queda fuera del alcance de la Fase 4 -- es un
+     cambio transversal de infraestructura, no de un módulo puntual.
+
+**Sin commitear todavía** -- pendiente de pedido explícito del
+usuario (Principio V).
+
 ## Rediseño de interfaz (S1.11–S1.14)
 
 La capa operativa (S0.1–S1.10) está **completa y commiteada**. Lo siguiente
@@ -762,7 +1227,8 @@ Referencia más completa y reciente: `services/ramp/aerohub_ramp/` (S1.5).
 - Frontend (`apps/web`): el estado de sesión y token se guarda en `localStorage`
   (`AuthService`). El interceptor HTTP (`auth.interceptor.ts`) intercepta 401 y
   403 (por "scope insuficiente") para forzar cierre de sesión y limpieza local si 
-  el token caduca (15 min) o sus permisos quedaron obsoletos tras un cambio de rol.
+  el token caduca (30 min desde el 2026-08-05, pedido directo del usuario --
+  era 15 min desde S1.2) o sus permisos quedaron obsoletos tras un cambio de rol.
   Patrón de componente: standalone, todo el estado en `signal()`, `inject()` para
   DI, manejo de error uniforme vía `mensajeDeError(err)`. `<input type="datetime-local">`
   no lleva zona horaria — convertir a UTC con un helper tipo `aUtcIso()` antes de
@@ -770,6 +1236,25 @@ Referencia más completa y reciente: `services/ramp/aerohub_ramp/` (S1.5).
 
 ## Hallazgos empíricos de MonetDB (ver también `docs/runbooks/monetdb.md`)
 
+- **No es de MonetDB, es del guardián propio** (`packages/repository/guard.py`),
+  pero se documenta aquí por ser el mismo tipo de trampa silenciosa: `_tiene_filtro_tenant`
+  (G2) solo inspecciona la cláusula `WHERE` de un `SELECT` -- un filtro de
+  tenant puesto únicamente en la condición `ON` de un `JOIN`/`outerjoin`
+  no lo satisface, aunque sea lógicamente equivalente y MonetDB lo
+  ejecutaría bien. Repetir el filtro también en `WHERE` (con `| columna.is_(None)`
+  si el JOIN es `LEFT` y la tabla puede no tener fila coincidente).
+  Encontrado en `aerohub_aodb/infrastructure/consultas.py::listar_vuelos`
+  (Fase 3 de `docs/diseno/PLAN_CORRECCION_MODULOS.md`, 2026-08-07).
+- `GRANT` repetido sobre el mismo privilegio falla con
+  `01007!GRANT: User/role '<rol>' already has this privilege` --
+  MonetDB no lo trata como no-op idempotente. Encontrado al reaplicar
+  `db/migrations/apply.py` desde cero (2026-08-06/07): `92_grants_tenants.sql`
+  y `99_grants_identidad.sql` otorgaban el mismo
+  `GRANT ... ON tenants.invitacion TO role_tenant_admin` dos veces --
+  nunca se había vuelto a correr el DDL completo contra un volumen
+  realmente vacío desde que el segundo archivo se creó en S1.10.
+  Cualquier `GRANT` nuevo debe revisarse contra los archivos de grants
+  ya existentes de la misma tabla antes de agregarse.
 - No soporta `SELECT ... FOR UPDATE` ni `EXCLUDE USING gist`. El "bloqueo
   de fila" se simula con un `UPDATE` sin efecto sobre la fila a proteger
   (ver `aerohub_gates/infrastructure/comandos.py::bloquear_puerta_para_asignacion`).

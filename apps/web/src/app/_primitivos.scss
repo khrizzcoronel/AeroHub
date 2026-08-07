@@ -318,6 +318,17 @@
   font-size: 0.9rem;
 }
 
+// -- .ah-accion-inactiva -- reemplaza un boton de accion cuando el rol no
+// tiene el scope de escritura (Fase 1 de docs/diseno/PLAN_CORRECCION_MODULOS.md,
+// 2026-08-06, D1(a)) o cuando la fila no tiene ninguna accion aplicable --
+// antes duplicado por componente (.accion-inactiva local de
+// tablero-puertas), promovido aqui porque el mismo patron se repite en
+// los 5 modulos con escritura condicionada por scope.
+.ah-accion-inactiva {
+  font-size: 0.8rem;
+  color: var(--ah-ink-400);
+}
+
 // -- .ah-modal -- dialogo superpuesto (crear/editar), primitivo global
 // para que cualquier vista use el mismo patron en vez de navegar a una
 // pantalla aparte o expandir contenido inline.
@@ -496,6 +507,56 @@
   background: #eaf1ff;
   color: var(--ah-navy-800);
   border-top: 2px solid var(--ah-navy-800);
+}
+
+// -- .ah-kpi -- tarjeta de indicador (Sprint S1.18-iteracion, panel de
+// informes consolidado): un informe COMPUESTO se resume como fila de
+// tarjetas (total + primeros grupos) en vez de la tabla completa de
+// subtotales -- la tabla completa sigue disponible al exportar CSV.
+// El numeral en mono seguido de una etiqueta corta, mismo lenguaje que
+// .ah-tabla (tabular-nums) y .ah-tira (mono para dato).
+.ah-kpi-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.ah-kpi {
+  flex: 1 1 140px;
+  background: #fff;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ah-kpi__valor {
+  font-family: var(--ah-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--ah-navy-900);
+  line-height: 1.1;
+}
+
+.ah-kpi__etiqueta {
+  font-size: 0.78rem;
+  color: var(--ah-ink-600);
+}
+
+// La tarjeta de "Total general" es la unica con peso visual mayor --
+// mismo tratamiento que .ah-informe__total (fondo navy claro + borde
+// superior navy), asi el ojo la encuentra primero en la fila.
+.ah-kpi--total {
+  background: #eaf1ff;
+  border-color: var(--ah-navy-800);
+  border-top: 2px solid var(--ah-navy-800);
+}
+
+.ah-kpi--total .ah-kpi__valor {
+  color: var(--ah-navy-800);
 }
 
 // Composicion para impresion (RF-I03: el artefacto declara sus

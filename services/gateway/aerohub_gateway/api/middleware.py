@@ -58,6 +58,8 @@ permitido mientras dure la contrasena temporal", ni siquiera
 
 from __future__ import annotations
 
+import logging
+
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -73,6 +75,8 @@ from ..application import (
     verificar_sesion,
 )
 from ..domain import Identidad, IdentidadInvalida, TokenInvalido
+
+_logger = logging.getLogger(__name__)
 
 __all__ = ["AutenticacionJWTMiddleware"]
 
@@ -119,7 +123,24 @@ class AutenticacionJWTMiddleware(BaseHTTPMiddleware):
                 verificar_licencia(path=request.url.path, tenant_id=identidad.tenant_id)
             except LicenciaNoVigente as exc:
                 return JSONResponse({"detail": str(exc)}, status_code=403)
-            return await call_next(request)
+            try:
+                return await call_next(request)
+            except Exception:
+                # Hallazgo empirico (2026-08-05): una excepcion no
+                # prevista que se propaga CRUDA desde call_next() sale
+                # por fuera de CORSMiddleware (que envuelve a este
+                # middleware) -- Starlette nunca le agrega los headers
+                # CORS a una respuesta de error generada asi, y el
+                # navegador lo reporta como "bloqueado por CORS" en vez
+                # de mostrar el 500 real (ver tambien pool_recycle en
+                # aerohub_repository.base -- la causa mas comun eran
+                # conexiones de MonetDB muertas en el pool). Se atrapa
+                # aqui y se devuelve una Response NORMAL, que si pasa de
+                # regreso por CORSMiddleware y recibe sus headers.
+                _logger.exception(
+                    "Excepcion no manejada en %s %s", request.method, request.url.path
+                )
+                return JSONResponse({"detail": "error interno del servidor"}, status_code=500)
 
     def _autenticar(self, request: Request) -> Identidad:
         api_key_en_claro = request.headers.get("x-api-key", "").strip()

@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { Incidencia, RampaService, Tarea, Turnaround } from '../rampa.service';
+import { Incidencia, RampaService, Tarea, TipoTarea, Turnaround } from '../rampa.service';
+import { AuthService } from '../../auth/auth.service';
 
 // Semaforo de turnaround (Sprint S1.12, research.md Decision 2): mapeo
 // de presentacion sobre el 'estado' que el backend ya expone --
@@ -21,6 +22,20 @@ export function claseEstadoTurnaround(t: Turnaround, ahora: Date): string {
     return 'ah-pill--ok';
   }
   return ''; // 'planificado' -- neutro
+}
+
+// Etiqueta legible del mismo 'estado' (mismo patron que
+// etiquetaEstadoTarifario en billing/panel-tarifarios.ts) -- valores
+// reales del enum ESTADOS_TURNAROUND (aerohub_ramp/domain/turnaround.py):
+// 'planificado' | 'en_curso' | 'completado' | 'interrumpido'.
+const ETIQUETAS_ESTADO_TURNAROUND: Record<string, string> = {
+  planificado: 'Planificado',
+  en_curso: 'En curso',
+  completado: 'Completado',
+  interrumpido: 'Interrumpido',
+};
+export function etiquetaEstadoTurnaround(estado: string): string {
+  return ETIQUETAS_ESTADO_TURNAROUND[estado] ?? estado;
 }
 
 const TAMANO_PAGINA = 10;
@@ -77,9 +92,12 @@ export class PanelTurnaround {
   protected readonly finReal = signal('');
 
   protected readonly claseEstadoTurnaround = claseEstadoTurnaround;
+  protected readonly etiquetaEstadoTurnaround = etiquetaEstadoTurnaround;
   protected readonly puntoSeveridadIncidencia = puntoSeveridadIncidencia;
   protected readonly puntoEstadoTarea = puntoEstadoTarea;
   protected readonly ahora = new Date();
+
+  protected readonly tiposTarea = signal<TipoTarea[]>([]);
 
   // Panel de busqueda + paginacion (S1.14, §3.0) -- filtra por numero de
   // vuelo de llegada o salida, sobre la lista ya cargada.
@@ -110,6 +128,32 @@ export class PanelTurnaround {
   protected readonly turnaroundViendo = signal<Turnaround | null>(null);
 
   private readonly rampaService = inject(RampaService);
+  private readonly auth = inject(AuthService);
+
+  // Fase 1 de docs/diseno/PLAN_CORRECCION_MODULOS.md (2026-08-06, D1(a)):
+  // role_tenant_admin perdio rampa:escribir (la matriz reserva rampa a
+  // role_ramp_agent) -- ocultar "Crear turnaround", "Iniciar tarea" y
+  // "Finalizar" para quien no tiene el scope.
+  protected readonly puedeEscribir = computed(() =>
+    (this.auth.perfil()?.scopes ?? []).includes('rampa:escribir'),
+  );
+
+  // Hallazgo de UX (pedido directo del usuario, 2026-08-05): la vista no
+  // mostraba nada hasta presionar "Cargar turnarounds"/"Cargar
+  // incidencias" -- ninguno de los dos metodos recibe parametros, asi
+  // que no hay motivo para no cargar de entrada.
+  constructor() {
+    this.cargarTurnarounds();
+    this.cargarIncidencias();
+    this.cargarTiposTarea();
+  }
+
+  private cargarTiposTarea(): void {
+    this.rampaService.listarTiposTarea().subscribe({
+      next: (respuesta) => this.tiposTarea.set(respuesta),
+      error: (err: HttpErrorResponse) => this.error.set(this.mensajeDeError(err)),
+    });
+  }
 
   protected cargarTurnarounds(): void {
     this.error.set(null);

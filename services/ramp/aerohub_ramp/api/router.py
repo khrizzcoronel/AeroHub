@@ -32,6 +32,7 @@ from ..application import (
     consultar_informe_turnarounds_compuesto,
     consultar_informe_turnarounds_simple,
     consultar_tareas_de_turnaround,
+    consultar_tipos_tarea,
     consultar_turnarounds,
     crear_turnaround,
     finalizar_tarea,
@@ -99,6 +100,13 @@ class IncidenciaResponse(BaseModel):
     descripcion: str
     severidad: str
     detectada_en: datetime
+
+
+class TipoTareaResponse(BaseModel):
+    id: str
+    codigo: str
+    nombre: str
+    duracion_estandar_min: int
 
 
 @router.post(
@@ -231,6 +239,26 @@ def listar_incidencias_endpoint() -> list[IncidenciaResponse]:
             detectada_en=i.detectada_en,
         )
         for i in consultar_incidencias()
+    ]
+
+
+@router.get(
+    "/catalogo/tipos-tarea",
+    response_model=list[TipoTareaResponse],
+    dependencies=[Depends(requiere_scope("rampa:leer"))],
+)
+def listar_tipos_tarea_endpoint() -> list[TipoTareaResponse]:
+    """Catalogo global de tipos de tarea de rampa -- reemplaza el id a
+    mano del formulario de 'iniciar tarea' por un <select> real (cierre
+    de brecha de workpanel post-S1.20)."""
+    return [
+        TipoTareaResponse(
+            id=str(t.id),
+            codigo=t.codigo,
+            nombre=t.nombre,
+            duracion_estandar_min=t.duracion_estandar_min,
+        )
+        for t in consultar_tipos_tarea()
     ]
 
 

@@ -55,7 +55,11 @@ CREATE TABLE tenants.usuario (
     email              VARCHAR(254) NOT NULL,
     hash_credencial    VARCHAR(255) NOT NULL,
     nombre             VARCHAR(150) NOT NULL,
-    estado             VARCHAR(20) NOT NULL,
+    -- VARCHAR(30), no 20: el propio CHECK de abajo permite
+    -- 'eliminado_logicamente' (21 caracteres) -- hallazgo empirico
+    -- 2026-08-05, la columna nunca pudo contener su propio valor valido
+    -- mas largo desde S1.1 (chk_usuario_estado ya lo declaraba permitido).
+    estado             VARCHAR(30) NOT NULL,
     mfa_habilitado     BOOLEAN NOT NULL DEFAULT FALSE,
     creado_en          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     ultimo_acceso_en   TIMESTAMP WITH TIME ZONE,

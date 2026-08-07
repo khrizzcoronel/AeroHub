@@ -43,7 +43,7 @@ _ROL_PARA_LA_CONSULTA = "role_platform_admin"
 _MAX_INTENTOS_FALLIDOS = 5
 _VENTANA_BLOQUEO = timedelta(minutes=15)
 _VENTANA_CONTEO = timedelta(minutes=15)
-_MINUTOS_EXPIRACION_SESION = 15
+_MINUTOS_EXPIRACION_SESION = 30
 
 
 class CredencialesInvalidas(Exception):

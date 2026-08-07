@@ -21,10 +21,12 @@
   </div>
 
   <div class="consola__acciones">
-    <button type="button" class="ah-btn" (click)="cargarTurnarounds()">Cargar turnarounds</button>
-    <button type="button" class="ah-btn" (click)="abrirModalCrear()">Crear turnaround</button>
+    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTurnarounds()">Actualizar</button>
+    @if (puedeEscribir()) {
+      <button type="button" class="ah-btn" (click)="abrirModalCrear()">Crear turnaround</button>
+    }
     <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarIncidencias()">
-      Cargar incidencias
+      Actualizar incidencias
     </button>
   </div>
 
@@ -56,7 +58,7 @@
               <td>{{ t.inicio_previsto }}</td>
               <td>{{ t.fin_previsto }}</td>
               <td>
-                <span class="ah-pill" [class]="claseEstadoTurnaround(t, ahora)">{{ t.estado }}</span>
+                <span class="ah-pill" [class]="claseEstadoTurnaround(t, ahora)">{{ etiquetaEstadoTurnaround(t.estado) }}</span>
               </td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalles(t)">
@@ -189,40 +191,46 @@
       <div class="ah-modal__cabecera">
         <div class="modal-titulo-grupo">
           <h2>{{ t.numero_vuelo_llegada }} &rarr; {{ t.numero_vuelo_salida }}</h2>
-          <span class="ah-pill" [class]="claseEstadoTurnaround(t, ahora)">{{ t.estado }}</span>
+          <span class="ah-pill" [class]="claseEstadoTurnaround(t, ahora)">{{ etiquetaEstadoTurnaround(t.estado) }}</span>
         </div>
         <button type="button" class="ah-modal__cerrar" (click)="cerrarModalDetalles()" aria-label="Cerrar">✕</button>
       </div>
 
-      <div class="formulario">
-        <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="tipoTareaId">Tipo de tarea id</label>
-          <input
-            id="tipoTareaId"
-            type="text"
-            [ngModel]="tipoTareaId()"
-            (ngModelChange)="tipoTareaId.set($event)"
-            name="tipoTareaId"
-          />
+      @if (puedeEscribir()) {
+        <div class="formulario">
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="tipoTareaId">Tipo de tarea</label>
+            <select
+              id="tipoTareaId"
+              [ngModel]="tipoTareaId()"
+              (ngModelChange)="tipoTareaId.set($event)"
+              name="tipoTareaId"
+            >
+              <option value="" disabled>Seleccione un tipo de tarea</option>
+              @for (t of tiposTarea(); track t.id) {
+                <option [value]="t.id">{{ t.nombre }} ({{ t.codigo }})</option>
+              }
+            </select>
+          </div>
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="finReal">Fin real (UTC), para finalizar una tarea en curso</label>
+            <input
+              id="finReal"
+              type="datetime-local"
+              [ngModel]="finReal()"
+              (ngModelChange)="finReal.set($event)"
+              name="finReal"
+            />
+          </div>
+          <div class="modal-acciones">
+            <button type="button" class="ah-btn" (click)="iniciarTarea()" [disabled]="cargando() || !tipoTareaId()">
+              Iniciar tarea
+            </button>
+          </div>
         </div>
-        <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="finReal">Fin real (UTC), para finalizar una tarea en curso</label>
-          <input
-            id="finReal"
-            type="datetime-local"
-            [ngModel]="finReal()"
-            (ngModelChange)="finReal.set($event)"
-            name="finReal"
-          />
-        </div>
-        <div class="modal-acciones">
-          <button type="button" class="ah-btn" (click)="iniciarTarea()" [disabled]="cargando() || !tipoTareaId()">
-            Iniciar tarea
-          </button>
-        </div>
-      </div>
 
-      <div class="modal-separador"></div>
+        <div class="modal-separador"></div>
+      }
 
       @if (tareas().length === 0) {
         <p class="ah-vacio">Sin tareas todavia (o ninguna es tuya -- minimo privilegio de role_ramp_agent).</p>
@@ -245,7 +253,7 @@
                 <td>{{ tarea.fin_real || '—' }}</td>
                 <td><span class="ah-punto" [class]="puntoEstadoTarea(tarea.estado)"></span>{{ tarea.estado }}</td>
                 <td>
-                  @if (tarea.estado === 'en_curso') {
+                  @if (tarea.estado === 'en_curso' && puedeEscribir()) {
                     <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="finalizarTarea(tarea.id)" [disabled]="!finReal()">
                       Finalizar
                     </button>

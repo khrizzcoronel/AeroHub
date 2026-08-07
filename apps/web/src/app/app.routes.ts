@@ -21,14 +21,7 @@ import { PanelCompliance } from './compliance/panel-compliance/panel-compliance'
 import { PanelSoporte } from './soporte/panel-soporte/panel-soporte';
 import { InicioComponent } from './inicio.component';
 import { PantallaList } from './fids/pantalla-list/pantalla-list';
-import {
-  InformesAsignaciones,
-  InformesCompliance,
-  InformesFacturacion,
-  InformesTenants,
-  InformesTurnarounds,
-  InformesVuelos,
-} from './informes/rutas/informes-rutas';
+import { DashboardInformes } from './informes/dashboard-informes/dashboard-informes';
 
 export const appRoutes: Route[] = [
   // Publicas -- sin sesion, mismo criterio que RUTAS_EXENTAS del gateway.
@@ -70,28 +63,7 @@ export const appRoutes: Route[] = [
         component: PanelTarifarios,
         data: { title: 'Tarifarios y conciliación' },
       },
-      { path: 'vuelos/informes', component: InformesVuelos, data: { title: 'Informes · AODB' } },
-      {
-        path: 'puertas/informes',
-        component: InformesAsignaciones,
-        data: { title: 'Informes · Gates' },
-      },
-      {
-        path: 'rampa/informes',
-        component: InformesTurnarounds,
-        data: { title: 'Informes · Ground Ops' },
-      },
-      {
-        path: 'billing/informes',
-        component: InformesFacturacion,
-        data: { title: 'Informes · Billing' },
-      },
-      { path: 'tenants/informes', component: InformesTenants, data: { title: 'Informes · Tenants' } },
-      {
-        path: 'compliance/informes',
-        component: InformesCompliance,
-        data: { title: 'Informes · Compliance' },
-      },
+      { path: 'informes/dashboard', component: DashboardInformes, data: { title: 'Dashboard' } },
     ],
   },
 ];

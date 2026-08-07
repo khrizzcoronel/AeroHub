@@ -12,6 +12,7 @@ import {
   SoporteService,
   Ticket,
   TicketDetalle,
+  Transicion,
 } from '../soporte.service';
 
 // Sprint S1.20 -- catalogo.modulo (M1-M9) es fijo y ya conocido en todo
@@ -30,6 +31,8 @@ const MODULOS_CHANGELOG: { codigo: string; nombre: string }[] = [
   { codigo: 'M9', nombre: 'Compliance Hub' },
 ];
 
+const TAMANO_PAGINA = 10;
+
 const TRANSICIONES_VALIDAS: Record<string, string[]> = {
   abierto: ['en_progreso'],
   en_progreso: ['esperando_cliente', 'resuelto'],
@@ -37,6 +40,28 @@ const TRANSICIONES_VALIDAS: Record<string, string[]> = {
   resuelto: ['cerrado'],
   cerrado: [],
 };
+
+// Estados reales de la maquina de estados de ticket
+// (services/support/aerohub_support/domain/ticket.py::ESTADOS_TICKET).
+const ETIQUETAS_ESTADO_TICKET: Record<string, string> = {
+  abierto: 'Abierto',
+  en_progreso: 'En progreso',
+  esperando_cliente: 'Esperando cliente',
+  resuelto: 'Resuelto',
+  cerrado: 'Cerrado',
+};
+
+export function claseEstadoTicket(estado: string): string {
+  if (estado === 'cerrado') return 'ah-pill--ok';
+  if (estado === 'resuelto') return 'ah-pill--ok';
+  if (estado === 'esperando_cliente') return 'ah-pill--atencion';
+  if (estado === 'abierto') return 'ah-pill--atencion';
+  return ''; // en_progreso: neutro
+}
+
+export function etiquetaEstadoTicket(estado: string): string {
+  return ETIQUETAS_ESTADO_TICKET[estado] ?? estado;
+}
 
 // research.md Decision 3 -- calculado en el cliente a partir de datos
 // que ya viajan en TicketResponse, sin campo derivado nuevo en backend.
@@ -65,6 +90,8 @@ export class PanelSoporte {
   private readonly authService = inject(AuthService);
 
   protected readonly indicadorSla = indicadorSla;
+  protected readonly claseEstadoTicket = claseEstadoTicket;
+  protected readonly etiquetaEstadoTicket = etiquetaEstadoTicket;
   protected readonly modulosChangelog = MODULOS_CHANGELOG;
 
   protected readonly cargando = signal(false);
@@ -104,11 +131,32 @@ export class PanelSoporte {
   protected readonly respondiendo = signal(false);
   protected readonly cambiandoEstado = signal(false);
 
+  // Fase 3/4 de docs/diseno/PLAN_CORRECCION_MODULOS.md (item 8 + item
+  // 11): historial de cambios de estado del ticket, junto al hilo de
+  // mensajes -- antes de esto el dato existia (auditoria) pero no se
+  // exponia en ningun lado.
+  protected readonly transiciones = signal<Transicion[]>([]);
+
   protected readonly transicionesDisponibles = computed(() => {
     const d = this.detalleTicket();
     if (!d) return [];
     return TRANSICIONES_VALIDAS[d.ticket.estado] ?? [];
   });
+
+  protected readonly paginaActualTickets = signal(1);
+  protected readonly totalPaginasTickets = computed(() =>
+    Math.max(1, Math.ceil(this.tickets().length / TAMANO_PAGINA)),
+  );
+  protected readonly ticketsPagina = computed(() => {
+    const inicio = (this.paginaActualTickets() - 1) * TAMANO_PAGINA;
+    return this.tickets().slice(inicio, inicio + TAMANO_PAGINA);
+  });
+  protected paginaAnteriorTickets(): void {
+    this.paginaActualTickets.update((p) => Math.max(1, p - 1));
+  }
+  protected paginaSiguienteTickets(): void {
+    this.paginaActualTickets.update((p) => Math.min(this.totalPaginasTickets(), p + 1));
+  }
 
   // --- Base de conocimientos ---
   protected readonly articulos = signal<ArticuloKB[]>([]);
@@ -129,11 +177,57 @@ export class PanelSoporte {
   protected readonly errorFormularioArticulo = signal<string | null>(null);
   protected readonly guardandoArticulo = signal(false);
 
+  protected readonly paginaActualArticulos = signal(1);
+  protected readonly totalPaginasArticulos = computed(() =>
+    Math.max(1, Math.ceil(this.articulos().length / TAMANO_PAGINA)),
+  );
+  protected readonly articulosPagina = computed(() => {
+    const inicio = (this.paginaActualArticulos() - 1) * TAMANO_PAGINA;
+    return this.articulos().slice(inicio, inicio + TAMANO_PAGINA);
+  });
+  protected paginaAnteriorArticulos(): void {
+    this.paginaActualArticulos.update((p) => Math.max(1, p - 1));
+  }
+  protected paginaSiguienteArticulos(): void {
+    this.paginaActualArticulos.update((p) => Math.min(this.totalPaginasArticulos(), p + 1));
+  }
+
   // --- Changelog ---
   protected readonly changelog = signal<Changelog[]>([]);
   protected readonly puedeEscribirChangelog = computed(
     () => this.puedeEscribir() && this.authService.perfil()?.rol_codigo === 'role_platform_admin',
   );
+
+  protected readonly busquedaChangelog = signal('');
+  protected readonly changelogFiltrado = computed(() => {
+    const q = this.busquedaChangelog().trim().toLowerCase();
+    if (!q) return this.changelog();
+    return this.changelog().filter(
+      (c) =>
+        c.version_producto.toLowerCase().includes(q) ||
+        c.resumen.toLowerCase().includes(q) ||
+        c.items.some((i) => i.descripcion.toLowerCase().includes(q)),
+    );
+  });
+
+  protected readonly paginaActualChangelog = signal(1);
+  protected readonly totalPaginasChangelog = computed(() =>
+    Math.max(1, Math.ceil(this.changelogFiltrado().length / TAMANO_PAGINA)),
+  );
+  protected readonly changelogPagina = computed(() => {
+    const inicio = (this.paginaActualChangelog() - 1) * TAMANO_PAGINA;
+    return this.changelogFiltrado().slice(inicio, inicio + TAMANO_PAGINA);
+  });
+  protected paginaAnteriorChangelog(): void {
+    this.paginaActualChangelog.update((p) => Math.max(1, p - 1));
+  }
+  protected paginaSiguienteChangelog(): void {
+    this.paginaActualChangelog.update((p) => Math.min(this.totalPaginasChangelog(), p + 1));
+  }
+  protected actualizarBusquedaChangelog(valor: string): void {
+    this.busquedaChangelog.set(valor);
+    this.paginaActualChangelog.set(1);
+  }
 
   protected readonly mostrarModalChangelog = signal(false);
   protected readonly versionProducto = signal('');
@@ -187,7 +281,10 @@ export class PanelSoporte {
     this.soporteService
       .listarTickets(this.filtroEstado() || undefined, this.filtroSeveridad() || undefined)
       .subscribe({
-        next: (r) => this.tickets.set(r),
+        next: (r) => {
+          this.tickets.set(r);
+          this.paginaActualTickets.set(1);
+        },
         error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
       });
   }
@@ -247,14 +344,23 @@ export class PanelSoporte {
     this.errorDetalle.set(null);
     this.cuerpoRespuesta.set('');
     this.esInternoRespuesta.set(false);
+    this.transiciones.set([]);
     this.soporteService.obtenerTicket(t.id).subscribe({
       next: (r) => this.detalleTicket.set(r),
       error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
+    });
+    this.soporteService.listarTransicionesTicket(t.id).subscribe({
+      next: (r) => this.transiciones.set(r),
+      // Sin error visible aqui -- el historial es un complemento del
+      // hilo, no el dato principal del modal (el mismo criterio que
+      // errores silenciosos de catalogos secundarios en otras vistas).
+      error: () => this.transiciones.set([]),
     });
   }
 
   protected cerrarDetalle(): void {
     this.detalleTicket.set(null);
+    this.transiciones.set([]);
   }
 
   protected responder(): void {
@@ -308,7 +414,10 @@ export class PanelSoporte {
     this.soporteService
       .buscarArticulos(this.busquedaTexto() || undefined, this.busquedaEtiqueta() || undefined)
       .subscribe({
-        next: (r) => this.articulos.set(r),
+        next: (r) => {
+          this.articulos.set(r);
+          this.paginaActualArticulos.set(1);
+        },
         error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
       });
   }

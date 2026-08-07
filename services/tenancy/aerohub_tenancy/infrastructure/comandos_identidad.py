@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import delete, insert, update
+from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
 
 from .tablas import intento_acceso, invitacion, sesion, token_acceso, usuario, usuario_rol
@@ -206,17 +206,58 @@ def reasignar_rol_usuario(
     """Reemplaza el rol vigente del usuario -- se asume un solo rol activo
     por usuario en la practica (ver docstring de consultas_identidad.py::
     listar_roles_vigentes_del_usuario), aunque el esquema (PK compuesta
-    usuario_id+rol_id) permitiria varios."""
-    conn.execute(delete(usuario_rol).where(usuario_rol.c.usuario_id == usuario_id))
-    conn.execute(
-        insert(usuario_rol).values(
-            usuario_id=usuario_id,
-            rol_id=rol_id_nuevo,
-            otorgado_por=otorgado_por,
-            otorgado_en=otorgado_en,
+    usuario_id+rol_id) permitiria varios.
+
+    UPSERT (SELECT + UPDATE o INSERT), NO delete+insert (hallazgo
+    empirico 2026-08-05): `role_tenant_admin` solo tiene GRANT
+    SELECT/INSERT/UPDATE sobre `tenants.usuario_rol`
+    (92_grants_tenants.sql), sin DELETE -- el DELETE+INSERT original
+    era inalcanzable para el unico rol que usa este workpanel desde la
+    UI, con `42000!DELETE FROM: insufficient privileges`. Un UPDATE
+    puro (sin verificar existencia primero) tampoco alcanza: un usuario
+    sin fila previa en usuario_rol (dato real encontrado en el tenant
+    canario) deja el UPDATE afectando 0 filas -- "exito" silencioso sin
+    asignar ningun rol. Por eso se verifica primero con SELECT.
+    `expira_en` se resetea a NULL para igualar el comportamiento del
+    INSERT original (rol nuevo, sin vencimiento)."""
+    existe = conn.execute(
+        select(usuario_rol.c.usuario_id).where(usuario_rol.c.usuario_id == usuario_id)
+    ).first()
+    if existe is not None:
+        conn.execute(
+            update(usuario_rol)
+            .where(usuario_rol.c.usuario_id == usuario_id)
+            .values(
+                rol_id=rol_id_nuevo,
+                otorgado_por=otorgado_por,
+                otorgado_en=otorgado_en,
+                expira_en=None,
+            )
         )
+    else:
+        conn.execute(
+            insert(usuario_rol).values(
+                usuario_id=usuario_id,
+                rol_id=rol_id_nuevo,
+                otorgado_por=otorgado_por,
+                otorgado_en=otorgado_en,
+            )
+        )
+
+
+def actualizar_estado_usuario(
+    conn: Connection, *, id: int, tenant_id: int, estado_nuevo: str
+) -> None:
+    """A diferencia de fijar_bloqueo/marcar_password_cambiada/etc. (que
+    corren bajo alcance_global() durante login/recuperacion, antes de que
+    exista contexto de tenant), esto se invoca desde una sesion ya
+    autenticada de un tenant admin -- PN-02 exige filtrar por tenant_id
+    explicito, no confiar solo en el id. Hallazgo empirico (2026-08-05):
+    sin este filtro, el guardian (ADR-019 G2) rechaza el UPDATE con
+    TenantScopeViolation -- "cambiar estado de usuario" era inalcanzable
+    desde el workpanel."""
+    conn.execute(
+        update(usuario)
+        .where(usuario.c.id == id, usuario.c.tenant_id == tenant_id)
+        .values(estado=estado_nuevo)
     )
-
-
-def actualizar_estado_usuario(conn: Connection, *, id: int, estado_nuevo: str) -> None:
-    conn.execute(update(usuario).where(usuario.c.id == id).values(estado=estado_nuevo))

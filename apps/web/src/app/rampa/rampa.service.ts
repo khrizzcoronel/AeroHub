@@ -57,6 +57,13 @@ export interface Incidencia {
   detectada_en: string;
 }
 
+export interface TipoTarea {
+  id: string;
+  codigo: string;
+  nombre: string;
+  duracion_estandar_min: number;
+}
+
 // Sprint S1.11 (research.md Decision 2, deuda de JWT): ningun metodo
 // recibe ya un tokenJwt por parametro -- authInterceptor (S1.10) agrega
 // el header Authorization a toda peticion HTTP saliente.
@@ -91,5 +98,9 @@ export class RampaService {
 
   listarIncidencias(): Observable<Incidencia[]> {
     return this.http.get<Incidencia[]>(`${API_BASE_URL}/rampa/incidencias`);
+  }
+
+  listarTiposTarea(): Observable<TipoTarea[]> {
+    return this.http.get<TipoTarea[]>(`${API_BASE_URL}/rampa/catalogo/tipos-tarea`);
   }
 }

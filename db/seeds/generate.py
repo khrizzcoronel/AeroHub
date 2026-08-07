@@ -19,8 +19,9 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import json
 import secrets
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pymonetdb
 from aerohub_kernel import generar_id, hash_credencial
@@ -342,6 +343,7 @@ def _obtener_o_crear_vuelo_canario(
     tipo_vuelo_id: int,
     aeropuerto_origen_id: int,
     aeropuerto_destino_id: int,
+    sentido: str = "S",
 ) -> int:
     cur.execute(
         "SELECT id FROM ops.vuelo WHERE tenant_id = %s AND numero_vuelo = %s",
@@ -355,7 +357,7 @@ def _obtener_o_crear_vuelo_canario(
         "INSERT INTO ops.vuelo "
         "(id, tenant_id, aerolinea_id, aeronave_id, numero_vuelo, tipo_vuelo_id, "
         "fecha_operacion, sentido, aeropuerto_origen_id, aeropuerto_destino_id, sta_utc, std_utc) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s)",
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
         (
             id_,
             tenant_id,
@@ -364,6 +366,7 @@ def _obtener_o_crear_vuelo_canario(
             numero_vuelo,
             tipo_vuelo_id,
             date(2026, 8, 1),
+            sentido,
             aeropuerto_origen_id,
             aeropuerto_destino_id,
             datetime(2026, 8, 1, 10, 0, tzinfo=UTC),
@@ -439,6 +442,452 @@ def _obtener_o_crear_licencia(cur, *, tenant_id: int, modulo_codigo: str) -> int
     return id_
 
 
+# ---------------------------------------------------------------------------
+# Fase 2 de docs/diseno/PLAN_CORRECCION_MODULOS.md (2026-08-07): datos
+# operativos minimos para que ningun modulo de la capa operativa se abra
+# vacio -- terminales/puertas, FIDS, turnaround con tareas/incidencias,
+# tarifario con conceptos y facturas en varios estados, KB y changelog.
+# Mismo criterio "obtener o crear" que el resto del archivo: idempotente,
+# nunca duplica en una segunda corrida.
+# ---------------------------------------------------------------------------
+
+
+def _obtener_o_crear_terminal(cur, *, tenant_id: int, codigo: str, nombre: str) -> int:
+    cur.execute(
+        "SELECT id FROM ops.terminal WHERE tenant_id = %s AND codigo = %s", (tenant_id, codigo)
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO ops.terminal (id, tenant_id, codigo, nombre) VALUES (%s, %s, %s, %s)",
+        (id_, tenant_id, codigo, nombre),
+    )
+    return id_
+
+
+def _obtener_o_crear_puerta(
+    cur, *, tenant_id: int, terminal_id: int, codigo: str, tipo: str, envergadura_max_m: float
+) -> int:
+    cur.execute(
+        "SELECT id FROM ops.puerta WHERE tenant_id = %s AND codigo = %s", (tenant_id, codigo)
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO ops.puerta "
+        "(id, tenant_id, terminal_id, codigo, tipo, envergadura_max_m, tiene_pasarela) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (id_, tenant_id, terminal_id, codigo, tipo, envergadura_max_m, tipo == "contacto"),
+    )
+    return id_
+
+
+def _obtener_o_crear_plantilla_fids(
+    cur, *, tenant_id: int, nombre: str, filas_texto: list[str], creada_por_usuario_id: int
+) -> int:
+    version = 1
+    cur.execute(
+        "SELECT id FROM ops.plantilla_fids WHERE tenant_id = %s AND nombre = %s AND version = %s",
+        (tenant_id, nombre, version),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    # Convencion "filas: [{texto}]" (S1.14, apps/fids-player/.../pantalla-player.ts)
+    # -- domain deja definicion_json libre, esta es la forma que el player sabe
+    # interpretar sin caer al respaldo de JSON crudo.
+    definicion = {"filas": [{"texto": t} for t in filas_texto]}
+    cur.execute(
+        "INSERT INTO ops.plantilla_fids "
+        "(id, tenant_id, nombre, definicion_json, version, vigente_desde, creada_por_usuario_id) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (
+            id_,
+            tenant_id,
+            nombre,
+            json.dumps(definicion),
+            version,
+            datetime(2026, 1, 1, tzinfo=UTC),
+            creada_por_usuario_id,
+        ),
+    )
+    return id_
+
+
+def _obtener_o_crear_pantalla_fids(
+    cur,
+    *,
+    tenant_id: int,
+    terminal_id: int,
+    codigo: str,
+    plantilla_id: int,
+    estado: str,
+    ubicacion_descripcion: str,
+) -> int:
+    cur.execute(
+        "SELECT id FROM ops.pantalla_fids WHERE tenant_id = %s AND codigo = %s",
+        (tenant_id, codigo),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    ultima_senal = datetime.now(UTC) if estado == "en_linea" else None
+    cur.execute(
+        "INSERT INTO ops.pantalla_fids "
+        "(id, tenant_id, terminal_id, codigo, ubicacion_descripcion, plantilla_id, "
+        "ultima_senal_en, version_firmware, estado) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (
+            id_,
+            tenant_id,
+            terminal_id,
+            codigo,
+            ubicacion_descripcion,
+            plantilla_id,
+            ultima_senal,
+            "1.0.0",
+            estado,
+        ),
+    )
+    return id_
+
+
+def _obtener_o_crear_turnaround(
+    cur,
+    *,
+    tenant_id: int,
+    vuelo_llegada_id: int,
+    vuelo_salida_id: int,
+    aeronave_id: int,
+    inicio_previsto: datetime,
+    fin_previsto: datetime,
+    estado: str,
+) -> int:
+    cur.execute(
+        "SELECT id FROM rampa.turnaround "
+        "WHERE tenant_id = %s AND vuelo_llegada_id = %s AND vuelo_salida_id = %s",
+        (tenant_id, vuelo_llegada_id, vuelo_salida_id),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    inicio_real = inicio_previsto if estado in ("en_curso", "completado") else None
+    fin_real = fin_previsto if estado == "completado" else None
+    cur.execute(
+        "INSERT INTO rampa.turnaround "
+        "(id, tenant_id, vuelo_llegada_id, vuelo_salida_id, aeronave_id, inicio_previsto, "
+        "fin_previsto, inicio_real, fin_real, estado) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (
+            id_,
+            tenant_id,
+            vuelo_llegada_id,
+            vuelo_salida_id,
+            aeronave_id,
+            inicio_previsto,
+            fin_previsto,
+            inicio_real,
+            fin_real,
+            estado,
+        ),
+    )
+    return id_
+
+
+def _obtener_o_crear_tarea_turnaround(
+    cur,
+    *,
+    tenant_id: int,
+    turnaround_id: int,
+    tipo_tarea_id: int,
+    agente_usuario_id: int,
+    estado: str,
+) -> int:
+    cur.execute(
+        "SELECT id FROM rampa.tarea_turnaround WHERE turnaround_id = %s AND tipo_tarea_id = %s",
+        (turnaround_id, tipo_tarea_id),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    ahora = datetime.now(UTC)
+    inicio_real = ahora - timedelta(minutes=40) if estado in ("en_curso", "completada") else None
+    fin_real = ahora - timedelta(minutes=10) if estado == "completada" else None
+    cur.execute(
+        "INSERT INTO rampa.tarea_turnaround "
+        "(id, tenant_id, turnaround_id, tipo_tarea_id, agente_usuario_id, inicio_real, "
+        "fin_real, estado) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+        (
+            id_,
+            tenant_id,
+            turnaround_id,
+            tipo_tarea_id,
+            agente_usuario_id,
+            inicio_real,
+            fin_real,
+            estado,
+        ),
+    )
+    return id_
+
+
+def _obtener_o_crear_incidencia_rampa(
+    cur,
+    *,
+    tenant_id: int,
+    tarea_turnaround_id: int,
+    tipo_incidencia_id: int,
+    descripcion: str,
+    severidad: str,
+) -> int:
+    cur.execute(
+        "SELECT id FROM rampa.incidencia_rampa "
+        "WHERE tarea_turnaround_id = %s AND tipo_incidencia_id = %s",
+        (tarea_turnaround_id, tipo_incidencia_id),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO rampa.incidencia_rampa "
+        "(id, tenant_id, tarea_turnaround_id, tipo_incidencia_id, descripcion, severidad) "
+        "VALUES (%s, %s, %s, %s, %s, %s)",
+        (id_, tenant_id, tarea_turnaround_id, tipo_incidencia_id, descripcion, severidad),
+    )
+    return id_
+
+
+def _obtener_o_crear_tarifario(
+    cur,
+    *,
+    tenant_id: int,
+    nombre: str,
+    moneda: str,
+    vigente_desde: date,
+    estado: str,
+    creado_por_usuario_id: int,
+) -> int:
+    cur.execute(
+        "SELECT id FROM billing.tarifario WHERE tenant_id = %s AND nombre = %s",
+        (tenant_id, nombre),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO billing.tarifario "
+        "(id, tenant_id, nombre, moneda, vigente_desde, estado, creado_por_usuario_id) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (id_, tenant_id, nombre, moneda, vigente_desde, estado, creado_por_usuario_id),
+    )
+    return id_
+
+
+def _obtener_o_crear_tarifario_concepto(
+    cur, *, tarifario_id: int, concepto_cargo_id: int, tarifa_unitaria: float
+) -> int:
+    cur.execute(
+        "SELECT id FROM billing.tarifario_concepto "
+        "WHERE tarifario_id = %s AND concepto_cargo_id = %s",
+        (tarifario_id, concepto_cargo_id),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO billing.tarifario_concepto "
+        "(id, tarifario_id, concepto_cargo_id, tarifa_unitaria) VALUES (%s, %s, %s, %s)",
+        (id_, tarifario_id, concepto_cargo_id, tarifa_unitaria),
+    )
+    return id_
+
+
+def _obtener_o_crear_cargo_aeronautico(
+    cur,
+    *,
+    tenant_id: int,
+    vuelo_id: int,
+    concepto_cargo_id: int,
+    tarifario_concepto_id: int,
+    cantidad: float,
+    tarifa_aplicada: float,
+    monto_calculado: float,
+) -> int:
+    cur.execute(
+        "SELECT id FROM billing.cargo_aeronautico "
+        "WHERE tenant_id = %s AND vuelo_id = %s AND concepto_cargo_id = %s",
+        (tenant_id, vuelo_id, concepto_cargo_id),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO billing.cargo_aeronautico "
+        "(id, tenant_id, vuelo_id, concepto_cargo_id, tarifario_concepto_id, cantidad, "
+        "tarifa_aplicada, monto_calculado) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+        (
+            id_,
+            tenant_id,
+            vuelo_id,
+            concepto_cargo_id,
+            tarifario_concepto_id,
+            cantidad,
+            tarifa_aplicada,
+            monto_calculado,
+        ),
+    )
+    return id_
+
+
+def _obtener_o_crear_factura(
+    cur,
+    *,
+    tenant_id: int,
+    aerolinea_id: int,
+    periodo_inicio: date,
+    periodo_fin: date,
+    moneda: str,
+    estado: str,
+) -> int:
+    cur.execute(
+        "SELECT id FROM billing.factura "
+        "WHERE tenant_id = %s AND aerolinea_id = %s AND periodo_inicio = %s AND periodo_fin = %s",
+        (tenant_id, aerolinea_id, periodo_inicio, periodo_fin),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    emitida_en = datetime.now(UTC) if estado != "borrador" else None
+    vence_en = datetime.now(UTC) + timedelta(days=30) if estado != "borrador" else None
+    cur.execute(
+        "INSERT INTO billing.factura "
+        "(id, tenant_id, aerolinea_id, periodo_inicio, periodo_fin, moneda, estado, "
+        "emitida_en, vence_en) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (
+            id_,
+            tenant_id,
+            aerolinea_id,
+            periodo_inicio,
+            periodo_fin,
+            moneda,
+            estado,
+            emitida_en,
+            vence_en,
+        ),
+    )
+    return id_
+
+
+def _obtener_o_crear_factura_linea(
+    cur,
+    *,
+    factura_id: int,
+    cargo_aeronautico_id: int,
+    descripcion: str,
+    cantidad: float,
+    precio_unitario: float,
+    monto: float,
+) -> int:
+    cur.execute(
+        "SELECT id FROM billing.factura_linea WHERE factura_id = %s AND cargo_aeronautico_id = %s",
+        (factura_id, cargo_aeronautico_id),
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO billing.factura_linea "
+        "(id, factura_id, cargo_aeronautico_id, descripcion, cantidad, precio_unitario, monto) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (id_, factura_id, cargo_aeronautico_id, descripcion, cantidad, precio_unitario, monto),
+    )
+    return id_
+
+
+def _obtener_o_crear_etiqueta(cur, nombre: str) -> int:
+    cur.execute("SELECT id FROM support.etiqueta WHERE nombre = %s", (nombre,))
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute("INSERT INTO support.etiqueta (id, nombre) VALUES (%s, %s)", (id_, nombre))
+    return id_
+
+
+def _obtener_o_crear_articulo_kb(
+    cur, *, titulo: str, cuerpo: str, autor_usuario_id: int, etiquetas: list[str]
+) -> int:
+    """Global (sin tenant_id) -- se siembra UNA vez, no por tenant."""
+    version = 1
+    cur.execute(
+        "SELECT id FROM support.articulo_kb WHERE titulo = %s AND version = %s", (titulo, version)
+    )
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO support.articulo_kb "
+        "(id, titulo, cuerpo, version, estado, publicado_en, autor_usuario_id) "
+        "VALUES (%s, %s, %s, %s, 'publicado', %s, %s)",
+        (id_, titulo, cuerpo, version, datetime.now(UTC), autor_usuario_id),
+    )
+    for nombre_etiqueta in etiquetas:
+        etiqueta_id = _obtener_o_crear_etiqueta(cur, nombre_etiqueta)
+        cur.execute(
+            "SELECT 1 FROM support.articulo_kb_etiqueta "
+            "WHERE articulo_id = %s AND etiqueta_id = %s",
+            (id_, etiqueta_id),
+        )
+        if not cur.fetchone():
+            cur.execute(
+                "INSERT INTO support.articulo_kb_etiqueta (articulo_id, etiqueta_id) "
+                "VALUES (%s, %s)",
+                (id_, etiqueta_id),
+            )
+    return id_
+
+
+def _obtener_o_crear_changelog(
+    cur, *, version_producto: str, resumen: str, items: list[tuple[str, str, str]]
+) -> int:
+    """Global (sin tenant_id) -- se siembra UNA vez. `items`: lista de
+    (modulo_codigo, tipo_cambio, descripcion)."""
+    cur.execute("SELECT id FROM support.changelog WHERE version_producto = %s", (version_producto,))
+    fila = cur.fetchone()
+    if fila:
+        return fila[0]
+    id_ = generar_id()
+    cur.execute(
+        "INSERT INTO support.changelog (id, version_producto, resumen) VALUES (%s, %s, %s)",
+        (id_, version_producto, resumen),
+    )
+    for modulo_codigo, tipo_cambio, descripcion in items:
+        cur.execute("SELECT id FROM catalogo.modulo WHERE codigo = %s", (modulo_codigo,))
+        modulo_id = cur.fetchone()[0]
+        item_id = generar_id()
+        cur.execute(
+            "INSERT INTO support.changelog_item "
+            "(id, changelog_id, modulo_id, tipo_cambio, descripcion) VALUES (%s, %s, %s, %s, %s)",
+            (item_id, id_, modulo_id, tipo_cambio, descripcion),
+        )
+    return id_
+
+
 # Modulos con endpoint HTTP licenciable en este sprint (research.md
 # Decision 2 de specs/009-.../ ) -- M7-M9 no tienen ruta propia todavia.
 MODULOS_LICENCIABLES = ("M1", "M2", "M3", "M4", "M5", "M6")
@@ -459,12 +908,21 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
                 cur, codigo, descripcion, es_terminal
             )
 
+        tipos_tarea_por_codigo: dict[str, int] = {}
         for codigo, nombre, duracion_estandar_min, es_ruta_critica in TIPOS_TAREA:
-            _obtener_o_crear_tipo_tarea(cur, codigo, nombre, duracion_estandar_min, es_ruta_critica)
+            tipos_tarea_por_codigo[codigo] = _obtener_o_crear_tipo_tarea(
+                cur, codigo, nombre, duracion_estandar_min, es_ruta_critica
+            )
+        tipos_incidencia_por_codigo: dict[str, int] = {}
         for codigo, descripcion in TIPOS_INCIDENCIA_RAMPA:
-            _obtener_o_crear_tipo_incidencia_rampa(cur, codigo, descripcion)
+            tipos_incidencia_por_codigo[codigo] = _obtener_o_crear_tipo_incidencia_rampa(
+                cur, codigo, descripcion
+            )
+        conceptos_cargo_por_codigo: dict[str, int] = {}
         for codigo, nombre, unidad_medida, base_calculo in CONCEPTOS_CARGO:
-            _obtener_o_crear_concepto_cargo(cur, codigo, nombre, unidad_medida, base_calculo)
+            conceptos_cargo_por_codigo[codigo] = _obtener_o_crear_concepto_cargo(
+                cur, codigo, nombre, unidad_medida, base_calculo
+            )
         for codigo, descripcion, categoria in TIPOS_INCIDENTE:
             _obtener_o_crear_tipo_incidente(cur, codigo, descripcion, categoria)
         for codigo, nombre, periodicidad, autoridad in TIPOS_REPORTE_REGULATORIO:
@@ -503,8 +961,6 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
                     (tenant_id, spec["codigo"], spec["razon_social"], aeropuerto_id, plan_id),
                 )
                 print(f"tenant {spec['codigo']} creado (id={tenant_id})")
-            info_tenants[spec["codigo"]] = {"tenant_id": tenant_id, "aeropuerto_id": aeropuerto_id}
-
             for modulo_codigo in MODULOS_LICENCIABLES:
                 _obtener_o_crear_licencia(cur, tenant_id=tenant_id, modulo_codigo=modulo_codigo)
 
@@ -513,7 +969,9 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
                 "SELECT id FROM tenants.usuario WHERE tenant_id = %s AND email = %s",
                 (tenant_id, email_canario),
             )
-            if cur.fetchone():
+            fila_usuario = cur.fetchone()
+            if fila_usuario:
+                usuario_id = fila_usuario[0]
                 print(f"  usuario canario {email_canario} ya existe, se reutiliza")
             else:
                 usuario_id = generar_id()
@@ -542,6 +1000,12 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
                     (usuario_id, rol_admin_id, usuario_id),
                 )
                 print(f"  usuario canario {email_canario} creado (id={usuario_id})")
+
+            info_tenants[spec["codigo"]] = {
+                "tenant_id": tenant_id,
+                "aeropuerto_id": aeropuerto_id,
+                "usuario_id": usuario_id,
+            }
 
         # Segunda pasada: un vuelo canario por tenant, origen=su propio
         # aeropuerto, destino=el del OTRO tenant -- ambos ya existen tras
@@ -574,6 +1038,157 @@ def sembrar(*, hostname: str, port: int, database: str, username: str, password:
                 cur, tenant_id=info_tenants[codigo]["tenant_id"]
             )
             print(f"  api_key canaria de {codigo} lista (id={api_key_id})")
+
+            # --- Fase 2 de docs/diseno/PLAN_CORRECCION_MODULOS.md: datos
+            # operativos por tenant para que ningun modulo se abra vacio.
+            t_id = info_tenants[codigo]["tenant_id"]
+            u_id = info_tenants[codigo]["usuario_id"]
+
+            terminal_id = _obtener_o_crear_terminal(
+                cur, tenant_id=t_id, codigo="T1", nombre="Terminal 1"
+            )
+            _obtener_o_crear_puerta(
+                cur, tenant_id=t_id, terminal_id=terminal_id, codigo="A1",
+                tipo="contacto", envergadura_max_m=36.0,
+            )
+            _obtener_o_crear_puerta(
+                cur, tenant_id=t_id, terminal_id=terminal_id, codigo="A2",
+                tipo="contacto", envergadura_max_m=36.0,
+            )
+            _obtener_o_crear_puerta(
+                cur, tenant_id=t_id, terminal_id=terminal_id, codigo="R1",
+                tipo="remota", envergadura_max_m=45.0,
+            )
+
+            plantilla_id = _obtener_o_crear_plantilla_fids(
+                cur, tenant_id=t_id, nombre="Salidas estandar",
+                filas_texto=[f"Vuelo XX{100 + i} -- Embarcando", "Bienvenido a AeroHub"],
+                creada_por_usuario_id=u_id,
+            )
+            _obtener_o_crear_pantalla_fids(
+                cur, tenant_id=t_id, terminal_id=terminal_id, codigo=f"{codigo}-FIDS-01",
+                plantilla_id=plantilla_id, estado="en_linea",
+                ubicacion_descripcion="Sala de embarque A",
+            )
+            _obtener_o_crear_pantalla_fids(
+                cur, tenant_id=t_id, terminal_id=terminal_id, codigo=f"{codigo}-FIDS-02",
+                plantilla_id=plantilla_id, estado="sin_senal",
+                ubicacion_descripcion="Vestibulo principal",
+            )
+
+            # Segundo vuelo (sentido 'L', llegada) del mismo tenant, para
+            # emparejarlo con el ya existente (sentido 'S', salida) en un
+            # turnaround real.
+            vuelo_llegada_id = _obtener_o_crear_vuelo_canario(
+                cur,
+                tenant_id=t_id,
+                numero_vuelo=f"XX{200 + i}",
+                aerolinea_id=aerolinea_id,
+                aeronave_id=aeronave_id,
+                tipo_vuelo_id=tipo_vuelo_id,
+                aeropuerto_origen_id=info_tenants[otro]["aeropuerto_id"],
+                aeropuerto_destino_id=info_tenants[codigo]["aeropuerto_id"],
+                sentido="L",
+            )
+            ahora = datetime.now(UTC)
+            turnaround_id = _obtener_o_crear_turnaround(
+                cur, tenant_id=t_id, vuelo_llegada_id=vuelo_llegada_id,
+                vuelo_salida_id=vuelo_id, aeronave_id=aeronave_id,
+                inicio_previsto=ahora - timedelta(minutes=45),
+                fin_previsto=ahora + timedelta(minutes=15), estado="en_curso",
+            )
+            tarea_completada_id = _obtener_o_crear_tarea_turnaround(
+                cur, tenant_id=t_id, turnaround_id=turnaround_id,
+                tipo_tarea_id=tipos_tarea_por_codigo["equipaje"], agente_usuario_id=u_id,
+                estado="completada",
+            )
+            _obtener_o_crear_tarea_turnaround(
+                cur, tenant_id=t_id, turnaround_id=turnaround_id,
+                tipo_tarea_id=tipos_tarea_por_codigo["combustible"],
+                agente_usuario_id=u_id, estado="en_curso",
+            )
+            _obtener_o_crear_incidencia_rampa(
+                cur, tenant_id=t_id, tarea_turnaround_id=tarea_completada_id,
+                tipo_incidencia_id=tipos_incidencia_por_codigo["desviacion_estandar"],
+                descripcion="Carga y descarga de equipaje superó la duración estándar",
+                severidad="baja",
+            )
+
+            tarifario_id = _obtener_o_crear_tarifario(
+                cur, tenant_id=t_id, nombre="Tarifario general 2026",
+                moneda="USD", vigente_desde=date(2026, 1, 1), estado="vigente",
+                creado_por_usuario_id=u_id,
+            )
+            tarifario_conceptos_id: dict[str, int] = {}
+            for concepto_codigo, tarifa in (
+                ("tasa_aterrizaje", 120.0),
+                ("uso_manga", 45.0),
+                ("estacionamiento", 30.0),
+            ):
+                tarifario_conceptos_id[concepto_codigo] = _obtener_o_crear_tarifario_concepto(
+                    cur, tarifario_id=tarifario_id,
+                    concepto_cargo_id=conceptos_cargo_por_codigo[concepto_codigo],
+                    tarifa_unitaria=tarifa,
+                )
+
+            cargo_id = _obtener_o_crear_cargo_aeronautico(
+                cur, tenant_id=t_id, vuelo_id=vuelo_id,
+                concepto_cargo_id=conceptos_cargo_por_codigo["tasa_aterrizaje"],
+                tarifario_concepto_id=tarifario_conceptos_id["tasa_aterrizaje"],
+                cantidad=1, tarifa_aplicada=120.0, monto_calculado=120.0,
+            )
+
+            for periodo_offset, estado_factura in ((2, "vencida"), (1, "emitida"), (0, "borrador")):
+                periodo_inicio = date(2026, 6 - periodo_offset, 1)
+                periodo_fin = date(2026, 6 - periodo_offset, 28)
+                factura_id = _obtener_o_crear_factura(
+                    cur, tenant_id=t_id, aerolinea_id=aerolinea_id,
+                    periodo_inicio=periodo_inicio, periodo_fin=periodo_fin,
+                    moneda="USD", estado=estado_factura,
+                )
+                if estado_factura == "vencida":
+                    _obtener_o_crear_factura_linea(
+                        cur, factura_id=factura_id, cargo_aeronautico_id=cargo_id,
+                        descripcion="Tasa de aterrizaje", cantidad=1,
+                        precio_unitario=120.0, monto=120.0,
+                    )
+            print(
+                f"  datos operativos (terminal/FIDS/turnaround/tarifario/facturas) "
+                f"de {codigo} listos"
+            )
+
+        autor_kb_id = info_tenants[codigos[0]]["usuario_id"]
+        _obtener_o_crear_articulo_kb(
+            cur, titulo="Como registrar un cambio de estado de vuelo",
+            cuerpo=(
+                "Desde el panel 'Vuelos en tiempo real', use el boton 'Cambiar "
+                "estado' en la fila del vuelo. El nuevo estado se refleja para "
+                "todos los usuarios conectados via WebSocket en menos de 1 "
+                "segundo, sin necesidad de recargar la pantalla."
+            ),
+            autor_usuario_id=autor_kb_id,
+            etiquetas=["vuelos", "operacion"],
+        )
+        _obtener_o_crear_articulo_kb(
+            cur, titulo="Politica de conciliacion de pasajeros",
+            cuerpo=(
+                "Una conciliacion solo puede cerrarse cuando la diferencia entre "
+                "el pax reportado por la aerolinea y el pax registrado en el "
+                "sistema es exactamente cero. Si existe una diferencia, revise "
+                "la fuente del reporte antes de reintentar."
+            ),
+            autor_usuario_id=autor_kb_id,
+            etiquetas=["billing", "conciliacion"],
+        )
+        _obtener_o_crear_changelog(
+            cur, version_producto="1.5.0",
+            resumen="Cierre de la Fase 1.5: superficie completa de administracion",
+            items=[
+                ("M2", "nuevo", "Administracion de plantillas y pantallas FIDS desde la interfaz"),
+                ("M5", "nuevo", "Tarifarios y conciliacion de pasajeros con historial completo"),
+            ],
+        )
+        print("  articulos de KB y changelog globales listos")
 
         conn.commit()
     except Exception:

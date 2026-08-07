@@ -6,9 +6,9 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
     "pydantic>=2.9",
+    "clickhouse-connect>=0.8",
     "aerohub-kernel",
     "aerohub-contracts",
-    "aerohub-repository",
 ]
 
 [build-system]

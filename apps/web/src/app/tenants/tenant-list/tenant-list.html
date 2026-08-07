@@ -186,39 +186,6 @@
             }
           </div>
         }
-
-        <div class="modal-separador"></div>
-        <p class="ah-campo__etiqueta">Zona de peligro</p>
-        <div class="modal-acciones">
-          <button type="button" class="ah-btn ah-btn--peligro" (click)="solicitarEliminacionFisica(t)">
-            Borrar físicamente
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-}
-
-@if (tenantAEliminar(); as tDel) {
-  <div class="ah-modal-fondo" (click)="cancelarEliminacionFisica()">
-    <div class="ah-modal modal-peligro" (click)="$event.stopPropagation()">
-      <div class="ah-modal__cabecera">
-        <h2 class="peligro-titulo">Confirmar Borrado Físico</h2>
-        <button type="button" class="ah-modal__cerrar" (click)="cancelarEliminacionFisica()" aria-label="Cerrar">✕</button>
-      </div>
-      <p class="peligro-mensaje">
-        ¿Está completamente seguro de eliminar físicamente la organización <strong>{{ tDel.razon_social }}</strong> (<code>{{ tDel.codigo }}</code>)?
-      </p>
-      <div class="peligro-alerta">
-        <strong>¡Atención!</strong> Esta acción es irreversible. Se eliminarán permanentemente la organización, sus usuarios administradores, licencias y llaves API de la base de datos.
-      </div>
-      <div class="modal-acciones">
-        <button type="button" class="ah-btn ah-btn--peligro" (click)="confirmarEliminacionFisica()" [disabled]="eliminando()">
-          {{ eliminando() ? 'Eliminando...' : 'Sí, eliminar definitivamente' }}
-        </button>
-        <button type="button" class="ah-btn ah-btn--secundario" (click)="cancelarEliminacionFisica()">
-          Cancelar
-        </button>
       </div>
     </div>
   </div>

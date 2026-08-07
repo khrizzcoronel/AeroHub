@@ -1,0 +1,151 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <div>
+      <h1>Dashboard</h1>
+      <p class="consola__subtitulo">Vision consolidada de los módulos habilitados para tu rol.</p>
+    </div>
+    <div class="consola__filtro-global">
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="periodoInicioGlobal">Desde</label>
+        <input
+          id="periodoInicioGlobal"
+          type="date"
+          [ngModel]="periodoInicio()"
+          (ngModelChange)="periodoInicio.set($event)"
+        />
+      </div>
+      <div class="ah-campo">
+        <label class="ah-campo__etiqueta" for="periodoFinGlobal">Hasta</label>
+        <input
+          id="periodoFinGlobal"
+          type="date"
+          [ngModel]="periodoFin()"
+          (ngModelChange)="periodoFin.set($event)"
+        />
+      </div>
+      <button type="button" class="ah-btn" (click)="aplicarPeriodoGlobal()">Aplicar período</button>
+    </div>
+  </div>
+
+  @if (modulosVisibles.length === 0) {
+    <p class="ah-vacio">Sin informes disponibles para tu rol.</p>
+  }
+
+  @for (modulo of modulosVisibles; track modulo.config.titulo) {
+    <section class="ah-dashboard-modulo">
+      <div class="ah-dashboard-modulo__titulo">
+        <h2>{{ modulo.config.titulo }}</h2>
+        <button
+          type="button"
+          class="ah-modulo-card__accion"
+          (click)="recargarModulo(modulo)"
+          [disabled]="modulo.cargando()"
+          title="Actualizar"
+        >
+          ↻
+        </button>
+      </div>
+
+      @if (modulo.cargando()) {
+        <p class="ah-vacio ah-vacio--compacto">Cargando…</p>
+      }
+
+      <!-- ===== Fila de 4 KPIs ===== -->
+      <div class="ah-kpi-fila ah-kpi-fila--4">
+        <div class="ah-kpi">
+          <span class="ah-kpi__etiqueta">TOTAL GENERAL</span>
+          <span class="ah-kpi__valor">{{ modulo.tactico()?.total_general ?? '—' }}</span>
+        </div>
+        <div class="ah-kpi">
+          <span class="ah-kpi__etiqueta">GRUPOS</span>
+          <span class="ah-kpi__valor">{{ modulo.tactico()?.grupos?.length ?? '—' }}</span>
+        </div>
+        <div class="ah-kpi">
+          <span class="ah-kpi__etiqueta">FILAS EN EL PERÍODO</span>
+          <span class="ah-kpi__valor">{{ modulo.resultadoSimple()?.filas?.length ?? '—' }}</span>
+        </div>
+        <div class="ah-kpi">
+          <span class="ah-kpi__etiqueta">ÚLTIMA SINCRONIZACIÓN</span>
+          <span class="ah-kpi__valor ah-kpi__valor--fecha">
+            {{ modulo.tactico()?.calculado_en ? (modulo.tactico()!.calculado_en | date: 'dd/MM HH:mm') : 'Sin datos' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- ===== Fila de 2 columnas: compuesto (izq) / simple (der) ===== -->
+      <div class="ah-dashboard-modulo__fila">
+        <article class="ah-panel-dato">
+          <header class="ah-panel-dato__cabecera">
+            <h3>{{ modulo.config.columnaGrupo }} por grupo</h3>
+            <span class="ah-badge-origen ah-badge-origen--compuesto">Compuesto · ClickHouse</span>
+          </header>
+
+          @if (modulo.tacticoError()) {
+            <p class="ah-alerta" role="alert">{{ modulo.tacticoError() }}</p>
+          } @else if (barrasDestacadas(modulo).length === 0) {
+            <p class="ah-vacio ah-vacio--compacto">Sin datos sincronizados todavía.</p>
+          } @else {
+            <div class="ah-barra-informe">
+              @for (b of barrasDestacadas(modulo); track b.clave) {
+                <div class="ah-barra-informe__fila">
+                  <span class="ah-barra-informe__etiqueta" [title]="b.clave">{{ b.clave }}</span>
+                  <div class="ah-barra-informe__pista">
+                    <div class="ah-barra-informe__relleno" [style.width.%]="b.anchoPct"></div>
+                  </div>
+                  <span class="ah-barra-informe__valor">
+                    {{ b.subtotal }}
+                    @if (b.metricaPrincipal !== null && b.metricaPrincipal !== '') {
+                      <span class="ah-barra-informe__metrica">· {{ b.metricaPrincipal }}</span>
+                    }
+                  </span>
+                </div>
+              }
+            </div>
+            @if (cantidadGruposRestantes(modulo) > 0) {
+              <p class="ah-modulo-card__nota">+{{ cantidadGruposRestantes(modulo) }} grupo(s) más.</p>
+            }
+          }
+        </article>
+
+        <article class="ah-panel-dato">
+          <header class="ah-panel-dato__cabecera">
+            <h3>Detalle</h3>
+            <span class="ah-badge-origen ah-badge-origen--simple">Simple · MonetDB</span>
+          </header>
+
+          @if (modulo.simpleError()) {
+            <p class="ah-alerta" role="alert">{{ modulo.simpleError() }}</p>
+          } @else if ((modulo.resultadoSimple()?.filas?.length ?? 0) === 0) {
+            <p class="ah-vacio ah-vacio--compacto">Sin filas para el período.</p>
+          } @else {
+            <div class="tabla-envoltorio tabla-envoltorio--acotada">
+              <table class="ah-tabla">
+                <thead>
+                  <tr>
+                    @for (c of modulo.config.columnasSimple; track c.campo) {
+                      <th>{{ c.etiqueta }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (fila of modulo.resultadoSimple()!.filas; track $index) {
+                    <tr>
+                      @for (c of modulo.config.columnasSimple; track c.campo) {
+                        <td>{{ valorCelda(fila, c.campo) }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+          <div class="ah-panel-dato__pie">
+            <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="exportarCsv(modulo)">
+              Exportar CSV
+            </button>
+          </div>
+        </article>
+      </div>
+    </section>
+  }
+</section>

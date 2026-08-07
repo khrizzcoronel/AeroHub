@@ -33,6 +33,7 @@ from .informes import (
     consultar_informe_turnarounds_compuesto,
     consultar_informe_turnarounds_simple,
 )
+from .consultar_catalogos import TipoTarea, consultar_tipos_tarea
 
 __all__ = [
     "crear_turnaround",
@@ -60,4 +61,6 @@ __all__ = [
     "InformeSimple",
     "InformeCompuesto",
     "GrupoInforme",
+    "TipoTarea",
+    "consultar_tipos_tarea",
 ]

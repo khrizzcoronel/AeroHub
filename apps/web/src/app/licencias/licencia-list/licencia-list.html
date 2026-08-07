@@ -25,6 +25,7 @@
             <th>Estado</th>
             <th>Fecha de activación</th>
             <th>Vigente hasta</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -39,6 +40,11 @@
               </td>
               <td>{{ l.activa_desde | date: 'dd/MM/yyyy' }}</td>
               <td>{{ l.activa_hasta ? (l.activa_hasta | date: 'dd/MM/yyyy') : 'Permanente / Sin expiración' }}</td>
+              <td>
+                <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalle(l)">
+                  Ver detalles
+                </button>
+              </td>
             </tr>
           }
         </tbody>
@@ -46,3 +52,35 @@
     </div>
   }
 </section>
+
+@if (licenciaViendoDetalle(); as l) {
+  <div class="ah-modal-fondo" (click)="cerrarDetalle()">
+    <div class="ah-modal" (click)="$event.stopPropagation()">
+      <div class="ah-modal__cabecera">
+        <div class="modal-titulo-grupo">
+          <h2>{{ l.modulo_nombre }}</h2>
+          <span class="ah-pill" [class]="claseVigencia(l.es_vigente)">{{ textoVigencia(l.es_vigente) }}</span>
+        </div>
+        <button type="button" class="ah-modal__cerrar" (click)="cerrarDetalle()" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="formulario">
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Código de módulo</span>
+          <p><code>{{ l.modulo_codigo }}</code></p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Vigente desde</span>
+          <p>{{ l.activa_desde | date: 'dd/MM/yyyy' }}</p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Vigente hasta</span>
+          <p>{{ l.activa_hasta ? (l.activa_hasta | date: 'dd/MM/yyyy') : 'Permanente / Sin expiración' }}</p>
+        </div>
+        <div class="ah-campo">
+          <span class="ah-campo__etiqueta">Origen</span>
+          <p>Otorgada automáticamente al aprovisionar el tenant, según el plan contratado. No se administra individualmente desde aquí.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+}

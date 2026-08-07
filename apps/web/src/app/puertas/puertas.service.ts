@@ -11,6 +11,7 @@ export interface PuertaTablero {
   codigo: string;
   tipo: string;
   envergadura_max_m: number;
+  tiene_pasarela: boolean;
 }
 
 export interface AsignacionTablero {
@@ -45,6 +46,25 @@ export interface AsignacionAutomaticaResponse {
   sin_asignar: string[];
 }
 
+export interface Terminal {
+  id: string;
+  codigo: string;
+  nombre: string;
+}
+
+export interface CrearTerminalRequest {
+  codigo: string;
+  nombre: string;
+}
+
+export interface CrearPuertaRequest {
+  terminal_id: string;
+  codigo: string;
+  tipo: string;
+  envergadura_max_m: number;
+  tiene_pasarela: boolean;
+}
+
 // Sprint S1.11 (research.md Decision 2, deuda de JWT): ningun metodo
 // recibe ya un tokenJwt por parametro -- authInterceptor (S1.10) agrega
 // el header Authorization a toda peticion HTTP saliente.
@@ -74,5 +94,24 @@ export class PuertasService {
       `${API_BASE_URL}/puertas/asignaciones/${asignacionId}/cancelar`,
       {},
     );
+  }
+
+  // Fase 3/4 de docs/diseno/PLAN_CORRECCION_MODULOS.md -- CRUD de
+  // terminal/puerta (backend cerrado en Fase 3, sin ningun consumidor de
+  // interfaz hasta Fase 4).
+  listarTerminales(): Observable<Terminal[]> {
+    return this.http.get<Terminal[]>(`${API_BASE_URL}/puertas/terminales`);
+  }
+
+  crearTerminal(peticion: CrearTerminalRequest): Observable<{ terminal_id: string }> {
+    return this.http.post<{ terminal_id: string }>(`${API_BASE_URL}/puertas/terminales`, peticion);
+  }
+
+  crearPuerta(peticion: CrearPuertaRequest): Observable<{ puerta_id: string }> {
+    return this.http.post<{ puerta_id: string }>(`${API_BASE_URL}/puertas`, peticion);
+  }
+
+  editarPuerta(puertaId: string, peticion: CrearPuertaRequest): Observable<void> {
+    return this.http.patch<void>(`${API_BASE_URL}/puertas/${puertaId}`, peticion);
   }
 }

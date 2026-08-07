@@ -9,10 +9,14 @@ middleware con HTTP real (PN-01/PN-02/PN-06/PN-07), documentado
 explicitamente como tal para que nadie lo confunda con un flujo de
 autenticacion de produccion.
 
-Expiracion por defecto: 15 minutos ("de corta vida", SRS §4 Seguridad --
-sin un numero explicito en el documento fuente, se fija 15 min como valor
-razonable de la industria para un JWT de sesion, configurable via
-`minutos_expiracion` por el llamador que emita el token).
+Expiracion por defecto: 30 minutos ("de corta vida", SRS §4 Seguridad --
+sin un numero explicito en el documento fuente, ajustado a 30 min el
+2026-08-05 por pedido directo del usuario, era 15 min desde S1.2;
+configurable via `minutos_expiracion` por el llamador que emita el
+token). Debe coincidir con `_MINUTOS_EXPIRACION_SESION` de
+`aerohub_tenancy.application.iniciar_sesion` -- esa es la fuente real
+usada por el login, esta constante solo alimenta la utilidad de
+arranque/pruebas de este archivo.
 """
 
 from __future__ import annotations
@@ -27,7 +31,7 @@ from ..domain import TokenInvalido
 
 _ALGORITMO = "HS256"
 _SECRETO_POR_DEFECTO = "aerohub-dev-secret-nunca-usar-en-produccion"
-_MINUTOS_EXPIRACION_POR_DEFECTO = 15
+_MINUTOS_EXPIRACION_POR_DEFECTO = 30
 
 
 def _secreto() -> str:

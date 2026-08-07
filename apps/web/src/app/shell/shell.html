@@ -38,45 +38,10 @@
           </a>
         </li>
       }
-      @if (puedeVerInformesVuelos()) {
+      @if (puedeVerInformes()) {
         <li>
-          <a routerLink="/vuelos/informes" routerLinkActive="side__link--activo" class="side__link">
-            Informes · AODB
-          </a>
-        </li>
-      }
-      @if (puedeVerInformesPuertas()) {
-        <li>
-          <a routerLink="/puertas/informes" routerLinkActive="side__link--activo" class="side__link">
-            Informes · Gates
-          </a>
-        </li>
-      }
-      @if (puedeVerInformesRampa()) {
-        <li>
-          <a routerLink="/rampa/informes" routerLinkActive="side__link--activo" class="side__link">
-            Informes · Ground Ops
-          </a>
-        </li>
-      }
-      @if (puedeVerInformesBilling()) {
-        <li>
-          <a routerLink="/billing/informes" routerLinkActive="side__link--activo" class="side__link">
-            Informes · Billing
-          </a>
-        </li>
-      }
-      @if (puedeVerInformesTenants()) {
-        <li>
-          <a routerLink="/tenants/informes" routerLinkActive="side__link--activo" class="side__link">
-            Informes · Tenants
-          </a>
-        </li>
-      }
-      @if (puedeVerInformesCompliance()) {
-        <li>
-          <a routerLink="/compliance/informes" routerLinkActive="side__link--activo" class="side__link">
-            Informes · Compliance
+          <a routerLink="/informes/dashboard" routerLinkActive="side__link--activo" class="side__link">
+            Dashboard
           </a>
         </li>
       }
