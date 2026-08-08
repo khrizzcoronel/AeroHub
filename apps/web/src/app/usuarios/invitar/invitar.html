@@ -1,40 +1,37 @@
-<div class="stage-simple">
-  <form class="card" (ngSubmit)="enviar()">
-    <h1>Invitar a alguien de tu organizacion</h1>
-    <p class="card__sub">Le enviamos un enlace por correo para que active su cuenta.</p>
+<form class="formulario" (ngSubmit)="enviar()">
+  <p class="invitar__descripcion">Le enviamos un enlace por correo para que active su cuenta.</p>
 
-    <label class="field">
-      <span class="field__label">Correo</span>
-      <input
-        type="email"
-        required
-        [ngModel]="email()"
-        (ngModelChange)="email.set($event)"
-        name="email"
-      />
-    </label>
+  <div class="ah-campo">
+    <label class="ah-campo__etiqueta" for="invitarEmail">Correo</label>
+    <input
+      id="invitarEmail"
+      type="email"
+      required
+      [ngModel]="email()"
+      (ngModelChange)="email.set($event)"
+      name="email"
+    />
+  </div>
 
-    <label class="field">
-      <span class="field__label">Rol</span>
-      <select [ngModel]="rolCodigo()" (ngModelChange)="rolCodigo.set($event)" name="rolCodigo">
-        <option value="role_operations_controller">Control de operaciones</option>
-        <option value="role_airline_coordinator">Coordinacion de aerolinea</option>
-        <option value="role_ramp_agent">Agente de rampa</option>
-        <option value="role_billing_officer">Facturacion</option>
-        <option value="role_tenant_analyst">Analista</option>
-      </select>
-    </label>
+  <div class="ah-campo">
+    <label class="ah-campo__etiqueta" for="invitarRol">Rol</label>
+    <select id="invitarRol" [ngModel]="rolCodigo()" (ngModelChange)="rolCodigo.set($event)" name="rolCodigo">
+      <option value="role_operations_controller">Control de operaciones</option>
+      <option value="role_airline_coordinator">Coordinación de aerolínea</option>
+      <option value="role_ramp_agent">Agente de rampa</option>
+      <option value="role_billing_officer">Facturación</option>
+      <option value="role_tenant_analyst">Analista</option>
+    </select>
+  </div>
 
-    @if (error()) {
-      <p class="alert" role="alert">{{ error() }}</p>
-    }
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
 
-    @if (invitacionId()) {
-      <p class="notice">Invitacion enviada.</p>
-    }
-
-    <button type="submit" class="btn" [disabled]="enviando()">
-      {{ enviando() ? 'Enviando...' : 'Enviar invitacion' }}
+  <div class="modal-acciones">
+    <button type="submit" class="ah-btn" [disabled]="enviando()">
+      {{ enviando() ? 'Enviando...' : 'Enviar invitación' }}
     </button>
-  </form>
-</div>
+    <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrar.emit()">Cancelar</button>
+  </div>
+</form>

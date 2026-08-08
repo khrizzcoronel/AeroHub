@@ -5,9 +5,9 @@
 | **Identificador de documento** | AEROHUB-PLAN-002 |
 | **Versión** | 3.0 — línea base única |
 | **Fecha** | 2026-08-04 |
-| **Supersede a** | v2.0 (2026-07-30), conservada como histórico en `docs/PLAN_IMPLEMENTACION_v2.0.md` |
+| **Supersede a** | v2.0 (2026-07-30) — retirada 2026-08-08, pedido explícito del usuario; su contenido superseded no aporta valor de referencia una vez reemplazado, a diferencia de otros documentos históricos que sí se conservan por registrar decisiones/hallazgos aún vigentes |
 | **Documentos fuente** | [SRS v2.0](srs/AEROHUB-SRS-001-v2.0.md) · [SDD-DATA-001 (MonetDB)](sdd/AEROHUB-SDD-DATA-001-MonetDB-v1.0.md) · [SDD-DATA-002 (ClickHouse)](sdd/AEROHUB-SDD-DATA-002-ClickHouse-v1.0.md) · [Análisis Estratégico v6.0](estrategia/AEROHUB-ANALISIS-ESTRATEGICO-v6.0.md) |
-| **Evidencia que motiva esta versión** | [Análisis de rumbo y brechas, ago-2026](estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md) · [Plan de revisión de endpoints](diseno/PLAN_REVISION_ENDPOINTS_FRONT.md) |
+| **Evidencia que motiva esta versión** | [Análisis de rumbo y brechas, ago-2026](estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md) · Plan de revisión de endpoints (`docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md`, retirado 2026-08-08 tras consolidarse en la Fase 1.5 ya cerrada — el hallazgo que motivó esta versión, "38 de 83 endpoints sin consumidor", queda registrado en la fila S1.15-S1.20 de `CLAUDE.md`) |
 | **Metodología** | Specification-Driven Development (SDD) sobre marco ágil, sprints de 2 semanas |
 | **Marco de referencia** | ISO/IEC 12207:2017 · ISO/IEC/IEEE 29119 · IEEE 1016-2009 · ISO/IEC/IEEE 42010:2011 · ISO/IEC 25010:2011 · ISO/IEC 27001/27002:2022 · ISO/IEC 27701:2019 |
 | **Estado** | Línea base aprobada para ejecución |
@@ -403,7 +403,7 @@ Métrica nueva, medida al cerrar cada sprint junto con la cobertura de pruebas:
 
 > **Cobertura de superficie = endpoints con consumidor en la interfaz / endpoints que deben tenerlo**
 
-El denominador excluye únicamente los endpoints clasificados como *sin consumidor por diseño* (procesos de fondo, herramientas externas ya adoptadas como Grafana), **documentados endpoint por endpoint** — no por categoría genérica. La clasificación vive en [`docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md`](diseno/PLAN_REVISION_ENDPOINTS_FRONT.md) §3.
+El denominador excluye únicamente los endpoints clasificados como *sin consumidor por diseño* (procesos de fondo, herramientas externas ya adoptadas como Grafana), **documentados endpoint por endpoint** — no por categoría genérica. Esa clasificación vivía en `docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md` §3 (retirado 2026-08-08, Fase 1.5 ya cerrada); el criterio de exclusión sigue vigente para sprints futuros aunque el documento puntual ya no exista.
 
 **Regla de compuerta:** *ningún sprint cierra dejando un endpoint nuevo con actor humano sin su superficie de usuario, o sin registrar explícitamente por qué no la lleva.* Esta regla, aplicada desde la Fase 1, habría evitado las 12 brechas que motivan la Fase 1.5.
 
@@ -798,7 +798,7 @@ rediseño de interfaz S1.11-S1.14 completo.
 
 **Semanas 27–38 · 6 sprints · D1, D3, D5, D6 · MonetDB + Angular**
 
-> **Fase nueva en v3.0.** No agrega capacidad de negocio al backend: hace **alcanzable** la que ya existe. Al cerrar la Fase 1, 38 de 83 endpoints no tenían consumidor y 12 de ellos bloqueaban casos de uso con actor humano confirmado. Evidencia completa en [`ANALISIS_RUMBO_Y_BRECHAS_2026-08.md`](estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md) y [`PLAN_REVISION_ENDPOINTS_FRONT.md`](diseno/PLAN_REVISION_ENDPOINTS_FRONT.md).
+> **Fase nueva en v3.0.** No agrega capacidad de negocio al backend: hace **alcanzable** la que ya existe. Al cerrar la Fase 1, 38 de 83 endpoints no tenían consumidor y 12 de ellos bloqueaban casos de uso con actor humano confirmado. Evidencia completa en [`ANALISIS_RUMBO_Y_BRECHAS_2026-08.md`](estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md); la matriz endpoint↔vista puntual vivía en `docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md` (retirado 2026-08-08, esta fase ya cerró — ver la fila S1.15-S1.20 de `CLAUDE.md` para el resultado final).
 
 ### 8-bis.0 Requisitos de informes — familia RF-I *(nueva en v3.0)*
 

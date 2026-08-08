@@ -122,9 +122,9 @@ retomar.
 ## Fase 1.5 -- Cierre de superficie de usuario (PLAN v3.0, §8-bis)
 
 **El plan pasó a v3.0 el 2026-08-04.** `docs/PLAN_IMPLEMENTACION_v2.0.md`
-quedó supersedido (tiene un aviso en su cabecera); la línea base vigente
-es `docs/PLAN_IMPLEMENTACION_v3.0.md`, que conserva las Fases 2-4
-textualmente y agrega la Fase 1.5.
+quedó supersedido y se retiró el 2026-08-08 (pedido explícito del
+usuario); la línea base vigente es `docs/PLAN_IMPLEMENTACION_v3.0.md`, que
+conserva las Fases 2-4 textualmente y agrega la Fase 1.5.
 
 **Por qué existe esta fase**: al cerrar la Fase 1, un inventario
 automático encontró que **38 de los 83 endpoints del backend (46 %) no
@@ -135,10 +135,11 @@ se redactaban como criterios verificables por API, nunca como "el actor
 puede hacerlo desde la aplicación". La v3.0 corrige la DoD genérica
 (§6.5 punto 9) para que eso no vuelva a pasar.
 
-Evidencia completa en `docs/estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md`
-y `docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md` (este último tiene la
-matriz endpoint↔vista completa y el triaje de las 38 brechas en clases
-A/B/C/D).
+Evidencia completa en `docs/estrategia/ANALISIS_RUMBO_Y_BRECHAS_2026-08.md`.
+La matriz endpoint↔vista completa y el triaje de las 38 brechas en clases
+A/B/C/D vivía en `docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md`, retirado
+2026-08-08 tras cerrarse la Fase 1.5 que resolvió las 38 brechas (ver la
+fila S1.15-S1.20 más abajo).
 
 **Los 3 casos más graves** (los que motivan el orden de los sprints):
 `POST /vuelos` no existe en la UI --M1, el módulo núcleo, muestra cambios
@@ -163,8 +164,8 @@ INSERT a mano en MonetDB.
 2. **Los informes se implementan en la Fase 1.5**, no solo se especifican.
 3. **Se generó un v3 completo** en vez de enmendar v2 o hacer un anexo.
 
-**Hallazgo que bloquea a los demás sprints** (tarea R0 de
-`PLAN_REVISION_ENDPOINTS_FRONT.md`): `docs/api/openapi.yaml` tiene 60
+**Hallazgo que bloquea a los demás sprints** (tarea R0 del extinto plan de
+revisión de endpoints): `docs/api/openapi.yaml` tiene 60
 rutas y el backend real ~72 -- le faltan **todas** las del workpanel
 construido después del 2026-08-02. CI corre
 `spectral lint docs/api/openapi.yaml` y pasa en verde porque el archivo
@@ -440,8 +441,8 @@ completa (S1.15-S1.20)**.
 
 ## Fase 1.5 -- cerrada (S1.15-S1.20)
 
-Los 38 endpoints huérfanos detectados en el inventario de brechas
-(`docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md`) quedaron resueltos:
+Los 38 endpoints huérfanos detectados en el inventario de brechas (extinto
+plan de revisión de endpoints, retirado 2026-08-08) quedaron resueltos:
 contrato de API regenerado + superficie de M1 AODB (S1.15),
 administración de FIDS/M2 (S1.16), tarifarios/conciliación de M5
 (S1.17), informes operativos RF-I01-04 en 6 módulos (S1.18), M9
@@ -1463,10 +1464,130 @@ Tres decisiones ya tomadas por el usuario (no re-preguntarlas):
    `specs/016-`), dividido así deliberadamente para no sobrecargar el
    contexto de una sola sesión.
 
-## Checklist de corrección de módulos (lecciones de `PLAN_CORRECCION_MODULOS.md`, no repetir)
+## Consolidación de documentos de diseño (2026-08-07, pedido explícito)
 
-`docs/diseno/PLAN_CORRECCION_MODULOS.md` (Fases 1-6, cerrado 2026-08-07)
-encontró que casi todos los "errores" que un usuario reporta módulo por
+`docs/diseno/` quedó reducido a **2 documentos de diseño vigentes**:
+`DIRECCION_VISUAL.md` (general -- tokens, tipografía, principios) y
+`MODAL_Y_WORKPANEL.md` (nuevo -- estructura de workpanel y modal "Ver
+detalles", con `usuarios/usuario-list` como referencia viva). Se
+**eliminaron** `PLAN_WORKPANELS_MODULOS.md`, `WORKPANEL_Y_DASHBOARD_ROLES.md`,
+`ROLES_POR_CAPA.md`, `PLAN_CORRECCION_MODULOS.md`,
+`PLAN_DASHBOARDS_OPERATIVOS.md` y `PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md`
+tras fusionar lo vigente en esos 2 documentos -- **cualquier mención a esos
+6 archivos en las secciones de abajo es un registro histórico de una
+sesión anterior, no un enlace navegable**. El checklist de causas raíz que
+`PLAN_CORRECCION_MODULOS.md` dejaba (scope vs. GRANT, traductor de
+errores, datos sin sembrar, vista sin listado) sigue completo más abajo en
+este mismo archivo -- eso no se perdió, solo el documento fuente.
+`docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md` en ese momento no se tocó
+(tema distinto: brechas de API, no diseño) -- **retirado despues, el
+2026-08-08**, pedido explícito del usuario en la misma sesión que
+documentó la iteración de cabecera de `usuarios/usuario-list` (ver más
+abajo); a diferencia de los otros 6, este SÍ estaba citado como evidencia
+en `docs/PLAN_IMPLEMENTACION_v3.0.md` (3 enlaces), corregidos para no
+apuntar a un archivo inexistente. `docs/diseno/` queda con exactamente 2
+documentos: `DIRECCION_VISUAL.md` y `MODAL_Y_WORKPANEL.md`.
+
+## Iteración de cabecera y modal en `usuarios/usuario-list` (2026-08-08, pendiente de commit)
+
+Pedido directo del usuario con una captura de referencia externa --
+rediseño puntual del workpanel de Usuarios y Equipo, documentado en
+detalle en `docs/diseno/MODAL_Y_WORKPANEL.md` §1.2 (no se repite acá,
+solo el resumen y los hallazgos).
+
+1. **Cabecera**: eyebrow (`.consola__eyebrow`) + ícono de refresco
+   inline junto al `<h1>` (reemplaza el botón "Actualizar" suelto); KPI
+   como chips de fondo tenue (`.ah-chip`, nuevo primitivo local) en vez
+   de la oración de resumen; una sola fila con buscador con ícono,
+   filtro inline y el botón de acción principal (reemplaza el panel de
+   búsqueda + barra de acciones separados). Acción de fila: texto "Ver"
+   (se probó un ícono de solo-ojo primero, revertido a pedido explícito).
+2. **Experimento de `<select>` personalizado, probado y revertido el
+   mismo día**: se construyó `app-select-personalizado`
+   (`apps/web/src/app/shared/select-personalizado/`, ya eliminado) para
+   reemplazar el `<select>` nativo -- primero solo la flecha (CSS puro,
+   funcionaba bien), después un listbox propio completo para la lista
+   desplegable (imposible de re-estilar en un `<select>` nativo con CSS
+   puro). **2 hallazgos técnicos reales en el camino**, documentados en
+   detalle en `MODAL_Y_WORKPANEL.md` §1.2 para no re-descubrirlos si se
+   vuelve a intentar: (a) un `overflow` de un ancestro (`.ah-modal`)
+   recorta a sus descendientes sin importar el `position` de estos --
+   `position: fixed` no escapa del recorte mientras el nodo siga siendo
+   descendiente en el DOM, hace falta reubicarlo físicamente en
+   `document.body`; (b) una vez reubicado y posicionado con
+   `getBoundingClientRect()` calculado una sola vez al abrir, la lista
+   queda "flotando" desconectada del control si se hace scroll dentro
+   del modal después -- se resuelve cerrando el listbox ante cualquier
+   scroll (listener de captura sobre `document`, mismo criterio que
+   click-afuera/Escape). Con ambos hallazgos ya resueltos y el
+   componente funcionando, el usuario pidió explícitamente volver al
+   `<select>` nativo sin ninguna personalización -- decisión final,
+   componente eliminado, `_primitivos.scss` revertido a `appearance: auto`.
+3. **Consolidación de documentación** (mismo pedido): `docs/diseno/MODAL_Y_WORKPANEL.md`
+   actualizado con la iteración de cabecera (marcada explícitamente como
+   "hoy solo en `usuarios/usuario-list`", no propagada a `tenants`/
+   `api-keys`/`licencias`) y con el experimento del select documentado
+   como referencia para no repetirlo sin pedido explícito.
+   `docs/diseno/PLAN_REVISION_ENDPOINTS_FRONT.md` retirado (ver nota de
+   consolidación arriba) -- sus 3 citas en `docs/PLAN_IMPLEMENTACION_v3.0.md`
+   corregidas para no apuntar a un archivo inexistente. `docs/PLAN_IMPLEMENTACION_v2.0.md`
+   retirado tambien (pedido explicito, mismo dia) -- a diferencia del
+   resto de documentos consolidados, v3.0.md lo marcaba deliberadamente
+   como "conservado como historico" al reemplazarlo, asi que se confirmo
+   con el usuario antes de borrarlo; sus 3 referencias
+   (`PLAN_IMPLEMENTACION_v3.0.md`, `ANALISIS_RUMBO_Y_BRECHAS_2026-08.md`,
+   este archivo) corregidas para explicar el retiro en vez de apuntar a
+   un archivo inexistente.
+4. **Verificado**: build de producción de `apps/web` en verde en cada
+   paso (cabecera nueva, select personalizado, y revert final); todo
+   probado en navegador real logueado como `canario@mec.aerohub.test`
+   (`role_tenant_admin`) -- filtro por rol, KPI en vivo, switch de
+   estado con guardado diferido, apertura/cierre del listbox
+   personalizado (mientras existió) y su comportamiento ante scroll,
+   sin errores de consola en ningún paso.
+5. **Hallazgo de infraestructura, no de código**: el stack completo de
+   Docker se cayó a mitad de esta sesión (`Exited (137)` en
+   `monetdb`/`monetdb-standby`/`monetdb-restore-test`/`gateway`/
+   `fids-player`/`clickhouse`/`continuidad-agente` -- síntoma de
+   OOM-kill del host). Se reinició manualmente
+   (`docker start monetdb monetdb-standby monetdb-restore-test minio`,
+   luego `gateway fids-player`) y se verificó sano antes de continuar.
+   Si vuelve a pasar seguido, revisar el límite de memoria asignado a
+   Docker Desktop.
+6. **Hallazgo de proceso, no de código**: `canario@mec.aerohub.test`
+   quedó con 2 usuarios de prueba en estado `suspendido`/con rol
+   reasignado (`Usuario PN-16`, `Demo role_tenant_analyst`) como
+   residuo de las pruebas de esta sesión sobre datos reales -- no se
+   revirtieron por completo, queda para una limpieza futura si hace
+   falta un estado prolijo para demos.
+7. **Modal "Invitar Usuario" -- título duplicado corregido** (pedido
+   directo con captura, mismo día): `apps/web/src/app/usuarios/invitar/`
+   reusaba `_auth-form.scss` (pensado para páginas de auth standalone,
+   con su propio `<h1>` + tarjeta con sombra) -- al embeberse dentro de
+   `.ah-modal` (que ya trae su propia cabecera con título + botón de
+   cierre) esto se veía como un título duplicado y una
+   tarjeta-dentro-de-tarjeta. Reescrito para seguir exactamente el mismo
+   patrón que el modal "Ver detalles" (`.formulario` + `.ah-campo` por
+   campo + `.ah-alerta` + `.modal-acciones` con
+   `justify-content: flex-end`), sin `<h1>`, sin tarjeta ni sombra
+   propias -- documentado como regla general nueva en
+   `docs/diseno/MODAL_Y_WORKPANEL.md` §2.7 ("componentes de creación
+   embebidos, sin título ni tarjeta propia") para que cualquier otro
+   formulario de alta embebido en un modal siga el mismo criterio.
+   Verificado en navegador real: un solo `<h2>` dentro del modal
+   (`Invitar Nuevo Usuario`), campos Correo/Rol, botones "Enviar
+   invitación"/"Cancelar" alineados a la derecha, sin errores de
+   consola. Build de producción en verde (bundle ~10KB más chico al
+   dejar de depender de `_auth-form.scss`).
+
+**Sin commitear todavía** -- pendiente de pedido explícito del usuario
+(Principio V).
+
+## Checklist de corrección de módulos (lecciones ya cerradas de un plan hoy consolidado, no repetir)
+
+El extinto `docs/diseno/PLAN_CORRECCION_MODULOS.md` (Fases 1-6, cerrado
+2026-08-07, contenido ya consolidado -- ver nota arriba) encontró que casi
+todos los "errores" que un usuario reporta módulo por
 módulo se explican por un puñado de **causas raíz repetibles**, no por
 bugs sueltos distintos cada vez. **Leer esto antes de corregir o
 construir cualquier módulo nuevo** (incluido el dashboard operativo que

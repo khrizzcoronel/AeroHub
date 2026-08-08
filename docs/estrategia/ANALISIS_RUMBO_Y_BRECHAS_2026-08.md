@@ -3,7 +3,7 @@
 | Campo | Contenido |
 |:---|:---|
 | **Fecha** | 2026-08-04 |
-| **Fuentes cruzadas** | `docs/estrategia/AEROHUB-ANALISIS-ESTRATEGICO-v6.0.md`, `docs/PLAN_IMPLEMENTACION_v2.0.md`, `docs/srs/AEROHUB-SRS-001-v2.0.md`, código real en `services/` y `apps/` |
+| **Fuentes cruzadas** | `docs/estrategia/AEROHUB-ANALISIS-ESTRATEGICO-v6.0.md`, `docs/PLAN_IMPLEMENTACION_v2.0.md` (retirado 2026-08-08, superseded por v3.0), `docs/srs/AEROHUB-SRS-001-v2.0.md`, código real en `services/` y `apps/` |
 | **Método** | Inventario automático de los 83 endpoints reales del backend contra las 38 rutas que el frontend consume; lectura de los catálogos RF/CU frente a lo implementado |
 | **Estado del repo al analizar** | commit `2285ced` (S1.14 cerrado), Fase 1 del plan completa, Fases 2-4 sin empezar |
 

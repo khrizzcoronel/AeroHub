@@ -7,6 +7,20 @@
   box-sizing: border-box;
 }
 
+// Redistribucion del workpanel (pedido explicito, 2026-08-07), referencia
+// de docs/diseno/MODAL_Y_WORKPANEL.md: eyebrow + titulo con refresco
+// inline, chips de KPI en vez de oracion de resumen, y una sola fila de
+// busqueda+filtro+accion en vez de panel de busqueda + barra de acciones
+// separados.
+.consola__eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ah-ink-400);
+}
+
 .consola__cabecera {
   display: flex;
   align-items: baseline;
@@ -15,20 +29,114 @@
   flex-wrap: wrap;
 }
 
-.consola__acciones {
+.consola__cabecera h1 {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
+  margin: 0;
+}
+
+.consola__refrescar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--ah-ink-400);
+  padding: 0.2rem;
+}
+
+.consola__refrescar:hover:not(:disabled) {
+  color: var(--ah-navy-900);
+}
+
+.consola__refrescar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.consola__kpis {
+  display: flex;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.consola__resumen {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--ah-ink-600);
+// .ah-chip -- insignia "blanda" (fondo tenue + texto de color), distinta
+// de .ah-pill (fondo solido + texto blanco): .ah-pill marca el estado DE
+// un registro en una columna; .ah-chip resume un conteo agregado sobre
+// toda la lista (KPI de cabecera).
+.ah-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
-.resumen-critico {
+.ah-chip--critico {
+  background: color-mix(in srgb, var(--ah-estado-critico) 16%, #fff);
   color: var(--ah-estado-critico);
+}
+
+.ah-chip--atencion {
+  background: color-mix(in srgb, var(--ah-estado-atencion) 18%, #fff);
+  color: color-mix(in srgb, var(--ah-estado-atencion) 70%, var(--ah-ink-900));
+}
+
+.consola__fila-busqueda {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ah-buscador {
+  position: relative;
+  flex: 2 1 260px;
+}
+
+.ah-buscador__icono {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  color: var(--ah-ink-400);
+  pointer-events: none;
+}
+
+.ah-buscador input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem 0.65rem 2rem;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  font-size: 0.95rem;
+  font-family: inherit;
+  // Mismo alto que .ah-campo select (_primitivos.scss) -- igualar solo
+  // el padding no alcanza, un <select> nativo renderiza mas alto que un
+  // <input> con el mismo box model (flecha del navegador). Se fija el
+  // alto explicito en ambos controles para que coincidan pixel a pixel.
+  height: 2.8rem;
+}
+
+// .ah-campo por defecto es flex-direction: column (etiqueta arriba, campo
+// abajo) -- este modificador lo pone en fila (etiqueta a la izquierda).
+.ah-campo--inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 220px;
+}
+
+.ah-campo--inline .ah-campo__etiqueta {
+  white-space: nowrap;
+}
+
+.ah-campo--inline select {
+  flex: 1;
+  height: 2.8rem;
 }
 
 .tabla-envoltorio {
@@ -52,6 +160,7 @@
 
 .modal-acciones {
   display: flex;
+  justify-content: flex-end;
   gap: 0.6rem;
   flex-wrap: wrap;
 }
@@ -69,4 +178,125 @@
 .modal-separador {
   border-top: 1px solid var(--ah-line-200);
   margin: 0.25rem 0;
+}
+
+// Contexto del usuario sobre el que opera el modal -- pedido explicito
+// del usuario (2026-08-07): el correo solo, sin etiqueta ni contraste,
+// no dejaba claro que todo el modal opera sobre esa cuenta puntual;
+// segundo pedido (mismo dia): el nombre recibe el mismo resalte.
+.modal-usuario-contexto {
+  display: flex;
+  flex-direction: column;
+  background: var(--ah-paper-100);
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  padding: 0.6rem 0.85rem;
+  margin: 0 0 0.25rem;
+}
+
+.modal-usuario-contexto__fila + .modal-usuario-contexto__fila {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ah-line-200);
+}
+
+.modal-usuario-contexto__etiqueta {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+  color: var(--ah-ink-600);
+}
+
+.modal-usuario-contexto__valor {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+  color: var(--ah-ink-900);
+  word-break: break-word;
+}
+
+// Solo el correo (identificador tecnico) usa tipografia monoespaciada --
+// el nombre es texto normal, no un dato de tipo "codigo".
+.modal-usuario-contexto__fila:first-child .modal-usuario-contexto__valor {
+  font-family: var(--ah-font-mono);
+  word-break: break-all;
+}
+
+// Rol (70%) y estado (30%) en la misma fila (pedido explicito) -- el
+// switch queda mas a la derecha, alineado por la base para compartir la
+// misma altura visual que el combobox.
+.fila-rol-estado {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.fila-rol-estado__rol {
+  flex: 7 1 200px;
+}
+
+.fila-rol-estado__estado {
+  flex: 3 1 120px;
+}
+
+// Switch de estado (activo/suspendido) -- reemplaza los 2 botones que
+// existian antes (uno por transicion, incluido "Eliminado logicamente",
+// retirado). Checkbox nativo oculto + pista/thumb propios, sin depender
+// de ninguna libreria.
+.ah-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.25rem;
+  cursor: pointer;
+}
+
+.ah-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ah-switch__pista {
+  position: relative;
+  width: 2.5rem;
+  height: 1.4rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--ah-estado-atencion);
+  transition: background 0.15s ease;
+}
+
+.ah-switch__pista::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+
+.ah-switch input:checked + .ah-switch__pista {
+  background: var(--ah-estado-ok);
+}
+
+.ah-switch input:checked + .ah-switch__pista::before {
+  transform: translateX(1.1rem);
+}
+
+.ah-switch input:focus-visible + .ah-switch__pista {
+  outline: 2px solid var(--ah-blue-500);
+  outline-offset: 2px;
+}
+
+.ah-switch__texto {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ah-ink-900);
 }

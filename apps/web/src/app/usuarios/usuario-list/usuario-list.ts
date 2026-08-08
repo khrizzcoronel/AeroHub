@@ -34,9 +34,14 @@ const ROLES_OPCIONES_EDICION = Object.entries(ROLES_ETIQUETAS).map(([value, labe
 // para no ofrecer en el UI un boton que el backend va a rechazar con 422
 // -- el backend sigue siendo la unica fuente de verdad que valida de
 // verdad (domain/usuario.py::validar_transicion_estado_usuario).
+// Pedido explicito del usuario (2026-08-07, trabajo acotado a
+// role_tenant_admin): se retira "Eliminado lógicamente" del modal -- el
+// endpoint de motor sigue existiendo (mismo criterio D2(b) de
+// PLAN_CORRECCION_MODULOS.md, "eliminacion fisica/logica sin consumidor
+// de interfaz"), esta vista solo ofrece activar/suspender.
 const TRANSICIONES: Record<string, string[]> = {
-  activo: ['suspendido', 'eliminado_logicamente'],
-  suspendido: ['activo', 'eliminado_logicamente'],
+  activo: ['suspendido'],
+  suspendido: ['activo'],
   eliminado_logicamente: [],
 };
 
@@ -66,6 +71,10 @@ export class UsuarioList implements OnInit {
   // validas para ese usuario puntual.
   protected readonly usuarioEditando = signal<UsuarioResumen | null>(null);
   protected readonly rolIdEdit = signal('');
+  // Estado editado localmente -- pedido explicito del usuario (2026-08-07):
+  // ni el rol ni el estado se envian al backend hasta presionar "Guardar",
+  // el switch solo mueve este signal.
+  protected readonly estadoEdit = signal('');
 
   // Paginacion
   protected readonly paginaActual = signal(1);
@@ -94,25 +103,18 @@ export class UsuarioList implements OnInit {
     return this.usuariosFiltrados().slice(inicio, inicio + this.registrosPorPagina);
   });
 
-  // Item 13 de docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md
-  // §2.3 -- KPI en vivo sobre datos ya cargados. UsuarioResumen no trae
-  // email_verificado (solo el propio perfil lo expone via /auth/perfil),
-  // asi que el KPI usa lo que esta lista si tiene: suspendidos y sin rol
-  // asignado (rol_codigo null -- usuario creado sin invitacion con rol).
+  // KPI en vivo sobre datos ya cargados (ver docs/diseno/MODAL_Y_WORKPANEL.md
+  // §1 punto 1) -- UsuarioResumen no trae email_verificado (solo el propio
+  // perfil lo expone via /auth/perfil), asi que el KPI usa lo que esta
+  // lista si tiene: suspendidos y sin rol asignado (rol_codigo null --
+  // usuario creado sin invitacion con rol). Mostrados como chips
+  // (.ah-chip) en la cabecera, no como oracion de resumen.
   protected readonly usuariosSuspendidos = computed(
     () => this.usuarios().filter((u) => u.estado === 'suspendido').length,
   );
   protected readonly usuariosSinRol = computed(
     () => this.usuarios().filter((u) => u.rol_codigo === null).length,
   );
-  // Sentencia armada en TS (no en el template) -- ver la nota equivalente
-  // en api-key-list.ts.
-  protected readonly resumenUsuarios = computed(() => {
-    const clausulas: string[] = [];
-    if (this.usuariosSuspendidos() > 0) clausulas.push(`${this.usuariosSuspendidos()} suspendidos`);
-    if (this.usuariosSinRol() > 0) clausulas.push(`${this.usuariosSinRol()} sin rol asignado`);
-    return clausulas.join(', ');
-  });
 
   ngOnInit(): void {
     this.cargarUsuarios();
@@ -191,38 +193,68 @@ export class UsuarioList implements OnInit {
     return TRANSICIONES[estado] ?? [];
   }
 
+  // Unica transicion posible desde `estado` (activo<->suspendido) -- null
+  // para el estado terminal eliminado_logicamente, que ya no ofrece
+  // ninguna accion en este modal.
+  protected estadoAlternativo(estado: string): string | null {
+    return this.transicionesDisponibles(estado)[0] ?? null;
+  }
+
+  // El switch solo alterna el signal local -- ver estadoEdit.
+  protected alternarEstadoEdit(): void {
+    this.estadoEdit.set(this.estadoEdit() === 'activo' ? 'suspendido' : 'activo');
+  }
+
   protected verDetalles(u: UsuarioResumen): void {
     this.usuarioEditando.set(u);
     this.rolIdEdit.set(u.rol_codigo ?? '');
+    this.estadoEdit.set(u.estado);
   }
 
   protected cerrarModalEditar(): void {
     this.usuarioEditando.set(null);
   }
 
+  // Guarda rol y estado juntos, solo si cambiaron -- pedido explicito del
+  // usuario (2026-08-07): ningun cambio se efectua hasta presionar
+  // "Guardar" (antes el switch de estado llamaba a la API de inmediato).
   protected guardarEdicion(): void {
-    const usuarioId = this.usuarioEditando()?.id;
-    if (!usuarioId) return;
+    const u = this.usuarioEditando();
+    if (!u) return;
     this.error.set(null);
-    this.usuarioService.actualizarRolUsuario(usuarioId, this.rolIdEdit()).subscribe({
-      next: () => {
-        this.usuarioEditando.set(null);
-        this.cargarUsuarios();
-        this.toast.mostrar('Usuario actualizado con éxito', 'exito');
-      },
-      error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
-    });
+
+    const rolCambio = this.rolIdEdit() !== (u.rol_codigo ?? '');
+    const estadoCambio = this.estadoEdit() !== u.estado;
+
+    if (!rolCambio && !estadoCambio) {
+      this.usuarioEditando.set(null);
+      return;
+    }
+
+    const aplicarEstado = (): void => {
+      if (!estadoCambio) {
+        this.finalizarEdicion();
+        return;
+      }
+      this.usuarioService.cambiarEstadoUsuario(u.id, this.estadoEdit()).subscribe({
+        next: () => this.finalizarEdicion(),
+        error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
+      });
+    };
+
+    if (rolCambio) {
+      this.usuarioService.actualizarRolUsuario(u.id, this.rolIdEdit()).subscribe({
+        next: () => aplicarEstado(),
+        error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
+      });
+    } else {
+      aplicarEstado();
+    }
   }
 
-  protected cambiarEstadoDesdeModal(usuarioId: string, estadoNuevo: string): void {
-    this.error.set(null);
-    this.usuarioService.cambiarEstadoUsuario(usuarioId, estadoNuevo).subscribe({
-      next: () => {
-        this.usuarioEditando.set(null);
-        this.cargarUsuarios();
-        this.toast.mostrar(`Estado actualizado a: ${etiquetaEstadoUsuario(estadoNuevo)}`, 'exito');
-      },
-      error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
-    });
+  private finalizarEdicion(): void {
+    this.usuarioEditando.set(null);
+    this.cargarUsuarios();
+    this.toast.mostrar('Usuario actualizado con éxito', 'exito');
   }
 }

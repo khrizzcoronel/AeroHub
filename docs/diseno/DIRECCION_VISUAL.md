@@ -156,16 +156,23 @@ cinco. No es reutilización por ahorro de código, es coherencia de lectura.
 ### 2.4.1 Primitivos de diálogo, insignias y retroalimentación (Toasts)
 
 - **`.ah-pill`**: Insignia de estado sólida y redondeada (`.ah-pill--ok`, `.ah-pill--atencion`, `.ah-pill--critico`). Diseñada para columnas de tablas donde el estado es la columna principal.
-- **`.ah-modal-fondo` / `.ah-modal`**: Diálogo superpuesto para operaciones de alta o edición sin navegación de página ni pérdida de contexto.
+- **`.ah-modal-fondo` / `.ah-modal`**: Diálogo superpuesto para operaciones de alta o edición sin navegación de página ni pérdida de contexto. Ancho fijo `max-width: 560px`.
+- **`.ah-switch`**: Switch visual (checkbox nativo + pista/thumb propios) para un estado binario dentro de un modal — reemplaza "un botón por transición" cuando solo hay 2 estados posibles.
 - **`.ah-toast-container` / `.ah-toast`**: Notificaciones flotantes en la esquina superior derecha (`.ah-toast--exito`, `.ah-toast--error`, `.ah-toast--info`, `.ah-toast--aviso`) que confirman operaciones completadas (aprovisionamiento, actualización, borrado físico, copiado al portapapeles).
 - **`.ah-btn--peligro`**: Variante de botón destructiva (rojo) para salvaguardas y confirmación de acciones irreversibles (borrado físico).
+
+**La estructura completa del workpanel (lista + búsqueda + paginación) y
+del modal "Ver detalles" (tarjeta de contexto, campos editables de
+guardado diferido, switch, distribución 70/30, botones a la derecha) está
+catalogada aparte, con `usuarios/usuario-list` como referencia viva, en
+`docs/diseno/MODAL_Y_WORKPANEL.md` — no se repite acá.
 
 ### 2.4.2 Decisión vigente (2026-08-04): la tabla reemplaza a la tira en `apps/web`
 
 Tras completar el workpanel de `tenants` y `usuarios`, el usuario decidió explícitamente —vía
 consulta directa— **migrar las 5 vistas operativas de `.ah-tira` a `.ah-tabla`**, unificándolas con
-los paneles administrativos. Registro completo de la decisión y su alcance en
-`docs/diseno/PLAN_WORKPANELS_MODULOS.md` §3.0.
+los paneles administrativos. El catálogo completo del patrón de workpanel resultante vive en
+`docs/diseno/MODAL_Y_WORKPANEL.md`.
 
 **Estado real de `apps/web` desde esa fecha** — el patrón único es:
 

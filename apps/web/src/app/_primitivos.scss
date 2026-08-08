@@ -349,7 +349,10 @@
   box-shadow: var(--ah-shadow-card);
   padding: 1.5rem;
   width: 100%;
-  max-width: 480px;
+  // 480px -> 560px (pedido explicito, 2026-08-07): el modal de detalle de
+  // usuarios/equipo -- tomado como referencia de distribucion de modal +
+  // workpanel -- quedaba justo con la fila Rol(70%)/Estado(30%) a 480px.
+  max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
   display: flex;

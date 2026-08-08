@@ -1,63 +1,64 @@
 <section class="consola">
+  <p class="consola__eyebrow">Usuarios y Equipo</p>
   <div class="consola__cabecera">
-    <h1>Usuarios del Equipo</h1>
+    <h1>
+      Usuarios del Equipo
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarUsuarios()"
+        [disabled]="cargando()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
+      </button>
+    </h1>
   </div>
 
-  <p class="consola__resumen">
-    Cuentas con acceso a este tenant y el rol que cada una tiene asignado.
-    @if (resumenUsuarios()) {
-      <strong [class.resumen-critico]="usuariosSuspendidos() > 0">{{ resumenUsuarios() }}</strong>.
-    }
-  </p>
-
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar usuarios</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroBusqueda">Nombre o correo</label>
-        <input
-          id="filtroBusqueda"
-          type="text"
-          placeholder="Ej. Juan Pérez"
-          [ngModel]="filtroBusqueda()"
-          (ngModelChange)="cambiarFiltroBusqueda($event)"
-          name="filtroBusqueda"
-        />
-      </div>
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroRol">Filtrar por rol</label>
-        <select
-          id="filtroRol"
-          [ngModel]="filtroRol()"
-          (ngModelChange)="cambiarFiltroRol($event)"
-          name="filtroRol"
-        >
-          @for (op of rolesOpciones; track op.value) {
-            <option [value]="op.value">{{ op.label }}</option>
-          }
-        </select>
-      </div>
+  @if (usuariosSuspendidos() > 0 || usuariosSinRol() > 0) {
+    <div class="consola__kpis">
+      @if (usuariosSuspendidos() > 0) {
+        <span class="ah-chip ah-chip--critico">
+          {{ usuariosSuspendidos() }} {{ usuariosSuspendidos() === 1 ? 'suspendido' : 'suspendidos' }}
+        </span>
+      }
+      @if (usuariosSinRol() > 0) {
+        <span class="ah-chip ah-chip--atencion">{{ usuariosSinRol() }} sin rol</span>
+      }
     </div>
-  </div>
+  }
 
-  <div class="consola__acciones">
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar nombre o correo"
+        [ngModel]="filtroBusqueda()"
+        (ngModelChange)="cambiarFiltroBusqueda($event)"
+        name="filtroBusqueda"
+        aria-label="Buscar nombre o correo"
+      />
+    </div>
+    <div class="ah-campo ah-campo--inline">
+      <label class="ah-campo__etiqueta" for="filtroRol">Filtrar por rol:</label>
+      <select
+        id="filtroRol"
+        [ngModel]="filtroRol()"
+        (ngModelChange)="cambiarFiltroRol($event)"
+        name="filtroRol"
+      >
+        @for (op of rolesOpciones; track op.value) {
+          <option [value]="op.value">{{ op.label }}</option>
+        }
+      </select>
+    </div>
     <button type="button" class="ah-btn" (click)="abrirModalInvitar()">Invitar Usuario</button>
-    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarUsuarios()" [disabled]="cargando()">
-      Actualizar
-    </button>
   </div>
 
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
-  }
-
-  @if (usuarios().length > 0) {
-    <p class="ah-resumen-resultados">
-      Mostrando {{ usuariosFiltrados().length }} {{ usuariosFiltrados().length === 1 ? 'usuario' : 'usuarios' }}
-      @if (filtroRol()) {
-        con rol <strong>{{ etiquetaRol(filtroRol()) }}</strong>
-      }
-    </p>
   }
 
   @if (usuarios().length === 0) {
@@ -94,7 +95,7 @@
               <td>{{ u.creado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalles(u)">
-                  Ver detalles
+                  Ver
                 </button>
               </td>
             </tr>
@@ -145,41 +146,58 @@
         <button type="button" class="ah-modal__cerrar" (click)="cerrarModalEditar()" aria-label="Cerrar">✕</button>
       </div>
 
-      <div class="formulario">
-        <p class="ah-campo__etiqueta">{{ u.email }}</p>
-        <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="rolIdEdit">Rol</label>
-          <select
-            id="rolIdEdit"
-            [ngModel]="rolIdEdit()"
-            (ngModelChange)="rolIdEdit.set($event)"
-            name="rolIdEdit"
-          >
-            @for (op of rolesOpcionesEdicion; track op.value) {
-              <option [value]="op.value">{{ op.label }}</option>
-            }
-          </select>
+      <div class="modal-usuario-contexto">
+        <div class="modal-usuario-contexto__fila">
+          <span class="modal-usuario-contexto__etiqueta">Correo</span>
+          <p class="modal-usuario-contexto__valor">{{ u.email }}</p>
         </div>
+        <div class="modal-usuario-contexto__fila">
+          <span class="modal-usuario-contexto__etiqueta">Nombre</span>
+          <p class="modal-usuario-contexto__valor">{{ u.nombre }}</p>
+        </div>
+      </div>
+
+      <div class="formulario">
+        <div class="fila-rol-estado">
+          <div class="ah-campo fila-rol-estado__rol">
+            <label class="ah-campo__etiqueta" for="rolIdEdit">Rol</label>
+            <select
+              id="rolIdEdit"
+              [ngModel]="rolIdEdit()"
+              (ngModelChange)="rolIdEdit.set($event)"
+              name="rolIdEdit"
+            >
+              @for (op of rolesOpcionesEdicion; track op.value) {
+                <option [value]="op.value">{{ op.label }}</option>
+              }
+            </select>
+          </div>
+
+          @if (estadoAlternativo(u.estado)) {
+            <div class="ah-campo fila-rol-estado__estado">
+              <span class="ah-campo__etiqueta">Estado</span>
+              <label class="ah-switch">
+                <input
+                  type="checkbox"
+                  [checked]="estadoEdit() === 'activo'"
+                  [attr.aria-label]="'Cambiar estado a ' + etiquetaEstadoUsuario(estadoEdit() === 'activo' ? 'suspendido' : 'activo')"
+                  (change)="alternarEstadoEdit()"
+                />
+                <span class="ah-switch__pista"></span>
+                <span class="ah-switch__texto">{{ etiquetaEstadoUsuario(estadoEdit()) }}</span>
+              </label>
+            </div>
+          }
+        </div>
+
+        @if (error()) {
+          <p class="ah-alerta" role="alert">{{ error() }}</p>
+        }
+
         <div class="modal-acciones">
           <button type="button" class="ah-btn" (click)="guardarEdicion()">Guardar</button>
           <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrarModalEditar()">Cancelar</button>
         </div>
-
-        @if (transicionesDisponibles(u.estado).length > 0) {
-          <div class="modal-separador"></div>
-          <p class="ah-campo__etiqueta">Cambiar estado</p>
-          <div class="modal-acciones">
-            @for (estadoNuevo of transicionesDisponibles(u.estado); track estadoNuevo) {
-              <button
-                type="button"
-                class="ah-btn ah-btn--secundario"
-                (click)="cambiarEstadoDesdeModal(u.id, estadoNuevo)"
-              >
-                {{ etiquetaEstadoUsuario(estadoNuevo) }}
-              </button>
-            }
-          </div>
-        }
       </div>
     </div>
   </div>

@@ -1,13 +1,25 @@
-@use '../../auth/auth-form';
-
-.stage-simple {
-  min-height: auto;
-  padding: 0;
-  justify-content: flex-start;
+// Se embebe dentro de .ah-modal (usuario-list.html le pone su propia
+// cabecera con titulo + boton de cierre) -- este componente NO lleva
+// titulo ni tarjeta propia. Antes reusaba _auth-form.scss (pensado para
+// paginas de auth standalone, con su propio <h1>/card), lo que dejaba un
+// titulo duplicado dentro del modal (pedido explicito del usuario,
+// 2026-08-08, corregido tomando el modal "Ver detalles" como referencia
+// -- ver docs/diseno/MODAL_Y_WORKPANEL.md).
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.card {
-  max-width: 480px;
-  box-shadow: none;
-  border: 1px solid var(--ah-line-200);
+.invitar__descripcion {
+  margin: 0;
+  color: var(--ah-ink-600);
+  font-size: 0.9rem;
+}
+
+.modal-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
