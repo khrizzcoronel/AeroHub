@@ -1488,7 +1488,7 @@ en `docs/PLAN_IMPLEMENTACION_v3.0.md` (3 enlaces), corregidos para no
 apuntar a un archivo inexistente. `docs/diseno/` queda con exactamente 2
 documentos: `DIRECCION_VISUAL.md` y `MODAL_Y_WORKPANEL.md`.
 
-## Iteración de cabecera y modal en `usuarios/usuario-list` (2026-08-08, pendiente de commit)
+## Iteración de cabecera y modal en `usuarios/usuario-list` (2026-08-08, commit `b4fc851`)
 
 Pedido directo del usuario con una captura de referencia externa --
 rediseño puntual del workpanel de Usuarios y Equipo, documentado en
@@ -1579,6 +1579,56 @@ solo el resumen y los hallazgos).
    invitación"/"Cancelar" alineados a la derecha, sin errores de
    consola. Build de producción en verde (bundle ~10KB más chico al
    dejar de depender de `_auth-form.scss`).
+
+## `docs/diseno/PLAN_PROPAGACION_WORKPANEL_MODAL.md` implementado (2026-08-08, pendiente de commit)
+
+Propagación completa del patrón de `usuarios/usuario-list` (§1.2/§2 de
+`docs/diseno/MODAL_Y_WORKPANEL.md`) a las 5 vistas administrativas
+restantes de `role_tenant_admin`, en el orden propuesto por el plan
+(simple → grande): **API Keys → Licencias → FIDS → Soporte → Compliance
+Hub**. `tenants/tenant-list` (`role_platform_admin`) y las 4 vistas
+operativas densas quedan fuera, tal como el plan lo definía desde el
+principio.
+
+1. **API Keys**: eyebrow + refresco inline, chip único ("N por expirar en
+   30 días" -- se descartó un chip para "activas", no es un conteo que
+   requiera atención), fila de búsqueda + "Generar API Key". `apiKeysActivas`
+   y `resumenLlaves` (ya no usados) se retiraron del `.ts`.
+2. **Licencias**: mismo patrón, **sin fila de búsqueda** (catálogo cerrado
+   M1-M9, sin filtro de texto ni acción de alta -- el workpanel queda
+   reducido a cabecera + chip + tabla). `licenciasVigentes`/`resumenLicencias`
+   retirados.
+3. **`.ah-chip` promovido a primitivo global** (`_primitivos.scss`) al
+   llegar al tercer uso real (Usuarios/API Keys/Licencias) -- se quitaron
+   las 3 copias locales, verificado que las 3 vistas lo siguen usando bien
+   desde el primitivo compartido.
+4. **FIDS** (2 secciones: Plantillas, Pantallas): primera vista
+   multi-sección -- confirma el criterio "un eyebrow/chips de página, una
+   fila de búsqueda por sección". Los 4 modales de FIDS ya seguían el
+   patrón correcto (sin título duplicado), sin cambios ahí más que alinear
+   `.modal-acciones` a la derecha.
+5. **Soporte** (3 secciones: Tickets, KB, Changelog): la sección Tickets
+   combina 2 filtros (Estado + Severidad) como `.ah-campo--inline` en la
+   misma fila, antes del botón "Nuevo ticket" -- primer caso real de "más
+   de un filtro en una fila", documentado en `MODAL_Y_WORKPANEL.md` §1.2.
+6. **Compliance Hub** (5 secciones -- la más grande, dejada última a
+   propósito): 2 chips de página (incidentes abiertos, post-mortems sin
+   publicar) + 5 filas de búsqueda, una por sección. `resumenCompliance`
+   retirado.
+7. **Verificado, vista por vista, en navegador real** (nunca JWT
+   fabricado): API Keys/Licencias/FIDS/Soporte con `canario@mec.aerohub.test`
+   (`role_tenant_admin`); Compliance con `auditor@mec.aerohub.test`
+   (`role_regulatory_auditor` -- `role_tenant_admin` no tiene `GRANT` de
+   motor sobre `compliance.*`, hallazgo pre-existente de S1.7/S1.19, no
+   apto para probar esta vista). Build de producción de `apps/web` en
+   verde después de cada vista. Ningún modal de creación quedó con título
+   duplicado en ninguna de las 5.
+8. **2 hallazgos de conexión transitoria del pool** durante la
+   verificación (`GET /support/catalogo/categorias-ticket` y
+   `GET /compliance/accesos-auditor`, ambos 500 en el primer intento) --
+   mismo patrón ya documentado extensamente (pool de MonetDB,
+   `pool_recycle=180`), confirmado con reintento inmediato (200 OK en
+   ambos casos), no una regresión introducida por este pase.
 
 **Sin commitear todavía** -- pendiente de pedido explícito del usuario
 (Principio V).

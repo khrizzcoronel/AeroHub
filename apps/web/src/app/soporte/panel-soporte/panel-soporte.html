@@ -1,22 +1,28 @@
 <section class="consola">
+  <p class="consola__eyebrow">Soporte</p>
   <div class="consola__cabecera">
-    <h1>Soporte</h1>
-    <div class="consola__acciones">
-      <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTodo()" [disabled]="cargando()">
-        Actualizar
+    <h1>
+      Soporte
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarTodo()"
+        [disabled]="cargando()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
       </button>
-    </div>
+    </h1>
   </div>
 
-  <p class="consola__resumen">
-    Tickets con SLA, base de conocimientos y novedades de producto, todo en un solo lugar.
-    @if (!esPlatformAdmin() && tickets().length > 0) {
-      <strong>{{ tickets().length }}</strong> {{ tickets().length === 1 ? 'ticket' : 'tickets' }}
-      @if (ticketsConSlaVencido() > 0) {
-        , <strong class="resumen-critico">{{ ticketsConSlaVencido() }}</strong> con SLA vencido
-      }.
-    }
-  </p>
+  @if (!esPlatformAdmin() && ticketsConSlaVencido() > 0) {
+    <div class="consola__kpis">
+      <span class="ah-chip ah-chip--critico">
+        {{ ticketsConSlaVencido() }} {{ ticketsConSlaVencido() === 1 ? 'ticket con SLA vencido' : 'tickets con SLA vencido' }}
+      </span>
+    </div>
+  }
 
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
@@ -26,38 +32,32 @@
   @if (!esPlatformAdmin()) {
     <h2>Tickets</h2>
 
-    <div class="ah-panel">
-      <h2 class="ah-panel__titulo">Filtrar bandeja</h2>
-      <div class="ah-panel__campos">
-        <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="filtroEstado">Estado</label>
-          <select id="filtroEstado" [ngModel]="filtroEstado()" (ngModelChange)="actualizarFiltroEstado($event)" name="filtroEstado">
-            <option value="">Todos</option>
-            <option value="abierto">Abierto</option>
-            <option value="en_progreso">En progreso</option>
-            <option value="esperando_cliente">Esperando cliente</option>
-            <option value="resuelto">Resuelto</option>
-            <option value="cerrado">Cerrado</option>
-          </select>
-        </div>
-        <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="filtroSeveridad">Severidad</label>
-          <select id="filtroSeveridad" [ngModel]="filtroSeveridad()" (ngModelChange)="actualizarFiltroSeveridad($event)" name="filtroSeveridad">
-            <option value="">Todas</option>
-            <option value="baja">Baja</option>
-            <option value="media">Media</option>
-            <option value="alta">Alta</option>
-            <option value="critica">Crítica</option>
-          </select>
-        </div>
+    <div class="consola__fila-busqueda">
+      <div class="ah-campo ah-campo--inline">
+        <label class="ah-campo__etiqueta" for="filtroEstado">Estado:</label>
+        <select id="filtroEstado" [ngModel]="filtroEstado()" (ngModelChange)="actualizarFiltroEstado($event)" name="filtroEstado">
+          <option value="">Todos</option>
+          <option value="abierto">Abierto</option>
+          <option value="en_progreso">En progreso</option>
+          <option value="esperando_cliente">Esperando cliente</option>
+          <option value="resuelto">Resuelto</option>
+          <option value="cerrado">Cerrado</option>
+        </select>
       </div>
-    </div>
-
-    @if (puedeEscribir()) {
-      <div class="consola__acciones">
+      <div class="ah-campo ah-campo--inline">
+        <label class="ah-campo__etiqueta" for="filtroSeveridad">Severidad:</label>
+        <select id="filtroSeveridad" [ngModel]="filtroSeveridad()" (ngModelChange)="actualizarFiltroSeveridad($event)" name="filtroSeveridad">
+          <option value="">Todas</option>
+          <option value="baja">Baja</option>
+          <option value="media">Media</option>
+          <option value="alta">Alta</option>
+          <option value="critica">Crítica</option>
+        </select>
+      </div>
+      @if (puedeEscribir()) {
         <button type="button" class="ah-btn" (click)="abrirModalTicket()">Nuevo ticket</button>
-      </div>
-    }
+      }
+    </div>
 
     @if (tickets().length === 0) {
       <p class="ah-vacio">
@@ -92,7 +92,7 @@
                 </td>
                 <td>
                   <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirDetalle(t)">
-                    Ver detalle
+                    Ver
                   </button>
                 </td>
               </tr>
@@ -116,37 +116,32 @@
     no aislado por tenant como el resto de la aplicación.
   </p>
 
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar artículo</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="busquedaTexto">Texto</label>
-        <input
-          id="busquedaTexto"
-          type="text"
-          [ngModel]="busquedaTexto()"
-          (ngModelChange)="actualizarBusquedaTexto($event)"
-          name="busquedaTexto"
-        />
-      </div>
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="busquedaEtiqueta">Etiqueta</label>
-        <input
-          id="busquedaEtiqueta"
-          type="text"
-          [ngModel]="busquedaEtiqueta()"
-          (ngModelChange)="actualizarBusquedaEtiqueta($event)"
-          name="busquedaEtiqueta"
-        />
-      </div>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por texto"
+        [ngModel]="busquedaTexto()"
+        (ngModelChange)="actualizarBusquedaTexto($event)"
+        name="busquedaTexto"
+        aria-label="Buscar por texto"
+      />
     </div>
-  </div>
-
-  @if (puedeEscribirKB()) {
-    <div class="consola__acciones">
+    <div class="ah-campo ah-campo--inline">
+      <label class="ah-campo__etiqueta" for="busquedaEtiqueta">Etiqueta:</label>
+      <input
+        id="busquedaEtiqueta"
+        type="text"
+        [ngModel]="busquedaEtiqueta()"
+        (ngModelChange)="actualizarBusquedaEtiqueta($event)"
+        name="busquedaEtiqueta"
+      />
+    </div>
+    @if (puedeEscribirKB()) {
       <button type="button" class="ah-btn" (click)="abrirModalArticulo()">Publicar artículo</button>
-    </div>
-  }
+    }
+  </div>
 
   @if (articulos().length === 0) {
     <p class="ah-vacio">
@@ -190,27 +185,22 @@
   <!-- ============ Sección Changelog (US3) ============ -->
   <h2>Changelog</h2>
 
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar entrada</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="busquedaChangelog">Versión o contenido</label>
-        <input
-          id="busquedaChangelog"
-          type="text"
-          [ngModel]="busquedaChangelog()"
-          (ngModelChange)="actualizarBusquedaChangelog($event)"
-          name="busquedaChangelog"
-        />
-      </div>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por versión o contenido"
+        [ngModel]="busquedaChangelog()"
+        (ngModelChange)="actualizarBusquedaChangelog($event)"
+        name="busquedaChangelog"
+        aria-label="Buscar por versión o contenido"
+      />
     </div>
-  </div>
-
-  @if (puedeEscribirChangelog()) {
-    <div class="consola__acciones">
+    @if (puedeEscribirChangelog()) {
       <button type="button" class="ah-btn" (click)="abrirModalChangelog()">Publicar entrada</button>
-    </div>
-  }
+    }
+  </div>
 
   @if (changelogFiltrado().length === 0) {
     <p class="ah-vacio">

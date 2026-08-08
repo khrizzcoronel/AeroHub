@@ -56,12 +56,17 @@ cabecera de §1.2:
     confirmar operaciones exitosas — nunca un `alert()` ni un mensaje que
     reemplace el contenido de la vista.
 
-### 1.2 Iteración de cabecera (2026-08-08) -- hoy solo en `usuarios/usuario-list`
+### 1.2 Iteración de cabecera (2026-08-08) -- vigente en 6 de las 7 vistas administrativas de `role_tenant_admin`
 
 Rediseño puntual de la cabecera y la barra de búsqueda, pedido con una
-captura de referencia externa. **No propagado todavía a `tenants`,
-`api-keys` ni `licencias`** -- si se pide extenderlo, aplicar exactamente
-esto, no reinterpretarlo:
+captura de referencia externa, nacido en `usuarios/usuario-list` y
+propagado el mismo día (`docs/diseno/PLAN_PROPAGACION_WORKPANEL_MODAL.md`,
+implementado) a **API Keys, Licencias, FIDS, Soporte y Compliance Hub**.
+**No propagado a `tenants/tenant-list`** (es de `role_platform_admin`,
+fuera de alcance de esa sesión) ni a las 4 vistas operativas densas
+(`vuelos`, `puertas`, `rampa`, `billing/facturas` -- patrón distinto y
+deliberado, ver el plan de propagación §0). Si se pide extenderlo a
+cualquiera de esas, aplicar exactamente esto, no reinterpretarlo:
 
 1. **Eyebrow** (`.consola__eyebrow`): texto pequeño en mayúsculas arriba
    del `<h1>`, mismo texto que la sección del menú lateral.
@@ -87,6 +92,18 @@ esto, no reinterpretarlo:
 6. **Acción de fila con texto corto** ("Ver", no "Ver detalles") en vez de
    un ícono -- se probó un botón de solo ícono (👁) y se revirtió a pedido
    explícito del usuario.
+
+**`.ah-chip` es primitivo global** (`_primitivos.scss`) desde el tercer
+uso real (Usuarios/API Keys/Licencias) -- no copiarlo por vista, ya está
+disponible en todo `apps/web`.
+
+**Vistas multi-sección** (FIDS: 2, Soporte: 3, Compliance: 5): el eyebrow
+y el ícono de refresco son de **página completa** (uno solo), los chips
+de KPI también son de página completa, pero `.consola__fila-busqueda` se
+repite **por sección** -- cada tabla mantiene su propio buscador/filtro y
+su propio botón de alta. Cuando una sección tiene más de un filtro (ej.
+tickets de Soporte: Estado + Severidad), ambos van como `.ah-campo--inline`
+dentro de la misma fila, antes del botón de acción.
 
 **Experimento probado y revertido (mismo día): reemplazar el `<select>`
 nativo por un listbox propio.** El control cerrado se restyled primero

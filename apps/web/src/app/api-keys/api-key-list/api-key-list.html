@@ -1,38 +1,43 @@
 <section class="consola">
+  <p class="consola__eyebrow">API Keys</p>
   <div class="consola__cabecera">
-    <h1>API Keys e Integraciones</h1>
+    <h1>
+      API Keys e Integraciones
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarApiKeys()"
+        [disabled]="cargando()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
+      </button>
+    </h1>
   </div>
 
-  <p class="consola__resumen">
-    Llaves de integración de este tenant y su vigencia.
-    @if (resumenLlaves()) {
-      <strong [class.resumen-critico]="apiKeysPorExpirar() > 0">{{ resumenLlaves() }}</strong>.
-    }
-  </p>
-
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar por prefijo</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroPrefijo">Prefijo</label>
-        <input
-          id="filtroPrefijo"
-          type="text"
-          placeholder="Ej. a8b9"
-          [ngModel]="filtroPrefijo()"
-          (ngModelChange)="filtroPrefijo.set($event)"
-          name="filtroPrefijo"
-        />
-      </div>
+  @if (apiKeysPorExpirar() > 0) {
+    <div class="consola__kpis">
+      <span class="ah-chip ah-chip--atencion">
+        {{ apiKeysPorExpirar() }} {{ apiKeysPorExpirar() === 1 ? 'por expirar en 30 días' : 'por expirar en 30 días' }}
+      </span>
     </div>
-  </div>
+  }
 
-  <div class="consola__acciones">
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por prefijo"
+        [ngModel]="filtroPrefijo()"
+        (ngModelChange)="filtroPrefijo.set($event)"
+        name="filtroPrefijo"
+        aria-label="Buscar por prefijo"
+      />
+    </div>
     <button type="button" class="ah-btn" (click)="crearNuevaApiKey()" [disabled]="procesando()">
       {{ procesando() ? 'Generando...' : 'Generar API Key' }}
-    </button>
-    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarApiKeys()" [disabled]="cargando()">
-      Actualizar
     </button>
   </div>
 
@@ -72,7 +77,7 @@
               <td>{{ k.rotada_en ? (k.rotada_en | date: 'dd/MM/yyyy HH:mm') : '-' }}</td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalle(k)">
-                  Ver detalles
+                  Ver
                 </button>
               </td>
             </tr>

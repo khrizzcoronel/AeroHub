@@ -23,24 +23,13 @@ export class LicenciaList implements OnInit {
   // no se administra individualmente (§5 del plan).
   protected readonly licenciaViendoDetalle = signal<LicenciaResumen | null>(null);
 
-  // Item 13 de docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md
-  // §2.3 -- KPI en vivo sobre datos ya cargados.
-  protected readonly licenciasVigentes = computed(
-    () => this.licencias().filter((l) => l.es_vigente).length,
-  );
+  // KPI en vivo (docs/diseno/MODAL_Y_WORKPANEL.md §1.2 punto 2) --
+  // mostrado como chip de cabecera, solo cuando hay algo que atender.
   protected readonly licenciasPorVencer = computed(() => {
     const limite = Date.now() + 30 * 24 * 60 * 60 * 1000;
     return this.licencias().filter(
       (l) => l.es_vigente && l.activa_hasta !== null && new Date(l.activa_hasta).getTime() <= limite,
     ).length;
-  });
-  // Sentencia armada en TS (no en el template) -- ver la nota equivalente
-  // en api-key-list.ts.
-  protected readonly resumenLicencias = computed(() => {
-    const clausulas: string[] = [];
-    if (this.licenciasVigentes() > 0) clausulas.push(`${this.licenciasVigentes()} vigentes`);
-    if (this.licenciasPorVencer() > 0) clausulas.push(`${this.licenciasPorVencer()} por vencer en 30 días`);
-    return clausulas.join(', ');
   });
 
   ngOnInit(): void {

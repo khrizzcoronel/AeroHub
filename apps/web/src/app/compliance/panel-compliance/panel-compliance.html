@@ -1,21 +1,33 @@
 <section class="consola">
+  <p class="consola__eyebrow">Compliance Hub</p>
   <div class="consola__cabecera">
-    <h1>Compliance Hub</h1>
-    <div class="consola__acciones">
-      <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTodo()" [disabled]="cargando()">
-        Actualizar
+    <h1>
+      Compliance Hub
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarTodo()"
+        [disabled]="cargando()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
       </button>
-    </div>
+    </h1>
   </div>
 
-  <p class="consola__resumen">
-    Incidentes de seguridad, post-mortems, reportes regulatorios y evidencia de cumplimiento del tenant.
-    @if (resumenCompliance()) {
-      <strong [class.resumen-critico]="incidentesAbiertos() > 0">{{ resumenCompliance() }}</strong>.
-    } @else {
-      Sin pendientes abiertos.
-    }
-  </p>
+  @if (incidentesAbiertos() > 0 || postMortemsSinPublicar() > 0) {
+    <div class="consola__kpis">
+      @if (incidentesAbiertos() > 0) {
+        <span class="ah-chip ah-chip--critico">
+          {{ incidentesAbiertos() }} {{ incidentesAbiertos() === 1 ? 'incidente abierto' : 'incidentes abiertos' }}
+        </span>
+      }
+      @if (postMortemsSinPublicar() > 0) {
+        <span class="ah-chip ah-chip--atencion">{{ postMortemsSinPublicar() }} post-mortems sin publicar</span>
+      }
+    </div>
+  }
 
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
@@ -23,25 +35,21 @@
 
   <!-- ============ Incidentes ============ -->
   <h2>Incidentes de seguridad</h2>
-  <div class="consola__acciones">
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por descripción o tipo"
+        [ngModel]="filtroIncidente()"
+        (ngModelChange)="actualizarFiltroIncidente($event)"
+        name="filtroIncidente"
+        aria-label="Buscar por descripción o tipo"
+      />
+    </div>
     @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalIncidente()">Registrar incidente</button>
     }
-  </div>
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar incidente</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroIncidente">Descripción o tipo</label>
-        <input
-          id="filtroIncidente"
-          type="text"
-          [ngModel]="filtroIncidente()"
-          (ngModelChange)="actualizarFiltroIncidente($event)"
-          name="filtroIncidente"
-        />
-      </div>
-    </div>
   </div>
   @if (incidentes().length === 0) {
     <p class="ah-vacio">
@@ -94,25 +102,21 @@
 
   <!-- ============ Post-mortems ============ -->
   <h2>Post-mortems</h2>
-  <div class="consola__acciones">
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por referencia del incidente"
+        [ngModel]="filtroPostMortem()"
+        (ngModelChange)="actualizarFiltroPostMortem($event)"
+        name="filtroPostMortem"
+        aria-label="Buscar por referencia del incidente"
+      />
+    </div>
     @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalPostMortem()">Nuevo post-mortem</button>
     }
-  </div>
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar post-mortem</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroPostMortem">Referencia del incidente</label>
-        <input
-          id="filtroPostMortem"
-          type="text"
-          [ngModel]="filtroPostMortem()"
-          (ngModelChange)="actualizarFiltroPostMortem($event)"
-          name="filtroPostMortem"
-        />
-      </div>
-    </div>
   </div>
   @if (postMortems().length === 0) {
     <p class="ah-vacio">
@@ -150,7 +154,7 @@
               <td>{{ p.publicado_en ? (p.publicado_en | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalle(p.id)">
-                  Ver detalles
+                  Ver
                 </button>
               </td>
             </tr>
@@ -171,25 +175,21 @@
 
   <!-- ============ Reportes DGAC ============ -->
   <h2>Reportes DGAC</h2>
-  <div class="consola__acciones">
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por tipo de reporte"
+        [ngModel]="filtroReporte()"
+        (ngModelChange)="actualizarFiltroReporte($event)"
+        name="filtroReporte"
+        aria-label="Buscar por tipo de reporte"
+      />
+    </div>
     @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalReporte()">Emitir reporte</button>
     }
-  </div>
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar reporte</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroReporte">Tipo de reporte</label>
-        <input
-          id="filtroReporte"
-          type="text"
-          [ngModel]="filtroReporte()"
-          (ngModelChange)="actualizarFiltroReporte($event)"
-          name="filtroReporte"
-        />
-      </div>
-    </div>
   </div>
   @if (reportesDgac().length === 0) {
     <p class="ah-vacio">
@@ -240,25 +240,21 @@
 
   <!-- ============ Accesos de auditor ============ -->
   <h2>Accesos de auditor</h2>
-  <div class="consola__acciones">
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por usuario auditor"
+        [ngModel]="filtroAcceso()"
+        (ngModelChange)="actualizarFiltroAcceso($event)"
+        name="filtroAcceso"
+        aria-label="Buscar por usuario auditor"
+      />
+    </div>
     @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalAcceso()">Otorgar acceso</button>
     }
-  </div>
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar acceso</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroAcceso">Usuario auditor</label>
-        <input
-          id="filtroAcceso"
-          type="text"
-          [ngModel]="filtroAcceso()"
-          (ngModelChange)="actualizarFiltroAcceso($event)"
-          name="filtroAcceso"
-        />
-      </div>
-    </div>
   </div>
   @if (accesosAuditor().length === 0) {
     <p class="ah-vacio">
@@ -305,25 +301,21 @@
 
   <!-- ============ Evidencia SOC2 (solo lectura para roles sin compliance:escribir) ============ -->
   <h2>Evidencia SOC2</h2>
-  <div class="consola__acciones">
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por control"
+        [ngModel]="filtroEvidencia()"
+        (ngModelChange)="actualizarFiltroEvidencia($event)"
+        name="filtroEvidencia"
+        aria-label="Buscar por control"
+      />
+    </div>
     @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalEvidencia()">Registrar evidencia</button>
     }
-  </div>
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar evidencia</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroEvidencia">Control</label>
-        <input
-          id="filtroEvidencia"
-          type="text"
-          [ngModel]="filtroEvidencia()"
-          (ngModelChange)="actualizarFiltroEvidencia($event)"
-          name="filtroEvidencia"
-        />
-      </div>
-    </div>
   </div>
   @if (evidenciaSoc2().length === 0) {
     <p class="ah-vacio">

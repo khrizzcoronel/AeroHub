@@ -7,6 +7,19 @@
   box-sizing: border-box;
 }
 
+// Cabecera: mismo patron que usuarios/usuario-list (docs/diseno/MODAL_Y_WORKPANEL.md
+// §1.2), propagado aca. Sin fila de busqueda -- esta vista no tiene
+// filtro de texto ni accion de alta (catalogo cerrado M1-M9, solo
+// lectura, ver §1 del plan de propagacion).
+.consola__eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ah-ink-400);
+}
+
 .consola__cabecera {
   display: flex;
   align-items: baseline;
@@ -15,21 +28,40 @@
   flex-wrap: wrap;
 }
 
-.consola__acciones {
+.consola__cabecera h1 {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
+  margin: 0;
+}
+
+.consola__refrescar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--ah-ink-400);
+  padding: 0.2rem;
+}
+
+.consola__refrescar:hover:not(:disabled) {
+  color: var(--ah-navy-900);
+}
+
+.consola__refrescar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.consola__kpis {
+  display: flex;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.consola__resumen {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--ah-ink-600);
-}
-
-.resumen-critico {
-  color: var(--ah-estado-critico);
-}
+// .ah-chip ahora es primitivo global (_primitivos.scss) -- promovido al
+// tercer uso real, ver la nota ahi.
 
 .tabla-envoltorio {
   overflow-x: auto;

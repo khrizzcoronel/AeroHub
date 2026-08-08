@@ -1,20 +1,28 @@
 <section class="consola">
+  <p class="consola__eyebrow">Licencias</p>
   <div class="consola__cabecera">
-    <h1>Licencias y Módulos Contratados</h1>
+    <h1>
+      Licencias y Módulos Contratados
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarLicencias()"
+        [disabled]="cargando()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
+      </button>
+    </h1>
   </div>
 
-  <p class="consola__resumen">
-    Módulos habilitados para esta organización según su plan.
-    @if (resumenLicencias()) {
-      <strong [class.resumen-critico]="licenciasPorVencer() > 0">{{ resumenLicencias() }}</strong>.
-    }
-  </p>
-
-  <div class="consola__acciones">
-    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarLicencias()" [disabled]="cargando()">
-      Actualizar
-    </button>
-  </div>
+  @if (licenciasPorVencer() > 0) {
+    <div class="consola__kpis">
+      <span class="ah-chip ah-chip--atencion">
+        {{ licenciasPorVencer() }} por vencer en 30 días
+      </span>
+    </div>
+  }
 
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
@@ -49,7 +57,7 @@
               <td>{{ l.activa_hasta ? (l.activa_hasta | date: 'dd/MM/yyyy') : 'Permanente / Sin expiración' }}</td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalle(l)">
-                  Ver detalles
+                  Ver
                 </button>
               </td>
             </tr>

@@ -1,21 +1,31 @@
 <section class="consola">
+  <p class="consola__eyebrow">FIDS Management</p>
   <div class="consola__cabecera">
-    <h1>FIDS Management</h1>
-    <div class="consola__acciones">
-      <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTodo()" [disabled]="cargando()">
-        Actualizar
+    <h1>
+      FIDS Management
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarTodo()"
+        [disabled]="cargando()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
       </button>
-    </div>
+    </h1>
   </div>
 
-  <p class="consola__resumen">
-    Plantillas de contenido y pantallas físicas del salón de pasajeros.
-    @if (resumenFids()) {
-      <strong [class.resumen-critico]="pantallasSinSenal() > 0">{{ resumenFids() }}</strong>.
-    } @else {
-      Todo en orden.
-    }
-  </p>
+  @if (pantallasSinSenal() > 0 || plantillasSinPantalla() > 0) {
+    <div class="consola__kpis">
+      @if (pantallasSinSenal() > 0) {
+        <span class="ah-chip ah-chip--critico">{{ pantallasSinSenal() }} sin señal</span>
+      }
+      @if (plantillasSinPantalla() > 0) {
+        <span class="ah-chip ah-chip--atencion">{{ plantillasSinPantalla() }} plantillas sin pantalla asignada</span>
+      }
+    </div>
+  }
 
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
@@ -34,23 +44,18 @@
   <!-- ============ Sección Plantillas (US2) ============ -->
   <h2>Plantillas</h2>
 
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar plantilla</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroPlantilla">Nombre</label>
-        <input
-          id="filtroPlantilla"
-          type="text"
-          [ngModel]="filtroPlantilla()"
-          (ngModelChange)="actualizarFiltroPlantilla($event)"
-          name="filtroPlantilla"
-        />
-      </div>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar plantilla por nombre"
+        [ngModel]="filtroPlantilla()"
+        (ngModelChange)="actualizarFiltroPlantilla($event)"
+        name="filtroPlantilla"
+        aria-label="Buscar plantilla por nombre"
+      />
     </div>
-  </div>
-
-  <div class="consola__acciones">
     <button type="button" class="ah-btn" (click)="abrirModalPlantilla()">Nueva plantilla</button>
   </div>
 
@@ -82,7 +87,7 @@
               <td>{{ p.vigente_desde | date: 'dd/MM/yyyy HH:mm' }}</td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetallePlantilla(p)">
-                  Ver detalles
+                  Ver
                 </button>
               </td>
             </tr>
@@ -107,23 +112,18 @@
   <!-- ============ Sección Pantallas (US1) ============ -->
   <h2>Pantallas</h2>
 
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar pantalla</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroPantalla">Código</label>
-        <input
-          id="filtroPantalla"
-          type="text"
-          [ngModel]="filtroPantalla()"
-          (ngModelChange)="actualizarFiltroPantalla($event)"
-          name="filtroPantalla"
-        />
-      </div>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar pantalla por código"
+        [ngModel]="filtroPantalla()"
+        (ngModelChange)="actualizarFiltroPantalla($event)"
+        name="filtroPantalla"
+        aria-label="Buscar pantalla por código"
+      />
     </div>
-  </div>
-
-  <div class="consola__acciones">
     <button type="button" class="ah-btn" (click)="abrirModalRegistrar()" [disabled]="plantillas().length === 0">
       Nueva pantalla
     </button>
@@ -168,7 +168,7 @@
               <td>{{ p.ultima_senal_en ? (p.ultima_senal_en | date: 'dd/MM/yyyy HH:mm') : 'Nunca' }}</td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="abrirModalReasignar(p)">
-                  Ver detalles
+                  Ver
                 </button>
               </td>
             </tr>

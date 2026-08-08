@@ -61,28 +61,8 @@
   flex-wrap: wrap;
 }
 
-// .ah-chip -- insignia "blanda" (fondo tenue + texto de color), distinta
-// de .ah-pill (fondo solido + texto blanco): .ah-pill marca el estado DE
-// un registro en una columna; .ah-chip resume un conteo agregado sobre
-// toda la lista (KPI de cabecera).
-.ah-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.ah-chip--critico {
-  background: color-mix(in srgb, var(--ah-estado-critico) 16%, #fff);
-  color: var(--ah-estado-critico);
-}
-
-.ah-chip--atencion {
-  background: color-mix(in srgb, var(--ah-estado-atencion) 18%, #fff);
-  color: color-mix(in srgb, var(--ah-estado-atencion) 70%, var(--ah-ink-900));
-}
+// .ah-chip ahora es primitivo global (_primitivos.scss) -- promovido al
+// tercer uso real, ver la nota ahi.
 
 .consola__fila-busqueda {
   display: flex;
