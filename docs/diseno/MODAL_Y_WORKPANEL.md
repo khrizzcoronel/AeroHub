@@ -56,20 +56,33 @@ cabecera de §1.2:
     confirmar operaciones exitosas — nunca un `alert()` ni un mensaje que
     reemplace el contenido de la vista.
 
-### 1.2 Iteración de cabecera (2026-08-08) -- vigente en 6 de las 7 vistas administrativas de `role_tenant_admin`
+### 1.2 Iteración de cabecera (2026-08-08) -- vigente en 9 vistas administrativas/operativas de `role_tenant_admin`
 
 Rediseño puntual de la cabecera y la barra de búsqueda, pedido con una
 captura de referencia externa, nacido en `usuarios/usuario-list` y
 propagado el mismo día (`docs/diseno/PLAN_PROPAGACION_WORKPANEL_MODAL.md`,
-implementado) a **API Keys, Licencias, FIDS, Soporte y Compliance Hub**.
+implementado) a **API Keys, Licencias, FIDS, Soporte y Compliance Hub**, y
+extendido después a pedido explícito del usuario a las 3 vistas
+operativas densas restantes que sí tienen consumidor de `role_tenant_admin`:
+**Terminal & Gate Manager (`puertas/tablero-puertas`), Ground Operations
+(`rampa/panel-turnaround`) y Revenue & Billing (`billing/panel-facturas`)**.
+`vuelos/estado-tiempo-real` sigue sin tocar (no fue parte de ningún pedido).
 **No propagado a `tenants/tenant-list`** (es de `role_platform_admin`,
-fuera de alcance de esa sesión) ni a las 4 vistas operativas densas
-(`vuelos`, `puertas`, `rampa`, `billing/facturas` -- patrón distinto y
-deliberado, ver el plan de propagación §0). Si se pide extenderlo a
-cualquiera de esas, aplicar exactamente esto, no reinterpretarlo:
+fuera de alcance). Si se pide extenderlo a alguna vista más, aplicar
+exactamente esto, no reinterpretarlo:
 
-1. **Eyebrow** (`.consola__eyebrow`): texto pequeño en mayúsculas arriba
-   del `<h1>`, mismo texto que la sección del menú lateral.
+1. **Sin eyebrow propio.** Se probó un `.consola__eyebrow` (texto pequeño
+   en mayúsculas arriba del `<h1>`, mismo texto que la sección del menú
+   lateral) y se retiró el mismo día (hallazgo real, 2026-08-08): el shell
+   (`shell.html`) ya renderiza `.content__ubicacion` con
+   `tituloVistaActual()` (`data.title` de la ruta activa, función vigente
+   desde S1.13) justo arriba del contenido de cada vista -- el eyebrow
+   repetía exactamente ese mismo texto, produciendo un título duplicado
+   visible en las 9 vistas ("GROUND OPERATIONS" dos veces, etc., reportado
+   por el usuario con captura). **No agregar ningún eyebrow/título de
+   sección nuevo a una vista** -- el nombre de la vista ya lo resuelve el
+   shell; una vista nueva solo necesita su `<h1>` funcional (ej. "Panel de
+   turnaround (rampa)"), nunca un texto que repita `data.title` de la ruta.
 2. **Ícono de refresco inline** (`.consola__refrescar`, símbolo `↻`) junto
    al `<h1>`, en vez de un botón "Actualizar" separado en la barra de
    acciones.

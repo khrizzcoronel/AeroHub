@@ -11,15 +11,6 @@
 // §1.2), propagado aca. Sin fila de busqueda -- esta vista no tiene
 // filtro de texto ni accion de alta (catalogo cerrado M1-M9, solo
 // lectura, ver §1 del plan de propagacion).
-.consola__eyebrow {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--ah-ink-400);
-}
-
 .consola__cabecera {
   display: flex;
   align-items: baseline;

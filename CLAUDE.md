@@ -1214,6 +1214,136 @@ o (b) abrirles `GRANT`s de motor.
 **Sin commitear todavía** -- pendiente de pedido explícito del usuario
 (Principio V).
 
+## Extensión de la iteración de cabecera a las 3 vistas operativas densas restantes + corrección de título duplicado (2026-08-08, pendiente de commit)
+
+Continuación directa de "Iteración de cabecera y modal en
+`usuarios/usuario-list`" (más abajo en este archivo) -- mismo día, dos
+pedidos directos del usuario.
+
+**Extensión a Terminal & Gate Manager / Ground Operations / Revenue &
+Billing** ("faltan los modulos de terminal y gate, ground operations,
+revenie y billing, aplicar el plan o el redsiseño"): el patrón de
+cabecera/modal de `docs/diseno/MODAL_Y_WORKPANEL.md` §1.2 (ya propagado a
+Usuarios/API Keys/Licencias/FIDS/Soporte/Compliance) se extendió a
+`puertas/tablero-puertas`, `rampa/panel-turnaround` y
+`billing/panel-facturas` -- las 3 de las 4 vistas operativas densas que
+el plan original excluía a propósito que el usuario pidió explícitamente
+(`vuelos/estado-tiempo-real` no fue parte del pedido, sigue sin tocar).
+Chips KPI condicionales: Rampa ("N turnaround con desviación"), Billing
+("N vencidas o disputadas"). Nuevo patrón `.consola__subseccion-cabecera`
+en Rampa para "Incidencias" (tabla secundaria con su propio botón de
+refresco). **Pregunta del usuario resuelta como comportamiento correcto,
+no bug**: por qué Puertas no mostraba un chip KPI como el de Rampa --
+confirmado por inspección de datos reales en el navegador
+(`puertasEnConflicto` computed evalúa a 0 con los datos sembrados
+actuales, el chip condicional correctamente se oculta) -- "dejalo así, no
+hace falta forzarlo".
+
+**Hallazgo real corregido -- título duplicado en las 9 vistas**
+("hay doble titulo en todos los modos", con captura de "GROUND
+OPERATIONS" repetido): el `.consola__eyebrow` agregado por la iteración
+de cabecera (y propagado a las 8 vistas siguientes) repetía el mismo
+texto que `shell.html` ya renderiza en `.content__ubicacion`
+(`tituloVistaActual()`, lee `data.title` de la ruta activa en
+`app.routes.ts`, función vigente desde S1.13) -- dos títulos idénticos
+apilados. Corregido retirando el elemento `.consola__eyebrow` y su regla
+CSS de las 9 vistas (`usuarios`, `api-keys`, `licencias`,
+`fids/pantallas`, `soporte/panel`, `compliance/panel`, `puertas/tablero`,
+`rampa/turnaround`, `billing/facturas`) -- el shell ya resuelve el nombre
+de la vista, ninguna vista necesita repetirlo. Regla para no repetir esto
+en una vista futura, documentada en `docs/diseno/MODAL_Y_WORKPANEL.md`
+§1.2 punto 1: nunca agregar un eyebrow/título de sección que repita
+`data.title` de la ruta. **Verificado en navegador real** tras
+`docker cp` + `npx nx build web --configuration=production` (verde) +
+`docker restart aerohub-web`: las 9 vistas muestran el título una sola
+vez (`controlador@mec.aerohub.test` para Ground Operations,
+`canario@mec.aerohub.test` para las 8 restantes), sin errores de consola
+nuevos -- el único 500 visto (`/vuelos/catalogo/tipos-vuelo`) y el "error
+interno del servidor" de la KB en Soporte son el mismo hallazgo de
+conexión de pool ya documentado (se resuelven solos al reintentar), no
+una regresión de este cambio; `acceso denegado` en Compliance sigue
+siendo el hallazgo pre-existente de S1.7/S1.19.
+
+## Traducción del módulo de administración de tenant al español (2026-08-08, pendiente de commit)
+
+Pedido directo del usuario con captura del menú lateral mostrando
+"AODB · FIDS Management · Terminal & Gate Manager · Ground Operations ·
+Revenue & Billing" en inglés pese a que el resto de la interfaz ya
+está en español -- "falto aqui".
+
+**3 capas distintas tenían el mismo nombre en inglés, había que tocar
+las 3 para que no quedara ninguna**:
+
+1. **Strings estáticos de `apps/web`**: `app.routes.ts` (`data.title` de
+   cada ruta), los `<h1>` de `api-key-list.html`/`pantalla-list.html`/
+   `panel-compliance.html`, los textos "API Key(s)" repetidos en
+   `api-key-list.html`/`.ts` (botones, estado vacío, toasts), los 2
+   enlaces hardcodeados del shell (`shell.html`: "API Keys" → "Llaves de
+   API", "Dashboard" → "Panel de Informes"), la lista de módulos del
+   selector de changelog en `panel-soporte.ts`, y los `titulo` de
+   `informes-config.ts` (M2-M5/M9, consumidos por `dashboard-informes/`).
+2. **`packages/contracts/aerohub_contracts/roles_modulos.py::MODULOS`**
+   -- la fuente real del nombre de cada módulo que llega al frontend vía
+   `GET /auth/yo` → `modulos_visibles` → `shell.ts::modulosConVista()` (el
+   `@for` del menú lateral que renderiza `modulo.nombre`). Este es el
+   hallazgo real: los 9 nombres en inglés que persistían en el screenshot
+   del usuario NO venían de ningún template Angular -- venían de este
+   diccionario Python, servido en cada login. Traducido igual que el
+   frontend (M2 "Administración de FIDS", M3 "Gestión de Terminales y
+   Puertas", M4 "Operaciones de Rampa", M5 "Facturación e Ingresos", M6
+   "Experiencia del Pasajero", M7 "ETL y Analítica", M8 "Observabilidad",
+   M9 "Centro de Cumplimiento"; M1 "AODB" se mantiene -- es una sigla
+   técnica real (Airport Operational Database), no una palabra en
+   inglés). **Desplegado con `docker cp` + `docker restart aerohub-gateway`**
+   (el proceso `uvicorn` ya tenía el módulo cargado en memoria, mismo
+   hallazgo de despliegue ya documentado en S1.11).
+3. **`catalogo.modulo.nombre` en MonetDB** -- la tabla que alimenta
+   `licencia-list` (`GET /licencias/mi-tenant` → `consultar_licencias.py`
+   → `infrastructure/licencia.py` → `JOIN` contra `catalogo.modulo`, S1.11
+   "Novena iteración"). Los mismos 9 nombres en inglés vivían TAMBIÉN acá,
+   sembrados por `01_catalogo.sql` -- un tercer origen independiente del
+   mismo texto, no derivado de `MODULOS` de Python. Actualizado con
+   `UPDATE catalogo.modulo SET nombre = ...` directo contra la primaria
+   (usuario `monetdb`/admin, no `aerohub_app` -- ningún rol de aplicación
+   tiene `GRANT UPDATE` sobre el catálogo, correcto: es dato de plataforma,
+   no operativo). También `catalogo.departamento` (`D2`: "Ground
+   Operations (Rampa)" → "Operaciones de Rampa"), aunque su nombre no se
+   consume hoy en ninguna vista -- se corrigió por completitud ya que
+   estaba en el mismo archivo/tabla. **`db/ddl/monetdb/01_catalogo.sql`
+   actualizado en paralelo** (mismos `INSERT` con los nombres ya
+   traducidos) para que un reset futuro del volumen no reintroduzca los
+   nombres en inglés -- sin este cambio, la próxima vez que se recree la
+   base desde cero (como pasó el 2026-08-06/07 en la iteración de reset
+   completo) el hallazgo hubiera vuelto a aparecer solo. **No propagado a
+   `monetdb-standby`/`monetdb-restore-test`** -- se deja que el *shipper*
+   de continuidad (ADR-018, S1.9) replique el cambio como cualquier otra
+   escritura real, sin tocar esas 2 instancias a mano.
+
+**Hallazgo de caché de sesión durante la verificación**: `AuthService`
+guarda `modulos_visibles` en `localStorage` (`aerohub.sesion`) desde la
+respuesta de login, y NO la vuelve a pedir en cada recarga de página --
+un simple `F5` después del cambio de backend seguía mostrando los
+nombres viejos. Hace falta cerrar sesión y volver a entrar (o limpiar
+`localStorage`) para que el perfil se resuelva de nuevo contra
+`GET /auth/yo` con el diccionario `MODULOS` ya actualizado. No es un bug
+-- es el mismo patrón de caché de sesión ya usado a propósito desde
+S1.10 -- pero vale la pena recordarlo para no confundirlo con que el
+cambio de backend no tomó.
+
+**Verificado en navegador real** (`canario@mec.aerohub.test`, sesión
+nueva tras limpiar `localStorage`): los 9 enlaces del menú lateral en
+español (`Array.from(document.querySelectorAll('.side__link'))`
+confirmado por JS), tabla de Licencias con los 6 módulos contratados en
+español. Build de producción de `apps/web` en verde tras cada tanda de
+copias. Ningún test de integración de backend depende del texto de
+`Modulo.nombre` (son claves `codigo`/scopes las que se comparan, no el
+nombre legible) -- no se corrió la suite completa para este cambio
+puramente textual, solo se confirmó que el gateway levantó sano después
+del restart.
+
+**Sin commitear todavía** -- pendiente de pedido explícito del usuario
+(Principio V).
+
 ## Rediseño de interfaz (S1.11–S1.14)
 
 La capa operativa (S0.1–S1.10) está **completa y commiteada**. Lo siguiente
@@ -1728,7 +1858,20 @@ backend puede quedar intacto sin consumidor, D2(b) del plan).
   estética deliberada, no defaults genéricos de framework.
 - **Usar el skill `find-skills` cuando haga falta buscar/evaluar otro skill**
   del ecosistema abierto antes de instalarlo con `npx skills add`.
-- Responder siempre en español.
+- **Responder siempre en español** -- todo texto dirigido al usuario (explicaciones,
+  resúmenes, preguntas, nombres de archivos de plan/spec cuando aplique), sin excepción,
+  independientemente del idioma en que esté escrito el código o la documentación técnica
+  en inglés (nombres de variables, commits si el usuario no pide otra cosa, etc.).
+- **No verificar cambios de frontend en el navegador de forma automática.**
+  Regla vigente desde S1.16, reafirmada explícitamente el 2026-08-08: tras editar
+  `apps/web`/`apps/fids-player`, NO usar las herramientas de Browser pane
+  (`preview_start`/`navigate`/`read_page`/etc.) por iniciativa propia para
+  verificar el resultado -- alcanza con que el build de producción
+  (`npx nx build web --configuration=production`) quede en verde. Verificar en
+  navegador real **solo cuando el usuario lo pida explícitamente** (p. ej. "pruébalo
+  en el navegador", "verifica que se vea bien"). Si no se pidió, decirlo
+  explícitamente en la respuesta ("no verificado en navegador real, build en verde")
+  en vez de asumir que hace falta.
 
 ## Patrones arquitectónicos establecidos
 

@@ -8,19 +8,12 @@
 }
 
 // Redistribucion del workpanel (pedido explicito, 2026-08-07), referencia
-// de docs/diseno/MODAL_Y_WORKPANEL.md: eyebrow + titulo con refresco
-// inline, chips de KPI en vez de oracion de resumen, y una sola fila de
+// de docs/diseno/MODAL_Y_WORKPANEL.md: titulo con refresco inline, chips
+// de KPI en vez de oracion de resumen, y una sola fila de
 // busqueda+filtro+accion en vez de panel de busqueda + barra de acciones
-// separados.
-.consola__eyebrow {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--ah-ink-400);
-}
-
+// separados. Sin eyebrow propio -- el shell ya muestra el nombre de la
+// vista actual (.content__ubicacion, S1.13) justo arriba del contenido;
+// repetirlo aca era un titulo duplicado (hallazgo real, 2026-08-08).
 .consola__cabecera {
   display: flex;
   align-items: baseline;

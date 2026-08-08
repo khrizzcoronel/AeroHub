@@ -1,8 +1,7 @@
 <section class="consola">
-  <p class="consola__eyebrow">API Keys</p>
   <div class="consola__cabecera">
     <h1>
-      API Keys e Integraciones
+      Llaves de API e Integraciones
       <button
         type="button"
         class="consola__refrescar"
@@ -37,7 +36,7 @@
       />
     </div>
     <button type="button" class="ah-btn" (click)="crearNuevaApiKey()" [disabled]="procesando()">
-      {{ procesando() ? 'Generando...' : 'Generar API Key' }}
+      {{ procesando() ? 'Generando...' : 'Generar llave de API' }}
     </button>
   </div>
 
@@ -47,13 +46,13 @@
 
   @if (apiKeys().length === 0) {
     <p class="ah-vacio">
-      Sin API Keys generadas todavía.
+      Sin llaves de API generadas todavía.
       <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="crearNuevaApiKey()" [disabled]="procesando()">
-        Generar API Key
+        Generar llave de API
       </button>
     </p>
   } @else if (apiKeysFiltradas().length === 0) {
-    <p class="ah-vacio">Ninguna API Key coincide con la búsqueda.</p>
+    <p class="ah-vacio">Ninguna llave de API coincide con la búsqueda.</p>
   } @else {
     <div class="tabla-envoltorio">
       <table class="ah-tabla">
@@ -149,7 +148,7 @@
   <div class="ah-modal-fondo" (click)="cerrarModalSecreto()">
     <div class="ah-modal modal-secreto" (click)="$event.stopPropagation()">
       <div class="ah-modal__cabecera">
-        <h2>Secreto de API Key Generado</h2>
+        <h2>Secreto de llave de API generado</h2>
         <button type="button" class="ah-modal__cerrar" (click)="cerrarModalSecreto()" aria-label="Cerrar">✕</button>
       </div>
       <p class="secreto-aviso">

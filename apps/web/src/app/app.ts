@@ -8,5 +8,5 @@ import { RouterModule } from '@angular/router';
   styleUrl: './app.scss',
 })
 export class App {
-  protected title = 'web';
+  protected title = 'AeroHub';
 }

@@ -118,7 +118,7 @@ CREATE TABLE catalogo.modulo (
 -- Departamentos D1-D6 (Analisis v6.0 §4.1) -- catalogo fijo, no sintetico.
 INSERT INTO catalogo.departamento (id, codigo, nombre) VALUES
     (1, 'D1', 'Direccion de Operaciones Aeroportuarias'),
-    (2, 'D2', 'Ground Operations (Rampa)'),
+    (2, 'D2', 'Operaciones de Rampa'),
     (3, 'D3', 'Crecimiento Comercial y Finanzas'),
     (4, 'D4', 'Datos e Inteligencia Artificial'),
     (5, 'D5', 'Plataforma y Seguridad'),
@@ -128,14 +128,14 @@ INSERT INTO catalogo.departamento (id, codigo, nombre) VALUES
 -- tenants.plan_modulo y tenants.licencia (S0.2).
 INSERT INTO catalogo.modulo (id, codigo, nombre, departamento_id) VALUES
     (1, 'M1', 'AODB', 1),
-    (2, 'M2', 'FIDS Management', 1),
-    (3, 'M3', 'Terminal & Gate Manager', 1),
-    (4, 'M4', 'Ground Operations', 2),
-    (5, 'M5', 'Revenue & Billing', 3),
-    (6, 'M6', 'Passenger Experience', 1),
-    (7, 'M7', 'ETL & Analytics', 4),
-    (8, 'M8', 'Observability', 5),
-    (9, 'M9', 'Compliance Hub', 5);
+    (2, 'M2', 'Administración de FIDS', 1),
+    (3, 'M3', 'Gestión de Terminales y Puertas', 1),
+    (4, 'M4', 'Operaciones de Rampa', 2),
+    (5, 'M5', 'Facturación e Ingresos', 3),
+    (6, 'M6', 'Experiencia del Pasajero', 1),
+    (7, 'M7', 'ETL y Analítica', 4),
+    (8, 'M8', 'Observabilidad', 5),
+    (9, 'M9', 'Centro de Cumplimiento', 5);
 
 -- tipo_vuelo: dominio CERRADO por el propio CHECK de la tabla (SDD-001
 -- §5.6) -- a diferencia de aeropuerto/aerolinea/aeronave (industria real,

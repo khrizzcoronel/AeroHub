@@ -88,7 +88,7 @@ export class ApiKeyList implements OnInit {
         this.procesando.set(false);
         this.secretoGenerado.set(res.api_key_en_claro);
         this.cargarApiKeys();
-        this.toast.mostrar('Nueva API Key generada con éxito', 'exito');
+        this.toast.mostrar('Nueva llave de API generada con éxito', 'exito');
       },
       error: (err: HttpErrorResponse) => {
         this.error.set(mensajeDeError(err));
@@ -106,7 +106,7 @@ export class ApiKeyList implements OnInit {
         this.apiKeyViendoDetalle.set(null);
         this.secretoGenerado.set(res.api_key_en_claro);
         this.cargarApiKeys();
-        this.toast.mostrar(`API Key con prefijo ${key.prefijo} rotada con éxito`, 'exito');
+        this.toast.mostrar(`Llave de API con prefijo ${key.prefijo} rotada con éxito`, 'exito');
       },
       error: (err: HttpErrorResponse) => {
         this.error.set(mensajeDeError(err));
@@ -123,7 +123,7 @@ export class ApiKeyList implements OnInit {
         this.procesando.set(false);
         this.apiKeyViendoDetalle.set(null);
         this.cargarApiKeys();
-        this.toast.mostrar(`API Key ${key.prefijo} revocada de inmediato`, 'exito');
+        this.toast.mostrar(`Llave de API ${key.prefijo} revocada de inmediato`, 'exito');
       },
       error: (err: HttpErrorResponse) => {
         this.error.set(mensajeDeError(err));

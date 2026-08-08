@@ -30,14 +30,14 @@ import {
 // uno solo para nombrar 9 valores estaticos seria sobre-ingenieria.
 const MODULOS_CHANGELOG: { codigo: string; nombre: string }[] = [
   { codigo: 'M1', nombre: 'AODB' },
-  { codigo: 'M2', nombre: 'FIDS Management' },
-  { codigo: 'M3', nombre: 'Terminal & Gate Manager' },
-  { codigo: 'M4', nombre: 'Ground Operations' },
-  { codigo: 'M5', nombre: 'Revenue & Billing' },
-  { codigo: 'M6', nombre: 'Passenger Experience' },
-  { codigo: 'M7', nombre: 'ETL & Analytics' },
-  { codigo: 'M8', nombre: 'Observability' },
-  { codigo: 'M9', nombre: 'Compliance Hub' },
+  { codigo: 'M2', nombre: 'Administración de FIDS' },
+  { codigo: 'M3', nombre: 'Gestión de Terminales y Puertas' },
+  { codigo: 'M4', nombre: 'Operaciones de Rampa' },
+  { codigo: 'M5', nombre: 'Facturación e Ingresos' },
+  { codigo: 'M6', nombre: 'Experiencia del Pasajero' },
+  { codigo: 'M7', nombre: 'ETL y Analítica' },
+  { codigo: 'M8', nombre: 'Observabilidad' },
+  { codigo: 'M9', nombre: 'Centro de Cumplimiento' },
 ];
 
 const TAMANO_PAGINA = 10;

@@ -32,14 +32,14 @@ class Modulo:
 MODULOS: dict[str, Modulo] = {
     "M1": Modulo("M1", "AODB", "/vuelos/tiempo-real"),
     # S1.16 -- antes sin vista en apps/web
-    "M2": Modulo("M2", "FIDS Management", "/fids/pantallas"),
-    "M3": Modulo("M3", "Terminal & Gate Manager", "/puertas/tablero"),
-    "M4": Modulo("M4", "Ground Operations", "/rampa/turnaround"),
-    "M5": Modulo("M5", "Revenue & Billing", "/billing/facturas"),
-    "M6": Modulo("M6", "Passenger Experience", None),
-    "M7": Modulo("M7", "ETL & Analytics", None),
-    "M8": Modulo("M8", "Observability", None),
-    "M9": Modulo("M9", "Compliance Hub", "/compliance/panel"),
+    "M2": Modulo("M2", "Administración de FIDS", "/fids/pantallas"),
+    "M3": Modulo("M3", "Gestión de Terminales y Puertas", "/puertas/tablero"),
+    "M4": Modulo("M4", "Operaciones de Rampa", "/rampa/turnaround"),
+    "M5": Modulo("M5", "Facturación e Ingresos", "/billing/facturas"),
+    "M6": Modulo("M6", "Experiencia del Pasajero", None),
+    "M7": Modulo("M7", "ETL y Analítica", None),
+    "M8": Modulo("M8", "Observabilidad", None),
+    "M9": Modulo("M9", "Centro de Cumplimiento", "/compliance/panel"),
 }
 
 # rol -> (modulos que puede operar, scopes que se emiten en su JWT)

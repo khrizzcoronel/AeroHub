@@ -1,43 +1,42 @@
 <section class="consola">
   <div class="consola__cabecera">
-    <h1>Panel de turnaround (rampa)</h1>
+    <h1>
+      Panel de turnaround (rampa)
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarTurnarounds()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
+      </button>
+    </h1>
   </div>
 
-  <p class="consola__resumen">
-    Seguí el avance de cada turnaround y sus tareas, desde que llega el vuelo hasta que despega.
-    @if (turnarounds().length > 0) {
-      <strong>{{ turnarounds().length }}</strong> {{ turnarounds().length === 1 ? 'turnaround' : 'turnarounds' }}
-      @if (turnaroundsEnDesviacion() > 0) {
-        , <strong class="resumen-critico">{{ turnaroundsEnDesviacion() }}</strong> con desviación
-      }.
-    }
-  </p>
-
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar por vuelo</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroTurnaround">Numero de vuelo (llegada o salida)</label>
-        <input
-          id="filtroTurnaround"
-          type="text"
-          placeholder="Ej. AH123"
-          [ngModel]="filtroTurnaround()"
-          (ngModelChange)="actualizarFiltroTurnaround($event)"
-          name="filtroTurnaround"
-        />
-      </div>
+  @if (turnaroundsEnDesviacion() > 0) {
+    <div class="consola__kpis">
+      <span class="ah-chip ah-chip--critico">
+        {{ turnaroundsEnDesviacion() }} {{ turnaroundsEnDesviacion() === 1 ? 'turnaround con desviación' : 'turnarounds con desviación' }}
+      </span>
     </div>
-  </div>
+  }
 
-  <div class="consola__acciones">
-    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTurnarounds()">Actualizar</button>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por número de vuelo (llegada o salida)"
+        [ngModel]="filtroTurnaround()"
+        (ngModelChange)="actualizarFiltroTurnaround($event)"
+        name="filtroTurnaround"
+        aria-label="Buscar por número de vuelo"
+      />
+    </div>
     @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalCrear()">Crear turnaround</button>
     }
-    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarIncidencias()">
-      Actualizar incidencias
-    </button>
   </div>
 
   @if (error()) {
@@ -79,7 +78,7 @@
               </td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalles(t)">
-                  Ver detalles
+                  Ver
                 </button>
               </td>
             </tr>
@@ -106,7 +105,12 @@
     }
   }
 
-  <h2>Incidencias</h2>
+  <div class="consola__subseccion-cabecera">
+    <h2>Incidencias</h2>
+    <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="cargarIncidencias()">
+      Actualizar incidencias
+    </button>
+  </div>
   @if (incidencias().length === 0) {
     <p class="ah-vacio">Sin incidencias todavía -- se registran solas cuando una tarea supera su duración estándar.</p>
   } @else {

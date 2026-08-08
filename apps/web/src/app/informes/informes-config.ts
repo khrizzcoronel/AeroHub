@@ -90,7 +90,7 @@ export const CONFIG_INFORME_VUELOS: ConfigInforme = {
 };
 
 export const CONFIG_INFORME_ASIGNACIONES: ConfigInforme = {
-  titulo: 'Terminal & Gate Manager',
+  titulo: 'Gestión de Terminales y Puertas',
   moduloCodigo: 'puertas',
   endpointSimple: '/puertas/informes/simple',
   endpointCompuesto: '/puertas/informes/compuesto',
@@ -113,7 +113,7 @@ export const CONFIG_INFORME_ASIGNACIONES: ConfigInforme = {
 };
 
 export const CONFIG_INFORME_TURNAROUNDS: ConfigInforme = {
-  titulo: 'Ground Operations',
+  titulo: 'Operaciones de Rampa',
   moduloCodigo: 'rampa',
   endpointSimple: '/rampa/informes/simple',
   endpointCompuesto: '/rampa/informes/compuesto',
@@ -148,7 +148,7 @@ export const CONFIG_INFORME_TURNAROUNDS: ConfigInforme = {
 };
 
 export const CONFIG_INFORME_FACTURACION: ConfigInforme = {
-  titulo: 'Revenue & Billing',
+  titulo: 'Facturación e Ingresos',
   moduloCodigo: 'billing',
   endpointSimple: '/billing/informes/simple',
   endpointCompuesto: '/billing/informes/compuesto',
@@ -208,7 +208,7 @@ export const CONFIG_INFORME_TENANTS: ConfigInforme = {
 };
 
 export const CONFIG_INFORME_COMPLIANCE: ConfigInforme = {
-  titulo: 'Compliance Hub',
+  titulo: 'Centro de Cumplimiento',
   moduloCodigo: 'compliance',
   endpointSimple: '/compliance/informes/simple',
   endpointCompuesto: '/compliance/informes/compuesto',

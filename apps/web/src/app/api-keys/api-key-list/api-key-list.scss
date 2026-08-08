@@ -9,15 +9,6 @@
 
 // Cabecera + fila de busqueda: mismo patron que usuarios/usuario-list
 // (docs/diseno/MODAL_Y_WORKPANEL.md §1.2), propagado aca.
-.consola__eyebrow {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--ah-ink-400);
-}
-
 .consola__cabecera {
   display: flex;
   align-items: baseline;

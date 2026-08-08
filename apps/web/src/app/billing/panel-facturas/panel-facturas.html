@@ -1,51 +1,53 @@
 <section class="consola">
   <div class="consola__cabecera">
-    <h1>Panel de facturas (billing)</h1>
+    <h1>
+      Panel de facturas (billing)
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarFacturas()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
+      </button>
+    </h1>
   </div>
 
-  <p class="consola__resumen">
-    Facturación por aerolínea, calculada a partir de los cargos aeronáuticos del período.
-    @if (facturas().length > 0) {
-      <strong>{{ facturas().length }}</strong> {{ facturas().length === 1 ? 'factura' : 'facturas' }}
-      @if (facturasCriticas() > 0) {
-        , <strong class="resumen-critico">{{ facturasCriticas() }}</strong> vencidas o disputadas
-      }.
-    }
-  </p>
-
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar facturas</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroAerolinea">Aerolinea</label>
-        <input
-          id="filtroAerolinea"
-          type="text"
-          placeholder="Ej. AH"
-          [ngModel]="filtroAerolinea()"
-          (ngModelChange)="actualizarFiltroAerolinea($event)"
-          name="filtroAerolinea"
-        />
-      </div>
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroEstado">Estado</label>
-        <select
-          id="filtroEstado"
-          [ngModel]="filtroEstado()"
-          (ngModelChange)="actualizarFiltroEstado($event)"
-          name="filtroEstado"
-        >
-          <option value="">Todos</option>
-          @for (estado of ESTADOS_FACTURA; track estado) {
-            <option [value]="estado">{{ estado }}</option>
-          }
-        </select>
-      </div>
+  @if (facturasCriticas() > 0) {
+    <div class="consola__kpis">
+      <span class="ah-chip ah-chip--critico">
+        {{ facturasCriticas() }} {{ facturasCriticas() === 1 ? 'vencida o disputada' : 'vencidas o disputadas' }}
+      </span>
     </div>
-  </div>
+  }
 
-  <div class="consola__acciones">
-    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarFacturas()">Actualizar</button>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por aerolínea"
+        [ngModel]="filtroAerolinea()"
+        (ngModelChange)="actualizarFiltroAerolinea($event)"
+        name="filtroAerolinea"
+        aria-label="Buscar por aerolínea"
+      />
+    </div>
+    <div class="ah-campo ah-campo--inline">
+      <label class="ah-campo__etiqueta" for="filtroEstado">Estado:</label>
+      <select
+        id="filtroEstado"
+        [ngModel]="filtroEstado()"
+        (ngModelChange)="actualizarFiltroEstado($event)"
+        name="filtroEstado"
+      >
+        <option value="">Todos</option>
+        @for (estado of ESTADOS_FACTURA; track estado) {
+          <option [value]="estado">{{ estado }}</option>
+        }
+      </select>
+    </div>
     @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalCalcular()">Calcular facturacion</button>
     }
@@ -91,7 +93,7 @@
               </td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalle(factura.id)">
-                  Ver detalle
+                  Ver
                 </button>
               </td>
             </tr>

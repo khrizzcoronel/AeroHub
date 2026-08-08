@@ -1,39 +1,40 @@
 <section class="consola">
   <div class="consola__cabecera">
-    <h1>Tablero de puertas</h1>
+    <h1>
+      Tablero de puertas
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarTablero()"
+        [disabled]="cargando()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
+      </button>
+    </h1>
   </div>
 
-  <p class="consola__resumen">
-    Ocupación de puertas en tiempo real y sus asignaciones vigentes.
-    @if (puertas().length > 0) {
-      <strong>{{ puertas().length }}</strong> {{ puertas().length === 1 ? 'puerta' : 'puertas' }}
-      @if (puertasEnConflicto() > 0) {
-        , <strong class="resumen-critico">{{ puertasEnConflicto() }}</strong> con solapamiento
-      }.
-    }
-  </p>
-
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar puerta</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroPuerta">Codigo o tipo</label>
-        <input
-          id="filtroPuerta"
-          type="text"
-          placeholder="Ej. A12"
-          [ngModel]="filtroPuerta()"
-          (ngModelChange)="actualizarFiltroPuerta($event)"
-          name="filtroPuerta"
-        />
-      </div>
+  @if (puertasEnConflicto() > 0) {
+    <div class="consola__kpis">
+      <span class="ah-chip ah-chip--critico">
+        {{ puertasEnConflicto() }} {{ puertasEnConflicto() === 1 ? 'puerta con solapamiento' : 'puertas con solapamiento' }}
+      </span>
     </div>
-  </div>
+  }
 
-  <div class="consola__acciones">
-    <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTablero()" [disabled]="cargando()">
-      Actualizar
-    </button>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por código o tipo"
+        [ngModel]="filtroPuerta()"
+        (ngModelChange)="actualizarFiltroPuerta($event)"
+        name="filtroPuerta"
+        aria-label="Buscar por código o tipo"
+      />
+    </div>
     @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalAsignar()">
         Asignar puerta manualmente
@@ -107,7 +108,7 @@
               </td>
               <td>
                 <button type="button" class="ah-btn ah-btn--secundario ah-btn--sm" (click)="verDetalles(puerta)">
-                  Ver detalles
+                  Ver
                 </button>
               </td>
             </tr>
