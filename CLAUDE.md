@@ -112,12 +112,20 @@ cualquier discrepancia con este archivo, la constitución prevalece.
 | S1.18 | Fase 1.5: informes operativos (familia RF-I nueva) -- 6 informes (simple+compuesto) en M1/M3/M4/M5/Tenancy/M9, primitivo `.ah-informe`, exportación CSV, auditoría de emisión en M5/M9 | `3e066ba` |
 | S1.19 | Fase 1.5: Compliance Hub (M9) -- listados/catálogos nuevos, vista `compliance/panel`, hallazgo de scopes de `role_sre` corregido | `7b0cc68` |
 | S1.20 | Fase 1.5: D6 Soporte (tickets con SLA, KB, changelog) -- cierra la Fase 1.5 completa (S1.15-S1.20) | `0a23e2d` |
-| **Iteración post-S1.18** | **Dashboard de informes consolidado (1 vista en vez de 6) + panel táctico demo sobre ClickHouse (M7) + 3 arreglos de autocarga -- ver sección propia más abajo, sin sprint number formal, trabajo directo del usuario 2026-08-05** | **pendiente de commit -- retomar aquí** |
-| S2.1 | Fase 2 -- retomar en `docs/PLAN_IMPLEMENTACION_v3.0.md` §8, sprint siguiente a S1.20 (después de cerrar la iteración de arriba) | pendiente |
+| Iteración post-S1.18 | Dashboard de informes consolidado (1 vista en vez de 6) + panel táctico demo sobre ClickHouse (M7) + 3 arreglos de autocarga -- sin sprint number formal, trabajo directo del usuario 2026-08-05 | `d7dc288` |
+| Iteración post-S1.20 | Clasificación de roles, corrección transversal de módulos (Fases 1-6), dashboards por rol, propagación de cabecera/modal, traducción al español -- todo trabajo directo, sin sprint number formal (2026-08-06/08) | `d7dc288` |
+| **Auditoría de la capa operativa** | **Los 4 hallazgos de permisos de los 5 roles operativos: M6 inalcanzable (H1), coordinador sin escritura (H2), recorte por aerolínea irrepresentable (H3), dashboard de rampa (H4) -- ver sección propia** | `d7dc288` |
+| **M6 Experiencia del Pasajero** | **Vista nueva (el módulo tenía `ruta: null` desde S1.6) + ciclo programado de recálculo cada 15 min que cierra RF-O17** | `e366787`, `00dba60` |
+| **S2.1** | **Fase 2 -- SIGUIENTE. Retomar en `docs/PLAN_IMPLEMENTACION_v3.0.md` §9 (`etl_control` e ingesta a bronce). La Fase 1.5 y todo el trabajo posterior de corrección/rediseño está cerrado y commiteado; no queda nada pendiente de commit.** | pendiente |
 
 Actualizar esta tabla (fila + commit) cada vez que un sprint se cierra con
 commit. Es la única fuente de "dónde vamos" que hace falta leer antes de
 retomar.
+
+**Al 2026-08-08 el árbol de trabajo está limpio**: todo lo descrito en este
+archivo está commiteado. Las secciones de abajo citan el hash de cada
+cambio -- si alguna vuelve a decir "pendiente de commit", es porque se
+agregó trabajo nuevo después de esa fecha.
 
 ## Fase 1.5 -- Cierre de superficie de usuario (PLAN v3.0, §8-bis)
 
@@ -183,7 +191,7 @@ táctico** (comparativas multi-período, tendencias) esperan a
 pregunta, no por complejidad de la consulta.
 
 **S1.15 implementado** (`specs/017-contrato-api-superficie-aodb/`,
-pendiente de commit): `tools/generar_openapi.py` (existía desde S1.2,
+commit `b6fb8df`): `tools/generar_openapi.py` (existía desde S1.2,
 nunca se había vuelto a correr) regenerado -- `docs/api/openapi.yaml`
 pasa de 60 a 72 rutas; `.github/workflows/ci.yml` gana un paso en el job
 `contrato-api` que regenera el esquema y compara contra el comiteado,
@@ -210,8 +218,8 @@ import-linter en verde sobre `aerohub_aodb`; 3 tests de integración
 nuevos contra MonetDB real (`tests/integration/test_aodb_catalogos.py`);
 build de producción de `apps/web` en verde.
 
-**S1.16 implementado** (`specs/018-administracion-fids/`, pendiente de
-commit): superficie completa de M2 FIDS, hasta ahora sin ninguna vista en
+**S1.16 implementado** (`specs/018-administracion-fids/`, commit
+`afd9ad4`): superficie completa de M2 FIDS, hasta ahora sin ninguna vista en
 `apps/web` (`ruta: null` en `roles_modulos.py`). **Hallazgo crítico**:
 ningún rol tenía ningún scope `fids:*` -- los 3 endpoints de escritura de
 S1.3 eran literalmente inalcanzables por cualquier sesión humana desde
@@ -243,7 +251,7 @@ producción de `apps/web` en verde. **No verificado en navegador real**
 navegador salvo pedido explícito) -- pendiente si el usuario lo solicita.
 
 **S1.17 implementado** (`specs/019-tarifarios-conciliacion-pax/`,
-pendiente de commit): superficie completa de tarifarios (RF-T10) y
+commit `f23bb3e`): superficie completa de tarifarios (RF-T10) y
 conciliación de pax (RF-O15) en M5 Billing, hasta ahora sin ningún
 consumidor en `apps/web` pese a existir desde S1.6. A diferencia de
 S1.15/S1.16, **sin hallazgo de scopes** -- `role_tenant_admin` y
@@ -310,8 +318,8 @@ más SC-002/SC-003/RF-I04), suite `test_billing_facturacion.py` y
 `test_aplicacion_s1_1.py` sin regresiones; build de producción de
 `apps/web` en verde. No verificado en navegador real (regla vigente).
 
-**S1.19 implementado** (`specs/021-compliance-hub/`, pendiente de
-commit): superficie completa de M9 Compliance Hub, hasta ahora sin
+**S1.19 implementado** (`specs/021-compliance-hub/`, commit
+`7b0cc68`): superficie completa de M9 Compliance Hub, hasta ahora sin
 ninguna vista en `apps/web` (`ruta: null` en `roles_modulos.py`).
 
 1. **Hallazgo crítico** (`packages/contracts/aerohub_contracts/roles_modulos.py`):
@@ -378,7 +386,7 @@ ninguna vista en `apps/web` (`ruta: null` en `roles_modulos.py`).
    vigente desde S1.16 -- no probar automáticamente salvo pedido
    explícito).
 
-**S1.20 implementado** (`specs/022-soporte-d6/`, pendiente de commit):
+**S1.20 implementado** (`specs/022-soporte-d6/`, commit `0a23e2d`):
 superficie completa de D6 Soporte (tickets con SLA, base de
 conocimientos, changelog), hasta ahora sin ninguna vista en `apps/web`
 pese a que los 11 endpoints existen desde S1.8. **Cierra la Fase 1.5
@@ -452,7 +460,7 @@ ingesta a bronce), la primera fase que la v3.0 deliberadamente puso
 DESPUÉS de cerrar esta superficie (§8-bis, "por qué la Fase 1.5 va
 antes de la Fase 2 y no en paralelo").
 
-## Iteración post-S1.18: dashboard de informes + panel táctico demo (2026-08-05, pendiente de commit)
+## Iteración post-S1.18: dashboard de informes + panel táctico demo (2026-08-05, commit `d7dc288`)
 
 **Trabajo hecho directamente por el usuario** (fuera de una sesión de
 Claude Code), sin ciclo Spec Kit propio -- documentado aquí para que la
@@ -555,10 +563,9 @@ pre-existente de S1.7/S1.19 (sin `GRANT` de motor de
 `role_tenant_admin` sobre `compliance.*`), no introducido por esta
 iteración.
 
-**Sin commitear todavía** -- pendiente de pedido explícito del
-usuario, igual que el resto del proyecto (Principio V).
+**Commiteado** en `d7dc288` (2026-08-08).
 
-## Iteración post-S1.20: clasificación de roles + corrección transversal de módulos (2026-08-06/07, pendiente de commit)
+## Iteración post-S1.20: clasificación de roles + corrección transversal de módulos (2026-08-06/07, commit `d7dc288`)
 
 Trabajo directo del usuario tras cerrar la Fase 1.5, sin ciclo Spec Kit
 propio (revisión funcional de la aplicación completa) -- documentado
@@ -672,7 +679,7 @@ desde el último commit (`0a23e2d`, S1.20). **Seguir corriendo
      estandarizar CRUD, comprensibilidad) siguen sin implementar** --
      retomar ahí cuando el usuario lo pida.
 
-**Fase 2 implementada** (2026-08-07, pendiente de commit): `db/seeds/generate.py`
+**Fase 2 implementada** (2026-08-07, commit `d7dc288`): `db/seeds/generate.py`
 ampliado con siembra operativa idempotente por tenant canario (MEC/UIO) --
 1 terminal + 3 puertas (2 contacto/1 remota), 1 plantilla FIDS + 2 pantallas
 (en_linea/sin_senal), un segundo vuelo (sentido `L`) emparejado con el
@@ -706,7 +713,7 @@ MonetDB, ver traceback en logs de `aerohub-gateway`) se confirmo como
 artefacto de una conexion inactiva del pool, no una regresion -- 3
 reintentos consecutivos por `curl` devolvieron 200 con los 2 articulos
 sembrados incluidos, y una recarga de la vista los mostro correctamente.
-**Fase 3 implementada** (2026-08-07, pendiente de commit): cierra los 3
+**Fase 3 implementada** (2026-08-07, commit `d7dc288`): cierra los 3
 huecos de API identificados en el plan (items 6-9).
 
 1. **`GET /vuelos` con filtros de fecha y estado** (item 6, causa raiz D):
@@ -790,7 +797,7 @@ huecos de API identificados en el plan (items 6-9).
    resultado del test en si -- ambos "pasan" y solo el teardown erroa),
    no una regresion introducida por este sprint.
 
-**Fase 4 implementada parcialmente** (2026-08-07, pendiente de commit):
+**Fase 4 implementada parcialmente** (2026-08-07, commit `d7dc288`):
 items 10 y 12 completos; item 11 avanzado en los 2 módulos con el hueco
 más grande (M3 Gates, M5 Billing/tarifarios) -- M1 AODB, M2 FIDS, D6 y M9
 quedan pendientes.
@@ -922,7 +929,7 @@ quedan pendientes.
      tras un `docker restart aerohub-gateway`, resuelto en el tercer
      intento.
 
-**Fase 5 implementada** (2026-08-07, pendiente de commit): comprensibilidad
+**Fase 5 implementada** (2026-08-07, commit `d7dc288`): comprensibilidad
 (items 13-17), usando el skill `frontend-design` y `docs/diseno/DIRECCION_VISUAL.md`
 como referencia obligatoria -- ningún token/patrón nuevo, solo aplicación
 del sistema ya existente (`.ah-punto`, semáforo de 4 tonos, `.ah-vacio`).
@@ -997,7 +1004,7 @@ del sistema ya existente (`.ah-punto`, semáforo de 4 tonos, `.ah-vacio`).
 API-Keys/Licencias (no se tocaron en este pase, la Fase 5 se acotó a los
 5 módulos de la capa operativa igual que las Fases 1-4).
 
-**Fase 6 implementada** (2026-08-07, pendiente de commit): verificación
+**Fase 6 implementada** (2026-08-07, commit `d7dc288`): verificación
 final -- cierra `docs/diseno/PLAN_CORRECCION_MODULOS.md` completo
 (Fases 1-6).
 
@@ -1127,8 +1134,7 @@ se indica lo contrario).
    tocado, solo se confirmó que los endpoints que el dashboard nuevo
    consume siguen intactos).
 
-**Sin commitear todavía** -- pendiente de pedido explícito del
-usuario (Principio V).
+**Commiteado** en `d7dc288` (2026-08-08).
 
 ## `docs/diseno/PLAN_CORRECCION_Y_DASHBOARD_ROLES_RESTANTES.md` -- puntos 1 y 2 implementados (2026-08-07)
 
@@ -1211,10 +1217,9 @@ motor de `role_tenant_admin` sobre `compliance.*`), no una regresión.
 en pausa** -- decisión pendiente del usuario entre (a) dejarlos fuera
 o (b) abrirles `GRANT`s de motor.
 
-**Sin commitear todavía** -- pendiente de pedido explícito del usuario
-(Principio V).
+**Commiteado** en `d7dc288` (2026-08-08).
 
-## Extensión de la iteración de cabecera a las 3 vistas operativas densas restantes + corrección de título duplicado (2026-08-08, pendiente de commit)
+## Extensión de la iteración de cabecera a las 3 vistas operativas densas restantes + corrección de título duplicado (2026-08-08, commit `d7dc288`)
 
 Continuación directa de "Iteración de cabecera y modal en
 `usuarios/usuario-list`" (más abajo en este archivo) -- mismo día, dos
@@ -1264,7 +1269,7 @@ conexión de pool ya documentado (se resuelven solos al reintentar), no
 una regresión de este cambio; `acceso denegado` en Compliance sigue
 siendo el hallazgo pre-existente de S1.7/S1.19.
 
-## Traducción del módulo de administración de tenant al español (2026-08-08, pendiente de commit)
+## Traducción del módulo de administración de tenant al español (2026-08-08, commit `d7dc288`)
 
 Pedido directo del usuario con captura del menú lateral mostrando
 "AODB · FIDS Management · Terminal & Gate Manager · Ground Operations ·
@@ -1341,10 +1346,9 @@ nombre legible) -- no se corrió la suite completa para este cambio
 puramente textual, solo se confirmó que el gateway levantó sano después
 del restart.
 
-**Sin commitear todavía** -- pendiente de pedido explícito del usuario
-(Principio V).
+**Commiteado** en `d7dc288` (2026-08-08).
 
-## Extensión de la iteración de cabecera a AODB (2026-08-08, pendiente de commit)
+## Extensión de la iteración de cabecera a AODB (2026-08-08, commit `d7dc288`)
 
 Pedido directo del usuario: "al modulo de AODB porque la abreviacion,
 ese no se la aplico el rediseño del plan" -- `vuelos/estado-tiempo-real`
@@ -1377,10 +1381,9 @@ warning de bundle conocido) tras `docker cp` + rebuild dentro de
 `aerohub-web` + `docker restart aerohub-web`. No verificado en
 navegador real (regla vigente: solo si se pide explícitamente).
 
-**Sin commitear todavía** -- pendiente de pedido explícito del usuario
-(Principio V).
+**Commiteado** en `d7dc288` (2026-08-08).
 
-## Reordenamiento del menú + rediseño de tarjetas KPI del Dashboard (2026-08-08, pendiente de commit)
+## Reordenamiento del menú + rediseño de tarjetas KPI del Dashboard (2026-08-08, commit `d7dc288`)
 
 Dos pedidos directos del usuario, mismo día.
 
@@ -1469,10 +1472,9 @@ restart aerohub-web`. No verificado en navegador real (regla vigente:
 solo si se pide explícitamente) -- pendiente si el usuario lo solicita,
 en particular para confirmar visualmente el trazo del sparkline SVG.
 
-**Sin commitear todavía** -- pendiente de pedido explícito del usuario
-(Principio V).
+**Commiteado** en `d7dc288` (2026-08-08).
 
-## Vista faltante de la propagación: `billing/panel-tarifarios` (2026-08-08, pendiente de commit)
+## Vista faltante de la propagación: `billing/panel-tarifarios` (2026-08-08, commit `d7dc288`)
 
 El usuario preguntó "aplicaste el rediseño aqui tambien?" refiriéndose
 en general al plan de propagación -- un chequeo (`grep` de
@@ -1505,10 +1507,9 @@ origen).
 warning de bundle, ahora 732KB) tras `docker cp` + rebuild + `docker
 restart aerohub-web`. No verificado en navegador real (regla vigente).
 
-**Sin commitear todavía** -- pendiente de pedido explícito del usuario
-(Principio V).
+**Commiteado** en `d7dc288` (2026-08-08).
 
-## Auditoría de la capa operativa + cierre de 2 hallazgos de permisos (2026-08-08, pendiente de commit)
+## Auditoría de la capa operativa + cierre de 2 hallazgos de permisos (2026-08-08, commit `d7dc288`)
 
 Auditoría general pedida por el usuario sobre los 5 roles operativos
 (`role_tenant_admin`, `role_operations_controller`, `role_ramp_agent`,
@@ -1685,10 +1686,9 @@ silenciosamente (159 skipped, que parece verde y no lo es). Ojo con
 anida en `/app/tests/tests` en vez de reemplazar (aparece como archivos
 duplicados en ruff, es ruido del contenedor, no del repo).
 
-**Sin commitear todavía** -- pendiente de pedido explícito del usuario
-(Principio V).
+**Commiteado** en `d7dc288` (2026-08-08).
 
-## Vista de M6 Experiencia del Pasajero (2026-08-08, pendiente de commit)
+## Vista de M6 Experiencia del Pasajero (2026-08-08, commit `e366787`)
 
 Pedido directo del usuario tras la auditoría. Cierra el pendiente que esa
 auditoría dejó explícito: el hallazgo 1 arregló los permisos de M6, pero
@@ -1758,7 +1758,7 @@ una segunda corrida completa (vuelve a 134/6). Es intermitencia de estado
 entre archivos, del mismo tipo ya documentado para este entorno -- no una
 regresión de este cambio, pero queda anotado por si reaparece.
 
-## Ciclo programado de recálculo de M6 (RF-O17, 2026-08-08, pendiente de commit)
+## Ciclo programado de recálculo de M6 (RF-O17, 2026-08-08, commit `00dba60`)
 
 Cierra la brecha que quedó explícita al crear la vista de M6: CU-O19 solo
 se disparaba por API y su propio docstring dejaba la periodicidad como
@@ -1859,7 +1859,7 @@ el menú ofrecía pantallas que producían 403 al primer clic. Corregido:
 administra tenants/API Keys, que no depende de `modulos_visibles`).
 
 **S1.12 implementado** (`specs/014-tableros-operativos-densos/`,
-pendiente de commit): `puertas/tablero-puertas` (M3) rediseñada con
+commit `d7dc288`): `puertas/tablero-puertas` (M3) rediseñada con
 `.ah-tira` por puerta -- el color de la barra refleja ocupación/conflicto,
 calculado en el frontend por solapamiento de intervalos de las
 asignaciones ya cargadas (sin endpoint nuevo); `rampa/panel-turnaround`
@@ -1876,7 +1876,7 @@ incidencias de severidad alta/crítica en rojo, sin scroll horizontal en
 móvil, sin errores de consola, build de producción en verde.
 
 **S1.13 implementado** (`specs/015-vistas-administrativas-consolidacion/`,
-pendiente de commit): `billing/panel-facturas` (M5) rediseñada con
+commit `d7dc288`): `billing/panel-facturas` (M5) rediseñada con
 `.ah-tira` por factura (color = estado, mapeo exhaustivo de los 5
 valores reales: `vencida`/`disputada`→crítico, `emitida`→atención,
 `pagada`→ok, `borrador`→neutro) y `.ah-tabla` para líneas de cargo;
@@ -2188,7 +2188,7 @@ solo el resumen y los hallazgos).
    consola. Build de producción en verde (bundle ~10KB más chico al
    dejar de depender de `_auth-form.scss`).
 
-## `docs/diseno/PLAN_PROPAGACION_WORKPANEL_MODAL.md` implementado (2026-08-08, pendiente de commit)
+## `docs/diseno/PLAN_PROPAGACION_WORKPANEL_MODAL.md` implementado (2026-08-08, commit `d7dc288`)
 
 Propagación completa del patrón de `usuarios/usuario-list` (§1.2/§2 de
 `docs/diseno/MODAL_Y_WORKPANEL.md`) a las 5 vistas administrativas
@@ -2238,8 +2238,7 @@ principio.
    `pool_recycle=180`), confirmado con reintento inmediato (200 OK en
    ambos casos), no una regresión introducida por este pase.
 
-**Sin commitear todavía** -- pendiente de pedido explícito del usuario
-(Principio V).
+**Commiteado** en `d7dc288` (2026-08-08).
 
 ## Checklist de corrección de módulos (lecciones ya cerradas de un plan hoy consolidado, no repetir)
 
