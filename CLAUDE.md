@@ -1758,6 +1758,70 @@ una segunda corrida completa (vuelve a 134/6). Es intermitencia de estado
 entre archivos, del mismo tipo ya documentado para este entorno -- no una
 regresión de este cambio, pero queda anotado por si reaparece.
 
+## Ciclo programado de recálculo de M6 (RF-O17, 2026-08-08, pendiente de commit)
+
+Cierra la brecha que quedó explícita al crear la vista de M6: CU-O19 solo
+se disparaba por API y su propio docstring dejaba la periodicidad como
+*"responsabilidad operativa, no de este módulo"*. En la práctica el dato
+quedaba tan fresco como la última invocación manual -- que **desde S1.6 no
+ocurría nunca**, porque el módulo no tenía ni vista ni proceso que lo
+llamara. RF-O17 pide refresco cada ≤15 min.
+
+1. **Dónde vive**: tarea de fondo del gateway
+   (`_ciclo_recalculo_tiempos_espera` en `services/gateway/main.py`,
+   registrada en el `lifespan` junto al monitor FIDS), NO un contenedor
+   aparte. `continuidad-agente` es contenedor propio porque es
+   infraestructura (snapshots, shipper); esto es lógica de un módulo de
+   negocio y sigue el precedente del **monitor de señal FIDS** (RNF-R04,
+   S1.3): `asyncio.to_thread` porque el ciclo es síncrono. Intervalo =
+   **15 min exactos**, no menos: a diferencia del monitor FIDS (que debe
+   ser sensiblemente menor a su umbral para detectar la transición a
+   tiempo), acá no hay umbral que cruzar -- el requisito ES la frecuencia,
+   y recalcular más seguido solo agregaría carga sin cambiar el dato. El
+   primer ciclo corre en el arranque, sin esperar el intervalo.
+2. **Rol del `alcance_global`: `role_operations_controller`**, no
+   `role_platform_admin` como el monitor FIDS. Es el único con el juego
+   COMPLETO de GRANTs que el ciclo necesita (SELECT sobre `ops.terminal`/
+   `puerta`/`asignacion_puerta` y `rampa.turnaround`, más INSERT/UPDATE
+   sobre `billing.tiempo_espera_agregado`, que `98_grants_billing.sql:54`
+   ya le otorga designándolo como el "Sistema" de CU-O19). Con
+   `role_platform_admin` habría hecho falta un GRANT de escritura nuevo --
+   **no se agregó ninguno**.
+3. **Refactor necesario, no cosmético**: las 4 consultas de
+   `infrastructure/consultas.py` resolvían el tenant con
+   `contexto_tenant_id()`, que bajo `alcance_global` **lanza** (no hay
+   tenant ambiente). Ahora aceptan `tenant_id` explícito opcional: el
+   camino HTTP no lo pasa y sigue resolviéndolo del contexto (que es lo
+   que impide que un cliente elija el tenant), y el ciclo pasa el de cada
+   terminal. El núcleo del cálculo se extrajo a `recalcular_para_terminal`
+   (conexión y tenant explícitos), compartido por ambos caminos -- sin
+   duplicar la agregación. `escribir_journal`/`registrar_auditoria`
+   también reciben `tenant_id` explícito por el mismo motivo.
+4. **Nueva `listar_terminales_de_todos_los_tenants`** -- la única consulta
+   del módulo sin filtro de tenant, válida solo dentro de `alcance_global`.
+5. **Métricas nuevas** (`aerohub_passenger/metricas.py`, mismo patrón
+   transversal que `aerohub_fids.metricas`): timestamp del último ciclo,
+   franjas actualizadas y terminales con error. Las 3 juntas y no solo la
+   frecuencia, porque **un ciclo que corre pero falla en todas las
+   terminales se vería "sano" mirando solo si corre**. Un fallo en una
+   terminal no aborta el ciclo: se cuenta y sigue.
+
+**Verificado**: ruff/mypy (275 archivos)/import-linter (16/16) en verde.
+**El ciclo corrió de verdad al arrancar el gateway**, confirmado por
+`/metrics` (`passenger_recalculo_franjas_actualizadas_total 10`,
+`terminales_con_error_total 0`) y por la base: recorrió las 39 terminales
+de los 2 tenants con datos y publicó 24 franjas para MEC, con
+`calculado_en` del momento del arranque. UIO no publicó ninguna -- su
+única terminal no tiene asignaciones cerradas, que es el comportamiento
+correcto (sin observaciones no se publica estimado).
+`tests/integration/test_passenger_recalculo_programado.py` nuevo (4 tests,
+los 4 en verde): corre sin tenant ambiente, **cada franja queda con el
+tenant de SU terminal** (el riesgo real de un proceso que cruza tenants es
+escribir con el tenant equivocado, una fuga que ningún filtro de lectura
+repararía después), es idempotente entre corridas, y un día sin datos no
+publica franjas inventadas. Suite: 293 unit/negative/cross_tenant y 138 de
+integración, con exactamente los 6 fallos preexistentes ya documentados.
+
 ## Rediseño de interfaz (S1.11–S1.14)
 
 La capa operativa (S0.1–S1.10) está **completa y commiteada**. Lo siguiente

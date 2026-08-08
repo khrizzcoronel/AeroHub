@@ -1,4 +1,5 @@
 from aerohub_repository import (
+    alcance_global,
     escribir_journal,
     registrar_auditoria,
     reintentar_en_conflicto,
@@ -11,6 +12,7 @@ from .comandos import insertar_o_actualizar_tiempo_espera
 from .consultas import (
     listar_asignaciones_completadas_de_terminal,
     listar_terminales,
+    listar_terminales_de_todos_los_tenants,
     listar_tiempos_espera,
     listar_turnarounds_de_vuelos,
     obtener_franja_existente,
@@ -22,6 +24,8 @@ from .consultas import (
 __all__ = [
     "obtener_terminal_por_id",
     "listar_terminales",
+    "listar_terminales_de_todos_los_tenants",
+    "alcance_global",
     "listar_asignaciones_completadas_de_terminal",
     "listar_turnarounds_de_vuelos",
     "obtener_franja_existente",

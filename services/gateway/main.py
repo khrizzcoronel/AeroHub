@@ -19,6 +19,7 @@ Uso (desarrollo):
 from __future__ import annotations
 
 import asyncio
+import time
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -30,6 +31,8 @@ from aerohub_compliance.api import router as router_compliance
 from aerohub_fids.api import router as router_fids
 from aerohub_fids.application import ejecutar_ciclo_monitoreo
 from aerohub_fids.metricas import contar_pantalla_sin_senal
+from aerohub_passenger.application import ejecutar_ciclo_recalculo
+from aerohub_passenger.metricas import observar_ciclo_recalculo
 from aerohub_gates.api import router as router_gates
 from aerohub_gateway.api import AutenticacionJWTMiddleware
 from aerohub_passenger.api import router as router_passenger
@@ -63,6 +66,14 @@ _ORIGENES_DEV = [
 # al umbral de 60s (ver aerohub_fids.application.monitorear_senal) para
 # que la deteccion tenga margen real, no solo en el caso promedio.
 _INTERVALO_MONITOR_SENAL_S = 10.0
+
+# RF-O17 exige refrescar el estimado de tiempo de espera cada <= 15 min.
+# Se usa el limite exacto, no un valor menor: a diferencia del monitor de
+# senal FIDS (donde el ciclo debe ser sensiblemente menor al umbral para
+# detectar la transicion a tiempo), aca no hay umbral que cruzar -- el
+# requisito ES la frecuencia de refresco, y recalcular mas seguido solo
+# agregaria carga sobre MonetDB sin cambiar el dato.
+_INTERVALO_RECALCULO_TIEMPOS_ESPERA_S = 15 * 60.0
 
 _TAGS = [
     {
@@ -118,6 +129,40 @@ async def _ciclo_monitor_senal_fids() -> None:
         await asyncio.sleep(_INTERVALO_MONITOR_SENAL_S)
 
 
+async def _ciclo_recalculo_tiempos_espera() -> None:
+    """Tarea de fondo (RF-O17, 2026-08-08): recalcula los tiempos de espera
+    del dia en curso para todas las terminales de todos los tenants.
+
+    Hasta ahora CU-O19 solo se disparaba por API y su docstring dejaba la
+    periodicidad como "responsabilidad operativa" -- en la practica el dato
+    quedaba tan fresco como la ultima invocacion manual, que desde S1.6 no
+    ocurria nunca. Mismo patron que `_ciclo_monitor_senal_fids`:
+    `asyncio.to_thread` porque el ciclo es sincrono (SQLAlchemy sync).
+
+    El primer ciclo corre en el arranque, sin esperar el intervalo: si el
+    proceso se reinicia, el dato no debe quedar 15 minutos sin refrescar.
+    """
+    while True:
+        try:
+            resultado = await asyncio.to_thread(ejecutar_ciclo_recalculo)
+            observar_ciclo_recalculo(
+                momento_unix=time.time(),
+                franjas_actualizadas=resultado.franjas_actualizadas,
+                terminales_con_error=resultado.terminales_con_error,
+            )
+            if resultado.terminales_con_error:
+                _registro.warning(
+                    "ciclo de recalculo de tiempos de espera: %s de %s terminales fallaron",
+                    resultado.terminales_con_error,
+                    resultado.terminales_evaluadas,
+                )
+        except Exception:
+            # Igual que el monitor FIDS: un ciclo fallido (p. ej. MonetDB
+            # momentaneamente inalcanzable) no debe matar la tarea.
+            _registro.exception("fallo un ciclo de recalculo de tiempos de espera")
+        await asyncio.sleep(_INTERVALO_RECALCULO_TIEMPOS_ESPERA_S)
+
+
 def _manejador_acceso_denegado_motor(request: Request, exc: Exception) -> JSONResponse:
     """Sprint S1.6: primer caso de un rol con CERO grants sobre un esquema
     completo (role_support sobre `billing`, matriz 4.3.1 celda '-',
@@ -160,11 +205,15 @@ def _manejador_acceso_denegado_motor(request: Request, exc: Exception) -> JSONRe
 
 @asynccontextmanager
 async def _ciclo_de_vida(app: FastAPI) -> AsyncIterator[None]:
-    tarea = asyncio.create_task(_ciclo_monitor_senal_fids())
+    tareas = [
+        asyncio.create_task(_ciclo_monitor_senal_fids()),
+        asyncio.create_task(_ciclo_recalculo_tiempos_espera()),
+    ]
     try:
         yield
     finally:
-        tarea.cancel()
+        for tarea in tareas:
+            tarea.cancel()
 
 
 def crear_app() -> FastAPI:
