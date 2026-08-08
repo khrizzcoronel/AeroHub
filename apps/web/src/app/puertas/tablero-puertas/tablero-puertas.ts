@@ -8,6 +8,7 @@ import {
   PuertaTablero,
   PuertasService,
   Terminal,
+  VueloSinAsignar,
 } from '../puertas.service';
 import { AuthService } from '../../auth/auth.service';
 import { ToastService } from '../../shared/toast.service';
@@ -46,6 +47,7 @@ export class TableroPuertas {
   protected readonly error = signal<string | null>(null);
   protected readonly resultadoAutomatica = signal<AsignacionAutomaticaResponse | null>(null);
 
+  protected readonly vuelosSinAsignar = signal<VueloSinAsignar[]>([]);
   protected readonly vueloId = signal('');
   protected readonly puertaId = signal('');
   protected readonly inicioPrevisto = signal('');
@@ -153,6 +155,9 @@ export class TableroPuertas {
   constructor() {
     this.cargarTablero();
     this.puertasService.listarTerminales().subscribe({ next: (r) => this.terminales.set(r) });
+    this.puertasService.listarVuelosSinAsignar().subscribe({
+      next: (r) => this.vuelosSinAsignar.set(r),
+    });
   }
 
   protected cargarTablero(): void {
@@ -186,6 +191,9 @@ export class TableroPuertas {
           this.asignando.set(false);
           this.mostrarModalAsignar.set(false);
           this.cargarTablero();
+          this.puertasService.listarVuelosSinAsignar().subscribe({
+            next: (r) => this.vuelosSinAsignar.set(r),
+          });
         },
         error: (err: HttpErrorResponse) => {
           // "notificacion de conflicto" (Plan §8.4): el 409 de PN-05 (o

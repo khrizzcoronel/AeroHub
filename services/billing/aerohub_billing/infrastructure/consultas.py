@@ -8,23 +8,31 @@ lleva el filtro de tenant explicito.
 `total` de factura y `diferencia` de conciliacion_pax se derivan aqui
 (3NF, SDD-DATA-001 Sec9.5/9.7) -- nunca son columnas.
 
-Nota de alcance: la matriz de privilegios anota "(facturas propias)" para
-role_tenant_admin y "(sus cargos)" para role_airline_coordinator, pero
-ningun CU fuente (SRS/analisis v6.0) define un filtro adicional por
-aerolinea a nivel de usuario individual -- mismo tipo de vacio ya
-documentado para role_ramp_agent en S1.5 (ver 97_grants_rampa.sql). El
-aislamiento aplicado aqui es por tenant (ya cubre "propias" en el sentido
-de "de este tenant, no de otro"); un filtro mas fino por aerolinea
-asociada al usuario queda fuera de alcance de este sprint (ninguna tabla
-del modelo asocia tenants.usuario a catalogo.aerolinea todavia).
+Nota de alcance (ACTUALIZADA 2026-08-08, hallazgo 3 de la auditoria de la
+capa operativa): la matriz de privilegios anota "(facturas propias)" para
+role_tenant_admin y "(sus cargos)" para role_airline_coordinator. Hasta
+esta fecha el recorte por aerolinea no estaba implementado porque no era
+REPRESENTABLE -- ninguna tabla asociaba `tenants.usuario` a
+`catalogo.aerolinea`. Con la columna `tenants.usuario.aerolinea_id`
+(02_tenants.sql) ya lo es, y `filtro_aerolinea_del_actor` mas abajo lo
+aplica para role_airline_coordinator.
+
+role_tenant_admin sigue SIN recorte adicional: "(facturas propias)" para
+ese rol significa "de este tenant, no de otro" -- es el administrador del
+tenant, ve toda la facturacion del tenant por definicion.
 """
 
 from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from typing import Any
 
-from aerohub_repository.contexto import contexto_tenant_id
+from aerohub_repository.contexto import (
+    contexto_aerolinea_id,
+    contexto_rol_actor,
+    contexto_tenant_id,
+)
 from sqlalchemy import func, select
 from sqlalchemy.engine import Connection, Row
 
@@ -159,6 +167,36 @@ def listar_cargos_no_facturados(conn: Connection, *, vuelo_ids: list[int]) -> li
     return list(conn.execute(stmt))
 
 
+# Minimo privilegio dentro del propio tenant: la matriz 4.3.1 asigna a
+# role_airline_coordinator U,S sobre `billing` acotado a "(sus cargos)", y
+# 98_grants_billing.sql delega ese recorte a la aplicacion (MonetDB no
+# tiene RLS). Copia local deliberada del helper equivalente de
+# aerohub_aodb: el contrato de independencia de modulos (.importlinter)
+# prohibe importar domain/application de otro modulo, y duplicar 8 lineas
+# es preferible a crear un acoplamiento -- mismo criterio con el que cada
+# modulo redeclara las Table() que necesita de otro esquema.
+_ROL_CON_ACCESO_RESTRINGIDO = "role_airline_coordinator"
+
+
+def filtro_aerolinea_del_actor(columna_aerolinea: Any = None) -> list[Any]:
+    """Ver `aerohub_aodb.infrastructure.consultas.filtro_aerolinea_del_actor`.
+
+    Fail-closed: un coordinador sin `aerolinea_id` configurada no ve
+    NINGUNA factura, nunca todas. El centinela es `IS NULL` sobre una
+    columna NOT NULL (12_billing.sql:92), no `false()` -- ver el hallazgo
+    documentado en el helper equivalente de aerohub_aodb: `false()` hace
+    que SQLAlchemy colapse el WHERE entero y el guardian G2 aborte la
+    consulta por perder el filtro de tenant.
+    """
+    if contexto_rol_actor() != _ROL_CON_ACCESO_RESTRINGIDO:
+        return []
+    columna = factura.c.aerolinea_id if columna_aerolinea is None else columna_aerolinea
+    aerolinea_id = contexto_aerolinea_id()
+    if aerolinea_id is None:
+        return [columna.is_(None)]
+    return [columna == aerolinea_id]
+
+
 def obtener_factura_por_tenant_aerolinea_periodo(
     conn: Connection, *, aerolinea_id: int, periodo_inicio: date, periodo_fin: date
 ) -> Row | None:
@@ -172,8 +210,12 @@ def obtener_factura_por_tenant_aerolinea_periodo(
 
 
 def obtener_factura_por_id(conn: Connection, factura_id: int) -> Row | None:
+    """Devuelve None -- 404, nunca 403 (PN-01) -- si la factura es de otra
+    aerolinea y el actor es role_airline_coordinator."""
     stmt = select(factura).where(
-        factura.c.tenant_id == contexto_tenant_id(), factura.c.id == factura_id
+        factura.c.tenant_id == contexto_tenant_id(),
+        factura.c.id == factura_id,
+        *filtro_aerolinea_del_actor(),
     )
     return conn.execute(stmt).first()
 
@@ -189,6 +231,10 @@ def listar_facturas(
     condiciones = [factura.c.tenant_id == contexto_tenant_id()]
     if aerolinea_id is not None:
         condiciones.append(factura.c.aerolinea_id == aerolinea_id)
+    # "(sus cargos)" de la matriz 4.3.1 para role_airline_coordinator
+    # (hallazgo 3, 2026-08-08): hasta ahora este rol veia las facturas de
+    # TODAS las aerolineas del tenant, incluida la competencia.
+    condiciones.extend(filtro_aerolinea_del_actor())
     if estado is not None:
         condiciones.append(factura.c.estado == estado)
     if periodo_inicio is not None:

@@ -12,6 +12,9 @@ from aerohub_kernel import ahora_utc
 
 from ..domain import TransicionUsuarioInvalida, validar_transicion_estado_usuario
 from ..infrastructure import (
+    actualizar_aerolinea_usuario as _actualizar_aerolinea_usuario,
+)
+from ..infrastructure import (
     actualizar_estado_usuario as _actualizar_estado_usuario,
 )
 from ..infrastructure import contexto_tenant_id as _contexto_tenant_id
@@ -40,6 +43,7 @@ class UsuarioDetalle:
     estado: str
     rol_codigo: str | None
     rol_nombre: str | None
+    aerolinea_id: int | None = None
 
 
 def _fila_a_detalle(f: object) -> UsuarioDetalle:
@@ -50,6 +54,7 @@ def _fila_a_detalle(f: object) -> UsuarioDetalle:
         estado=f.estado,  # type: ignore[attr-defined]
         rol_codigo=f.rol_codigo,  # type: ignore[attr-defined]
         rol_nombre=f.rol_nombre,  # type: ignore[attr-defined]
+        aerolinea_id=f.aerolinea_id,  # type: ignore[attr-defined]
     )
 
 
@@ -100,6 +105,54 @@ def actualizar_rol_usuario(*, usuario_id: int, rol_codigo: str) -> UsuarioDetall
             operacion="UPDATE",
             valores_anteriores={"rol_codigo": fila_actual.rol_codigo},
             valores_nuevos={"rol_codigo": rol_codigo},
+            tenant_id=tenant_id,
+        )
+
+    return obtener_usuario_del_tenant(usuario_id)
+
+
+@reintentar_en_conflicto()
+def asignar_aerolinea_usuario(
+    *, usuario_id: int, aerolinea_id: int | None
+) -> UsuarioDetalle:
+    """Hallazgo 3 de la auditoria de la capa operativa (2026-08-08): sin
+    esto la columna `tenants.usuario.aerolinea_id` no tendria forma de
+    poblarse desde la aplicacion, y el recorte "solo sus itinerarios" de
+    role_airline_coordinator dejaria a todo coordinador viendo 0 vuelos
+    (fail-closed) para siempre.
+
+    `aerolinea_id=None` desasigna -- valido y necesario: un usuario puede
+    dejar de representar a una aerolinea. No se valida que la aerolinea
+    exista con una consulta previa: la FK `fk_usuario_aerolinea` ya lo
+    garantiza en el motor.
+    """
+    tenant_id = _contexto_tenant_id()
+
+    with sesion() as conn:
+        fila_actual = _obtener_usuario_con_rol_por_id(conn, usuario_id)
+        if fila_actual is None:
+            raise UsuarioDelTenantNoEncontrado(f"usuario {usuario_id} no encontrado")
+
+        _actualizar_aerolinea_usuario(
+            conn, id=usuario_id, tenant_id=tenant_id, aerolinea_id=aerolinea_id
+        )
+        escribir_journal(
+            conn,
+            esquema="tenants",
+            tabla="usuario",
+            operacion="UPDATE",
+            clave_primaria={"id": usuario_id},
+            payload={"aerolinea_id": aerolinea_id},
+            tenant_id=tenant_id,
+        )
+        registrar_auditoria(
+            conn,
+            esquema="tenants",
+            tabla="usuario",
+            registro_id=usuario_id,
+            operacion="UPDATE",
+            valores_anteriores={"aerolinea_id": fila_actual.aerolinea_id},
+            valores_nuevos={"aerolinea_id": aerolinea_id},
             tenant_id=tenant_id,
         )
 

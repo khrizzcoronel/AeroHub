@@ -56,17 +56,31 @@ cabecera de §1.2:
     confirmar operaciones exitosas — nunca un `alert()` ni un mensaje que
     reemplace el contenido de la vista.
 
-### 1.2 Iteración de cabecera (2026-08-08) -- vigente en 9 vistas administrativas/operativas de `role_tenant_admin`
+### 1.2 Iteración de cabecera (2026-08-08) -- vigente en las 10 vistas administrativas/operativas de `role_tenant_admin`
 
 Rediseño puntual de la cabecera y la barra de búsqueda, pedido con una
 captura de referencia externa, nacido en `usuarios/usuario-list` y
 propagado el mismo día (`docs/diseno/PLAN_PROPAGACION_WORKPANEL_MODAL.md`,
-implementado) a **API Keys, Licencias, FIDS, Soporte y Compliance Hub**, y
-extendido después a pedido explícito del usuario a las 3 vistas
-operativas densas restantes que sí tienen consumidor de `role_tenant_admin`:
-**Terminal & Gate Manager (`puertas/tablero-puertas`), Ground Operations
-(`rampa/panel-turnaround`) y Revenue & Billing (`billing/panel-facturas`)**.
-`vuelos/estado-tiempo-real` sigue sin tocar (no fue parte de ningún pedido).
+implementado) a **Llaves de API, Licencias, FIDS, Soporte y Centro de
+Cumplimiento**, extendido después a pedido explícito del usuario a las 3
+vistas operativas densas restantes que sí tienen consumidor de
+`role_tenant_admin` (**Gestión de Terminales y Puertas, Operaciones de
+Rampa y Facturación e Ingresos**), y por último a **AODB
+(`vuelos/estado-tiempo-real`)** -- quedó fuera de las primeras 2 rondas
+por su nombre corto (una sigla, no un título largo como el resto),
+corregido a pedido explícito ("al modulo de AODB porque la abreviacion,
+ese no se la aplico el rediseño del plan"). **Única adaptación de AODB
+respecto al patrón estándar**: sin ícono de refresco (`.consola__refrescar`)
+-- esta vista no tiene ningún "cargar" manual, se conecta sola por
+WebSocket y se reconecta sola si se cae (Fase 5 item 14 de
+`PLAN_CORRECCION_MODULOS.md`, ya consolidado) -- el indicador de conexión
+(`.consola__conexion`, semáforo `.ah-punto`) ocupa ese lugar, en la misma
+fila que el `<h1>`. El chip KPI de AODB se redujo a uno solo ("N eventos
+en estado crítico", `.ah-chip--critico`) -- se retiró el conteo neutro de
+"eventos recientes" que existía antes como texto libre, porque no hay
+variante neutra de `.ah-chip` (el primitivo solo define `--critico`/
+`--atencion`, por diseño: un chip existe para llamar la atención, no para
+narrar un total ya visible en la tabla).
 **No propagado a `tenants/tenant-list`** (es de `role_platform_admin`,
 fuera de alcance). Si se pide extenderlo a alguna vista más, aplicar
 exactamente esto, no reinterpretarlo:

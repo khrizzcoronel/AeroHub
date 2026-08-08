@@ -13,22 +13,17 @@
   box-sizing: border-box;
 }
 
+// Cabecera + fila de busqueda: mismo patron que usuarios/usuario-list
+// (docs/diseno/MODAL_Y_WORKPANEL.md §1.2), propagado aca -- unica
+// adaptacion: sin icono de refresco (no hay "cargar" manual, la vista se
+// conecta sola por WebSocket, Fase 5 item 14), con el indicador de
+// conexion en su lugar, en la misma fila que el <h1>.
 .consola__cabecera {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-}
-
-.consola__resumen {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--ah-ink-600);
-}
-
-.resumen-critico {
-  color: var(--ah-estado-critico);
 }
 
 .consola__conexion {
@@ -40,15 +35,48 @@
   color: var(--ah-ink-600);
 }
 
+.consola__kpis {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.consola__fila-busqueda {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ah-buscador {
+  position: relative;
+  flex: 2 1 260px;
+}
+
+.ah-buscador__icono {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  color: var(--ah-ink-400);
+  pointer-events: none;
+}
+
+.ah-buscador input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem 0.65rem 2rem;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  font-size: 0.95rem;
+  font-family: inherit;
+  height: 2.8rem;
+}
+
 .ah-vacio {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.6rem;
-}
-
-.consola__acciones {
-  display: flex;
   gap: 0.6rem;
 }
 

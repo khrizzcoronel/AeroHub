@@ -11,7 +11,15 @@ export interface UsuarioResumen {
   ultimo_acceso_en: string | null;
   rol_codigo: string | null;
   rol_nombre: string | null;
+  aerolinea_id: string | null;
 }
+
+// Roles cuyo alcance de datos depende de una aerolínea concreta
+// (hallazgo 3 de la auditoría de la capa operativa, 2026-08-08). Solo
+// para estos el workpanel ofrece el selector: asignarle una aerolínea a
+// un controlador de operaciones no cambiaría nada, el filtro de
+// infrastructure/ solo se aplica a role_airline_coordinator.
+export const ROLES_CON_AEROLINEA = ['role_airline_coordinator'] as const;
 
 export interface UsuarioDetalle {
   id: string;
@@ -20,6 +28,11 @@ export interface UsuarioDetalle {
   estado: string;
   rol_codigo: string | null;
   rol_nombre: string | null;
+  // Hallazgo 3 de la auditoría de la capa operativa (2026-08-08): la
+  // aerolínea a la que pertenece el usuario. Solo tiene sentido para
+  // role_airline_coordinator, que ve únicamente los vuelos y facturas de
+  // esta aerolínea. `null` para el resto (personal del aeropuerto).
+  aerolinea_id: string | null;
 }
 
 export interface InvitarResponse {
@@ -68,6 +81,19 @@ export class UsuarioService {
   actualizarRolUsuario(usuarioId: string, rolCodigo: string): Observable<UsuarioDetalle> {
     return this.http.patch<UsuarioDetalle>(`${API_BASE_URL}/usuarios/${usuarioId}`, {
       rol_codigo: rolCodigo,
+    });
+  }
+
+  // Hallazgo 3 de la auditoría de la capa operativa (2026-08-08): puebla
+  // `tenants.usuario.aerolinea_id`. Sin esto un role_airline_coordinator
+  // no ve NINGÚN vuelo -- el recorte por aerolínea es fail-closed a
+  // propósito. `null` desasigna.
+  asignarAerolineaUsuario(
+    usuarioId: string,
+    aerolineaId: string | null,
+  ): Observable<UsuarioDetalle> {
+    return this.http.patch<UsuarioDetalle>(`${API_BASE_URL}/usuarios/${usuarioId}/aerolinea`, {
+      aerolinea_id: aerolineaId,
     });
   }
 

@@ -43,8 +43,14 @@ usuario = Table(
     Column("email", String(254)),
     Column("hash_credencial", String(255)),
     Column("nombre", String(150)),
-    Column("estado", String(20)),
+    # String(30), no 20: sigue al DDL (chk_usuario_estado permite
+    # 'eliminado_logicamente', 21 caracteres) -- la declaracion habia
+    # quedado desalineada al ensanchar la columna real.
+    Column("estado", String(30)),
     Column("mfa_habilitado", Boolean),
+    # Hallazgo 3 de la auditoria de la capa operativa (2026-08-08): vinculo
+    # usuario -> aerolinea que hace representable "solo sus itinerarios".
+    Column("aerolinea_id", BigInt),
     Column("creado_en", DateTime(timezone=True)),
     # Columnas del ciclo de vida de la credencial, agregadas en S1.10
     # (data-model.md): `ultimo_acceso_en` ya existia sin usar desde S0.2.

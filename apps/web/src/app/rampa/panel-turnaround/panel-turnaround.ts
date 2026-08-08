@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Incidencia, RampaService, Tarea, TipoTarea, Turnaround } from '../rampa.service';
 import { AuthService } from '../../auth/auth.service';
+import { VueloListado, VueloService } from '../../vuelos/vuelo.service';
 
 // Semaforo de turnaround (Sprint S1.12, research.md Decision 2): mapeo
 // de presentacion sobre el 'estado' que el backend ya expone --
@@ -138,6 +139,19 @@ export class PanelTurnaround {
 
   private readonly rampaService = inject(RampaService);
   private readonly auth = inject(AuthService);
+  private readonly vueloService = inject(VueloService);
+
+  // 2026-08-08, pedido directo del usuario ("deberia ser combo
+  // seleccioname" en vez de pedir el id de vuelo a mano) -- catalogo
+  // para poblar los <select> de vuelo llegada/salida del modal "Crear
+  // turnaround", mismo patron ya usado en billing/panel-tarifarios.
+  protected readonly vuelosDisponibles = signal<VueloListado[]>([]);
+  protected readonly vuelosLlegada = computed(() =>
+    this.vuelosDisponibles().filter((v) => v.sentido === 'L'),
+  );
+  protected readonly vuelosSalida = computed(() =>
+    this.vuelosDisponibles().filter((v) => v.sentido === 'S'),
+  );
 
   // Fase 1 de docs/diseno/PLAN_CORRECCION_MODULOS.md (2026-08-06, D1(a)):
   // role_tenant_admin perdio rampa:escribir (la matriz reserva rampa a
@@ -155,6 +169,9 @@ export class PanelTurnaround {
     this.cargarTurnarounds();
     this.cargarIncidencias();
     this.cargarTiposTarea();
+    this.vueloService.listarVuelos().subscribe({
+      next: (r) => this.vuelosDisponibles.set(r),
+    });
   }
 
   private cargarTiposTarea(): void {

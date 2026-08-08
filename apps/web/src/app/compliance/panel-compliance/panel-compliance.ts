@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AuthService, mensajeDeError } from '../../auth/auth.service';
 import { ToastService } from '../../shared/toast.service';
+import { UsuarioResumen, UsuarioService } from '../../usuarios/usuario.service';
 import {
   AccesoAuditor,
   ComplianceService,
@@ -63,6 +64,7 @@ export class PanelCompliance {
   private readonly complianceService = inject(ComplianceService);
   private readonly toast = inject(ToastService);
   private readonly authService = inject(AuthService);
+  private readonly usuarioService = inject(UsuarioService);
 
   protected readonly cargando = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -217,6 +219,20 @@ export class PanelCompliance {
     (this.authService.perfil()?.scopes ?? []).includes('compliance:escribir'),
   );
 
+  // 2026-08-08, pedido directo del usuario ("deberia ser combo
+  // seleccioname" en vez de pedir el id a mano) -- catalogo para el
+  // <select> del modal "Otorgar acceso". GET /usuarios exige
+  // usuarios:administrar (no existe un scope usuarios:leer separado):
+  // role_tenant_admin lo tiene y ve el select real; role_sre (el otro
+  // rol con compliance:escribir) no lo tiene -- se le deja el campo de
+  // texto libre en vez de ampliarle el scope solo para poblar un select
+  // (usuarios:administrar es mucho mas que lectura: invitar, cambiar rol,
+  // suspender).
+  protected readonly puedeListarUsuarios = computed(() =>
+    (this.authService.perfil()?.scopes ?? []).includes('usuarios:administrar'),
+  );
+  protected readonly usuariosDisponibles = signal<UsuarioResumen[]>([]);
+
   // KPI en vivo (docs/diseno/MODAL_Y_WORKPANEL.md §1.2 punto 2) --
   // mostrados como chips de cabecera de pagina (no por seccion).
   protected readonly incidentesAbiertos = computed(
@@ -228,6 +244,11 @@ export class PanelCompliance {
 
   constructor() {
     this.cargarTodo();
+    if (this.puedeListarUsuarios()) {
+      this.usuarioService.listarUsuarios().subscribe({
+        next: (r) => this.usuariosDisponibles.set(r),
+      });
+    }
   }
 
   protected cargarTodo(): void {

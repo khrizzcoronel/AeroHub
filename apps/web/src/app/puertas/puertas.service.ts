@@ -65,6 +65,14 @@ export interface CrearPuertaRequest {
   tiene_pasarela: boolean;
 }
 
+export interface VueloSinAsignar {
+  id: string;
+  numero_vuelo: string;
+  sta_utc: string;
+  std_utc: string;
+  envergadura_m: number;
+}
+
 // Sprint S1.11 (research.md Decision 2, deuda de JWT): ningun metodo
 // recibe ya un tokenJwt por parametro -- authInterceptor (S1.10) agrega
 // el header Authorization a toda peticion HTTP saliente.
@@ -113,5 +121,12 @@ export class PuertasService {
 
   editarPuerta(puertaId: string, peticion: CrearPuertaRequest): Observable<void> {
     return this.http.patch<void>(`${API_BASE_URL}/puertas/${puertaId}`, peticion);
+  }
+
+  // 2026-08-08, pedido directo del usuario ("deberia ser combo
+  // seleccioname" en vez de pedir el id de vuelo a mano) -- catalogo
+  // para el <select> del modal "Asignar puerta manualmente".
+  listarVuelosSinAsignar(): Observable<VueloSinAsignar[]> {
+    return this.http.get<VueloSinAsignar[]>(`${API_BASE_URL}/puertas/vuelos-sin-asignar`);
   }
 }

@@ -168,16 +168,76 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     "role_operations_controller": (
         frozenset({"M1", "M3", "M4"}),
         frozenset(
-            {"vuelos:leer", "vuelos:escribir", "puertas:leer", "puertas:escribir", "rampa:leer"}
+            {
+                "vuelos:leer",
+                "vuelos:escribir",
+                "puertas:leer",
+                "puertas:escribir",
+                "rampa:leer",
+                # 2026-08-08, hallazgo 1 de la auditoria de la capa
+                # operativa: passenger:escribir no lo tenia NINGUN rol --
+                # POST /passenger/tiempos-espera/recalcular (CU-O19,
+                # RF-O17) era inalcanzable por cualquier sesion humana
+                # desde S1.6 (cuarto caso de la familia fids:* S1.16 /
+                # compliance:* S1.19 / support:* S1.20). Este rol es el
+                # destinatario natural: 98_grants_billing.sql:19,54 ya le
+                # otorga S,I,Up sobre billing.tiempo_espera_agregado
+                # justamente porque el "Sistema" que ejecuta el recalculo
+                # de CU-O19 corre bajo este rol -- el GRANT de motor
+                # existia desde S1.6, solo faltaba el scope de aplicacion
+                # que lo hiciera invocable (causa raiz A invertida).
+                "passenger:leer",
+                "passenger:escribir",
+            }
         ),
     ),
     "role_airline_coordinator": (
         frozenset({"M1", "M6"}),
-        frozenset({"vuelos:leer", "passenger:leer"}),
+        frozenset(
+            {
+                "vuelos:leer",
+                # 2026-08-08, hallazgo 2 de la auditoria de la capa
+                # operativa: la matriz 4.3.1 le asigna U,S,I,Up sobre
+                # `ops` ("solo sus itinerarios") y 96_grants_ops.sql:97-103
+                # ya le otorga INSERT/UPDATE sobre ops.vuelo/vuelo_estado
+                # desde S1.4 -- pero sin este scope el rol no podia crear
+                # ni modificar un solo vuelo: motor abierto, aplicacion
+                # cerrada. Su superficie usable era UNA vista de solo
+                # lectura. Verificado antes de agregarlo que la ruta de
+                # escritura completa esta aprovisionada (INSERT sobre
+                # continuidad.journal_mutacion y compliance.log_auditoria),
+                # asi que no hace falta ningun GRANT nuevo.
+                #
+                # NO se agrega puertas:* aunque el motor tambien le otorgue
+                # asignacion_puerta: la columna `ops` de la matriz es de
+                # granularidad de esquema, y la asignacion de modulos
+                # (M1, M6) es la autoridad mas fina sobre lo que este rol
+                # realmente opera -- M3 es de role_operations_controller.
+                "vuelos:escribir",
+                "passenger:leer",
+            }
+        ),
     ),
     "role_ramp_agent": (
+        # M1 NO se agrega aqui a proposito -- vuelos:leer abajo es solo
+        # para poblar el <select> del formulario de turnaround, no para
+        # que este rol vea el workpanel completo de AODB en su menu
+        # (mismo criterio que role_billing_officer, que tampoco gano M1).
         frozenset({"M4"}),
-        frozenset({"rampa:leer", "rampa:escribir"}),
+        frozenset(
+            {
+                "rampa:leer",
+                "rampa:escribir",
+                # 2026-08-08 -- hallazgo/pedido directo del usuario: el
+                # formulario "Crear turnaround" pedia vuelo_llegada_id/
+                # vuelo_salida_id a mano, sin ningun select (mismo patron
+                # ya corregido para role_billing_officer + vuelos:leer en
+                # Fase 5 de PLAN_CORRECCION_MODULOS.md). role_ramp_agent
+                # es, junto a role_operations_controller (que ya tenia
+                # vuelos:leer), el otro rol real que crea turnarounds.
+                "vuelos:leer",
+            }
+        ),
     ),
     "role_billing_officer": (
         frozenset({"M5"}),

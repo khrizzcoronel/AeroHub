@@ -602,8 +602,21 @@
       }
       <div class="formulario">
         <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="auditorUsuarioId">Usuario auditor (id)</label>
-          <input id="auditorUsuarioId" type="text" [ngModel]="auditorUsuarioId()" (ngModelChange)="auditorUsuarioId.set($event)" name="auditorUsuarioId" />
+          <label class="ah-campo__etiqueta" for="auditorUsuarioId">Usuario auditor</label>
+          @if (puedeListarUsuarios()) {
+            @if (usuariosDisponibles().length === 0) {
+              <p class="ah-vacio ah-vacio--compacto">Sin usuarios disponibles en este tenant.</p>
+            } @else {
+              <select id="auditorUsuarioId" [ngModel]="auditorUsuarioId()" (ngModelChange)="auditorUsuarioId.set($event)" name="auditorUsuarioId">
+                <option value="" disabled selected>Seleccionar...</option>
+                @for (u of usuariosDisponibles(); track u.id) {
+                  <option [value]="u.id">{{ u.nombre }} ({{ u.email }})</option>
+                }
+              </select>
+            }
+          } @else {
+            <input id="auditorUsuarioId" type="text" [ngModel]="auditorUsuarioId()" (ngModelChange)="auditorUsuarioId.set($event)" name="auditorUsuarioId" placeholder="Id de usuario" />
+          }
         </div>
         <div class="ah-campo">
           <label class="ah-campo__etiqueta" for="inicioAcceso">Inicio</label>

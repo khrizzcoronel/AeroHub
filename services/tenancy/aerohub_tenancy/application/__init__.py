@@ -1,21 +1,25 @@
+from .actualizar_usuario import (
+    UsuarioDelTenantNoEncontrado,
+    UsuarioDetalle,
+    actualizar_rol_usuario,
+    asignar_aerolinea_usuario,
+    cambiar_estado_usuario,
+    obtener_usuario_del_tenant,
+)
 from .aprovisionar_tenant import ResultadoAprovisionamiento, aprovisionar_tenant
 from .cerrar_sesion import cerrar_sesion
 from .consultar_catalogos import Aeropuerto, Plan
 from .consultar_catalogos import listar_aeropuertos as consultar_aeropuertos
 from .consultar_catalogos import listar_planes as consultar_planes
+from .consultar_licencias import LicenciaResumen, consultar_licencias_del_tenant
 from .consultar_perfil import (
     PerfilAcceso,
     UsuarioNoEncontrado,
     consultar_mi_perfil,
     consultar_perfil,
 )
-from .informes import (
-    GrupoInforme,
-    InformeCompuesto,
-    InformeSimple,
-    consultar_informe_tenants_compuesto,
-    consultar_informe_tenants_simple,
-)
+from .consultar_usuarios import UsuarioResumen, consultar_usuarios_del_tenant
+from .eliminar_tenant import eliminar_tenant_fisico
 from .gestionar_api_key import (
     ApiKeyNoEncontrada,
     ApiKeyResumen,
@@ -51,23 +55,20 @@ from .gestionar_tenant import (
     obtener_tenant,
 )
 from .gestionar_tenant import listar_tenants as consultar_tenants
+from .informes import (
+    GrupoInforme,
+    InformeCompuesto,
+    InformeSimple,
+    consultar_informe_tenants_compuesto,
+    consultar_informe_tenants_simple,
+)
 from .iniciar_sesion import CredencialesInvalidas, ResultadoLogin, iniciar_sesion
-from .verificar_correo import TokenInvalido as VerificacionTokenInvalido
-from .verificar_correo import solicitar_verificacion, verificar_correo
 from .validar_disponibilidad import (
     ResultadoValidacionDisponibilidad,
     validar_disponibilidad_tenant,
 )
-from .eliminar_tenant import eliminar_tenant_fisico
-from .consultar_usuarios import UsuarioResumen, consultar_usuarios_del_tenant
-from .consultar_licencias import LicenciaResumen, consultar_licencias_del_tenant
-from .actualizar_usuario import (
-    UsuarioDelTenantNoEncontrado,
-    UsuarioDetalle,
-    actualizar_rol_usuario,
-    cambiar_estado_usuario,
-    obtener_usuario_del_tenant,
-)
+from .verificar_correo import TokenInvalido as VerificacionTokenInvalido
+from .verificar_correo import solicitar_verificacion, verificar_correo
 
 __all__ = [
     "aprovisionar_tenant",
@@ -123,6 +124,7 @@ __all__ = [
     "LicenciaResumen",
     "obtener_usuario_del_tenant",
     "actualizar_rol_usuario",
+    "asignar_aerolinea_usuario",
     "cambiar_estado_usuario",
     "UsuarioDetalle",
     "UsuarioDelTenantNoEncontrado",

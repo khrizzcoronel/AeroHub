@@ -23,6 +23,7 @@ class UsuarioResumen:
     ultimo_acceso_en: datetime | None
     rol_codigo: str | None
     rol_nombre: str | None
+    aerolinea_id: str | None = None
 
 
 def consultar_usuarios_del_tenant() -> list[UsuarioResumen]:
@@ -43,6 +44,7 @@ def consultar_usuarios_del_tenant() -> list[UsuarioResumen]:
             ultimo_acceso_en=f.ultimo_acceso_en,
             rol_codigo=f.rol_codigo,
             rol_nombre=f.rol_nombre,
+            aerolinea_id=str(f.aerolinea_id) if f.aerolinea_id is not None else None,
         )
         for f in filas
     ]

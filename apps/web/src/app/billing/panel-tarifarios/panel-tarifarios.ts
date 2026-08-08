@@ -112,6 +112,12 @@ export class PanelTarifarios {
 
   // --- Sección Conciliaciones (US3) ---
   protected readonly conciliaciones = signal<Conciliacion[]>([]);
+  // KPI de cabecera (docs/diseno/MODAL_Y_WORKPANEL.md §1.2) -- conteo real
+  // sobre las filas ya cargadas, mismo criterio que el resto de las vistas
+  // propagadas.
+  protected readonly conciliacionesPendientes = computed(
+    () => this.conciliaciones().filter((c) => !c.conciliado_en).length,
+  );
   protected readonly filtroConciliacion = signal('');
   protected readonly conciliacionesFiltradas = computed(() => {
     const q = this.filtroConciliacion().trim().toLowerCase();

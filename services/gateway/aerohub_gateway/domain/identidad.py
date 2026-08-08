@@ -42,6 +42,16 @@ class Identidad:
     revocable, la vigencia de la clave ya se verifico en
     `verificar_api_key`. Solo un JWT de login (S1.10) trae sesion_id."""
 
+    aerolinea_id: int | None = None
+    """Aerolinea del usuario (`tenants.usuario.aerolinea_id`), o `None` para
+    la gran mayoria -- personal del aeropuerto, no de una aerolinea.
+
+    Habilita la restriccion "solo sus itinerarios"/"sus cargos" que la
+    matriz 4.3.1 asigna a role_airline_coordinator (hallazgo 3 de la
+    auditoria de la capa operativa, 2026-08-08): el filtro se aplica en
+    infrastructure/ de aodb y billing leyendo `contexto_aerolinea_id()`,
+    nunca un parametro del cliente."""
+
     def __post_init__(self) -> None:
         if not self.rol:
             raise IdentidadInvalida("rol vacio")

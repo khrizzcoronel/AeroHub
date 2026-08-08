@@ -46,6 +46,7 @@ def emitir_jwt_sesion(
     scopes: frozenset[str],
     sesion_id: int,
     minutos_expiracion: int,
+    aerolinea_id: int | None = None,
 ) -> str:
     claims = {
         "rol": rol,
@@ -53,6 +54,11 @@ def emitir_jwt_sesion(
         "usuario_id": usuario_id,
         "scopes": sorted(scopes),
         "sesion_id": sesion_id,
+        # Hallazgo 3 de la auditoria de la capa operativa (2026-08-08):
+        # habilita el filtro "solo sus itinerarios"/"sus cargos" de
+        # role_airline_coordinator. None para la gran mayoria de usuarios
+        # (personal del aeropuerto, no de una aerolinea).
+        "aerolinea_id": aerolinea_id,
         "exp": datetime.now(UTC) + timedelta(minutes=minutos_expiracion),
     }
     return jwt.encode(claims, _secreto(), algorithm=_ALGORITMO)

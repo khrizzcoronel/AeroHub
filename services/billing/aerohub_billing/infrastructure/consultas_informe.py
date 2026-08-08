@@ -14,6 +14,7 @@ from aerohub_repository.contexto import contexto_tenant_id
 from sqlalchemy import func, select
 from sqlalchemy.engine import Connection, Row
 
+from .consultas import filtro_aerolinea_del_actor
 from .tablas import cargo_aeronautico, factura, factura_linea
 
 
@@ -34,6 +35,10 @@ def listar_facturas_informe(
         condiciones.append(factura.c.aerolinea_id == aerolinea_id)
     if estado is not None:
         condiciones.append(factura.c.estado == estado)
+    # El informe respeta el mismo recorte por aerolinea que el listado
+    # operativo (hallazgo 3, 2026-08-08) -- si no, el dashboard seria una
+    # via alternativa para leer la facturacion de la competencia.
+    condiciones.extend(filtro_aerolinea_del_actor())
     stmt = select(factura).where(*condiciones).order_by(factura.c.periodo_inicio)
     return list(conn.execute(stmt))
 
@@ -61,6 +66,10 @@ def agrupar_facturacion_por_concepto(
             f.c.tenant_id == contexto_tenant_id(),
             f.c.periodo_inicio >= periodo_inicio,
             f.c.periodo_fin <= periodo_fin,
+            # Sobre el alias `f`, no sobre la tabla sin alias (ver el
+            # equivalente en aerohub_aodb): sin esto el compuesto sumaria
+            # los montos de todas las aerolineas del tenant.
+            *filtro_aerolinea_del_actor(f.c.aerolinea_id),
         )
         .group_by(ca.c.concepto_cargo_id)
         .order_by(ca.c.concepto_cargo_id)

@@ -60,6 +60,10 @@ class ResultadoLogin:
     scopes: frozenset[str]
     debe_cambiar_password: bool
     expira_en_minutos: int
+    aerolinea_id: int | None = None
+    """Aerolinea del usuario, para el filtro "solo sus itinerarios"/"sus
+    cargos" de role_airline_coordinator (hallazgo 3 de la auditoria de la
+    capa operativa, 2026-08-08). `None` para la gran mayoria."""
 
 
 @reintentar_en_conflicto()
@@ -217,4 +221,5 @@ def _intentar_login(
         scopes=scopes_del_rol(rol_vigente.codigo),
         debe_cambiar_password=fila_usuario.debe_cambiar_password,
         expira_en_minutos=_MINUTOS_EXPIRACION_SESION,
+        aerolinea_id=fila_usuario.aerolinea_id,
     )

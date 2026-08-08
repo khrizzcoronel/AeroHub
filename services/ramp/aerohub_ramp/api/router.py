@@ -30,6 +30,7 @@ from ..application import (
     VuelosIncompatibles,
     consultar_incidencias,
     consultar_informe_turnarounds_compuesto,
+    consultar_informe_mis_tareas,
     consultar_informe_turnarounds_simple,
     consultar_tareas_de_turnaround,
     consultar_tipos_tarea,
@@ -329,6 +330,34 @@ def informe_turnarounds_simple_endpoint(
     informe = consultar_informe_turnarounds_simple(
         periodo_inicio=periodo_inicio, periodo_fin=periodo_fin, estado=estado
     )
+    if formato == "csv":
+        return _csv_informe_simple(informe)
+    return InformeSimpleResponse(
+        parametros=informe.parametros, generado_en=informe.generado_en, filas=informe.filas
+    )
+
+
+@router.get(
+    "/informes/mis-tareas",
+    response_model=None,
+    dependencies=[Depends(requiere_scope("rampa:leer"))],
+)
+def informe_mis_tareas_endpoint(
+    periodo_inicio: date, periodo_fin: date, formato: str = "json"
+) -> InformeSimpleResponse | Response:
+    """Hallazgo 4 de la auditoria de la capa operativa (2026-08-08): las
+    tareas del periodo asignadas a quien consulta.
+
+    Sin parametro de usuario a proposito -- se resuelve de la sesion. El
+    scope es `rampa:leer` (no uno nuevo): cualquiera que pueda leer rampa
+    puede ver SUS PROPIAS tareas, que es un subconjunto de lo que ya ve.
+    """
+    try:
+        informe = consultar_informe_mis_tareas(
+            periodo_inicio=periodo_inicio, periodo_fin=periodo_fin
+        )
+    except UsuarioNoIdentificado as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     if formato == "csv":
         return _csv_informe_simple(informe)
     return InformeSimpleResponse(

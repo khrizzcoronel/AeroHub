@@ -1,54 +1,46 @@
 <section class="consola">
   <div class="consola__cabecera">
     <h1>Estado de vuelo en tiempo real</h1>
-    <div class="consola__acciones">
-      @if (puedeEscribir()) {
-        <button type="button" class="ah-btn" (click)="abrirModalNuevoVuelo()">
-          Nuevo vuelo
-        </button>
+    <p class="consola__conexion">
+      @if (conectado()) {
+        <span class="ah-punto ah-punto--ok"></span> En vivo
+      } @else if (reconectando()) {
+        <span class="ah-punto ah-punto--atencion"></span> Reconectando…
+      } @else {
+        <span class="ah-punto ah-punto--critico"></span> Sin conexión
       }
-    </div>
+    </p>
   </div>
 
-  <p class="consola__resumen">
-    Sigue el estado de cada vuelo en cuanto cambia, sin recargar la pantalla.
-    @if (eventos().length > 0) {
-      <strong>{{ eventos().length }}</strong> {{ eventos().length === 1 ? 'evento reciente' : 'eventos recientes' }}
-      @if (eventosCriticos() > 0) {
-        , <strong class="resumen-critico">{{ eventosCriticos() }}</strong> en estado crítico
-      }.
-    }
-  </p>
-
-  <p class="consola__conexion">
-    @if (conectado()) {
-      <span class="ah-punto ah-punto--ok"></span> En vivo
-    } @else if (reconectando()) {
-      <span class="ah-punto ah-punto--atencion"></span> Reconectando…
-    } @else {
-      <span class="ah-punto ah-punto--critico"></span> Sin conexión
-    }
-  </p>
+  @if (eventosCriticos() > 0) {
+    <div class="consola__kpis">
+      <span class="ah-chip ah-chip--critico">
+        {{ eventosCriticos() }} {{ eventosCriticos() === 1 ? 'evento en estado crítico' : 'eventos en estado crítico' }}
+      </span>
+    </div>
+  }
 
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
   }
 
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar por vuelo</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroVuelo">Vuelo id</label>
-        <input
-          id="filtroVuelo"
-          type="text"
-          placeholder="Ej. 7291234567890123"
-          [ngModel]="filtroVuelo()"
-          (ngModelChange)="actualizarFiltroVuelo($event)"
-          name="filtroVuelo"
-        />
-      </div>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por vuelo id"
+        [ngModel]="filtroVuelo()"
+        (ngModelChange)="actualizarFiltroVuelo($event)"
+        name="filtroVuelo"
+        aria-label="Buscar por vuelo id"
+      />
     </div>
+    @if (puedeEscribir()) {
+      <button type="button" class="ah-btn" (click)="abrirModalNuevoVuelo()">
+        Nuevo vuelo
+      </button>
+    }
   </div>
 
   <h2>Ultimos cambios de estado</h2>

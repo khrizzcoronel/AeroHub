@@ -9,7 +9,18 @@ from datetime import date
 
 from aerohub_kernel import ahora_utc
 
-from ..infrastructure import agrupar_turnarounds_por_tipo_tarea, listar_turnarounds_informe, sesion
+from ..infrastructure import (
+    agrupar_turnarounds_por_tipo_tarea,
+    contexto_usuario_id,
+    listar_mis_tareas_informe,
+    listar_turnarounds_informe,
+    sesion,
+)
+
+# Reusa la excepcion ya definida en iniciar_tarea.py en vez de declarar
+# una segunda con el mismo nombre: ambas significan exactamente lo mismo
+# (no hay usuario humano en el contexto) y el router ya la traduce.
+from .iniciar_tarea import UsuarioNoIdentificado
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +68,50 @@ def consultar_informe_turnarounds_simple(
                 "vuelo_salida_id": str(f.vuelo_salida_id) if f.vuelo_salida_id else None,
                 "inicio_previsto": f.inicio_previsto.isoformat(),
                 "estado": f.estado,
+            }
+            for f in filas
+        ],
+    )
+
+
+def consultar_informe_mis_tareas(
+    *, periodo_inicio: date, periodo_fin: date
+) -> InformeSimple:
+    """Hallazgo 4 de la auditoria de la capa operativa (2026-08-08): las
+    tareas del periodo asignadas a QUIEN CONSULTA, para que el dashboard
+    de role_ramp_agent responda de verdad "¿Que tengo que hacer ahora?".
+
+    El usuario nunca viaja como parametro -- se lee de `contexto_usuario_id()`
+    (poblado por el middleware desde el JWT), igual que el tenant: nadie
+    puede pedir "las tareas de otro" cambiando un query param.
+    """
+    usuario_id = contexto_usuario_id()
+    if usuario_id is None:
+        raise UsuarioNoIdentificado(
+            "el informe de mis tareas requiere una sesion con usuario humano"
+        )
+    with sesion() as conn:
+        filas = listar_mis_tareas_informe(
+            conn,
+            periodo_inicio=periodo_inicio,
+            periodo_fin=periodo_fin,
+            usuario_id=usuario_id,
+        )
+    return InformeSimple(
+        parametros={
+            "periodo_inicio": periodo_inicio.isoformat(),
+            "periodo_fin": periodo_fin.isoformat(),
+        },
+        generado_en=ahora_utc().isoformat(),
+        filas=[
+            {
+                "tarea_id": str(f.id),
+                "turnaround_id": str(f.turnaround_id),
+                "tipo_tarea_id": str(f.tipo_tarea_id),
+                "estado": f.estado,
+                "inicio_previsto": f.inicio_previsto.isoformat(),
+                "fin_previsto": f.fin_previsto.isoformat(),
+                "estado_turnaround": f.estado_turnaround,
             }
             for f in filas
         ],

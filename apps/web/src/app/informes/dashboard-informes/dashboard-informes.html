@@ -58,12 +58,46 @@
   @if (!dashboard) {
     <p class="ah-vacio">Sin dashboard disponible para tu rol todavía.</p>
   } @else {
-    <!-- ===== KPI de apertura: derivados de las secciones ya cargadas ===== -->
-    <div class="ah-kpi-fila" [class.ah-kpi-fila--4]="dashboard.kpis.length >= 4">
+    <!-- ===== KPI de apertura: derivados de las secciones ya cargadas =====
+         Layout de tarjetas (pedido directo del usuario, referencia visual
+         externa) -- sparkline y variacion % son reales, derivados de las
+         filas ya cargadas agrupadas por dia (ver serieKpi en el .ts), no
+         decorativos: si no hay suficiente dato para una tendencia real
+         (Tenants, o un solo dia de datos), la tarjeta no fuerza ninguno. -->
+    <div class="kpi-grid">
       @for (kpi of dashboard.kpis; track kpi.etiqueta) {
-        <div class="ah-kpi">
-          <span class="ah-kpi__etiqueta">{{ kpi.etiqueta }}</span>
-          <span class="ah-kpi__valor">{{ valorKpi(kpi.seccionIndice, kpi.calculo) ?? '—' }}</span>
+        @let serie = serieKpi(kpi);
+        @let tendencia = tendenciaPct(serie);
+        <div class="kpi-card">
+          <span class="kpi-card__eyebrow">{{ etiquetaPeriodoActivo() }}</span>
+          <span class="kpi-card__titulo">{{ kpi.etiqueta }}</span>
+          <span class="kpi-card__valor" [class]="claseValorKpi(kpi)">
+            {{ valorKpi(kpi.seccionIndice, kpi.calculo) ?? '—' }}
+          </span>
+
+          @if (serie.length >= 2) {
+            <svg class="kpi-card__sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+              <polyline
+                [attr.points]="puntosSparkline(serie)"
+                fill="none"
+                [class]="'kpi-card__linea ' + claseTendencia(kpi, tendencia)"
+              />
+            </svg>
+          } @else {
+            <div class="kpi-card__sparkline kpi-card__sparkline--vacio"></div>
+          }
+
+          <div class="kpi-card__pie">
+            <span class="kpi-card__fuente">
+              <span class="kpi-card__fuente-punto"></span>
+              {{ fuenteKpi(kpi) }}
+            </span>
+            @if (tendencia !== null) {
+              <span class="kpi-card__tendencia" [class]="claseTendencia(kpi, tendencia)">
+                {{ tendencia > 0 ? '▲' : tendencia < 0 ? '▼' : '·' }} {{ tendencia === 0 ? 'sin cambio' : (tendencia > 0 ? '+' : '') + tendencia + '%' }}
+              </span>
+            }
+          </div>
         </div>
       }
     </div>

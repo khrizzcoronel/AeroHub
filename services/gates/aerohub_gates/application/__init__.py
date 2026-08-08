@@ -10,7 +10,9 @@ from .cancelar_asignacion import AsignacionNoEncontrada, cancelar_asignacion
 from .consultar_asignaciones import (
     AsignacionTablero,
     PuertaTablero,
+    VueloSinAsignar,
     consultar_tablero_de_puertas,
+    consultar_vuelos_sin_asignacion,
 )
 from .gestionar_puertas import (
     PuertaDuplicada,
@@ -43,6 +45,8 @@ __all__ = [
     "consultar_tablero_de_puertas",
     "AsignacionTablero",
     "PuertaTablero",
+    "consultar_vuelos_sin_asignacion",
+    "VueloSinAsignar",
     "ejecutar_asignacion_automatica",
     "ResultadoAsignacionAutomatica",
     "consultar_informe_asignaciones_simple",

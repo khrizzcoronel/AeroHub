@@ -61,9 +61,23 @@ CREATE TABLE tenants.usuario (
     -- mas largo desde S1.1 (chk_usuario_estado ya lo declaraba permitido).
     estado             VARCHAR(30) NOT NULL,
     mfa_habilitado     BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Aerolinea a la que pertenece el usuario, NULL para la gran mayoria
+    -- (personal del aeropuerto, no de una aerolinea). Existe para hacer
+    -- REPRESENTABLE la restriccion "solo sus itinerarios" / "sus cargos"
+    -- que la matriz 4.3.1 asigna a role_airline_coordinator y que
+    -- 96_grants_ops.sql / 98_grants_billing.sql delegan explicitamente a
+    -- la capa de aplicacion (MonetDB no tiene RLS). Antes de esta columna
+    -- la restriccion no era un pendiente de implementacion: era
+    -- imposible de expresar -- ninguna tabla asociaba un usuario a una
+    -- aerolinea (hallazgo 3 de la auditoria de la capa operativa,
+    -- 2026-08-08). El filtro se aplica en infrastructure/ de aodb y
+    -- billing, mismo patron que `_ROL_CON_ACCESO_RESTRINGIDO` de
+    -- aerohub_ramp (S1.5).
+    aerolinea_id       BIGINT,
     creado_en          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     ultimo_acceso_en   TIMESTAMP WITH TIME ZONE,
     CONSTRAINT fk_usuario_tenant FOREIGN KEY (tenant_id) REFERENCES tenants.tenant (id),
+    CONSTRAINT fk_usuario_aerolinea FOREIGN KEY (aerolinea_id) REFERENCES catalogo.aerolinea (id),
     CONSTRAINT uq_usuario_tenant_email UNIQUE (tenant_id, email),
     CONSTRAINT chk_usuario_estado CHECK (estado IN ('activo', 'suspendido', 'eliminado_logicamente'))
 );

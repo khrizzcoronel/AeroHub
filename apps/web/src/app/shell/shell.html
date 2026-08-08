@@ -3,6 +3,13 @@
     <div class="side__mark">AeroHub</div>
 
     <ul class="side__nav">
+      @if (puedeVerInformes()) {
+        <li>
+          <a routerLink="/informes/dashboard" routerLinkActive="side__link--activo" class="side__link">
+            Dashboard
+          </a>
+        </li>
+      }
       @if (puedeVerTenants()) {
         <li>
           <a routerLink="/tenants" routerLinkActive="side__link--activo" class="side__link">
@@ -35,13 +42,6 @@
         <li>
           <a routerLink="/billing/tarifarios" routerLinkActive="side__link--activo" class="side__link">
             Tarifarios y conciliación
-          </a>
-        </li>
-      }
-      @if (puedeVerInformes()) {
-        <li>
-          <a routerLink="/informes/dashboard" routerLinkActive="side__link--activo" class="side__link">
-            Panel de Informes
           </a>
         </li>
       }

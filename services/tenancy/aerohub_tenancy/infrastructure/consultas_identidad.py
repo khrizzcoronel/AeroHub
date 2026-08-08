@@ -68,6 +68,8 @@ def listar_usuarios_del_tenant(conn: Connection, tenant_id: int) -> list[Row]:
             usuario.c.estado,
             usuario.c.creado_en,
             usuario.c.ultimo_acceso_en,
+            # Hallazgo 3 de la auditoria de la capa operativa (2026-08-08).
+            usuario.c.aerolinea_id,
             rol.c.codigo.label("rol_codigo"),
             rol.c.nombre.label("rol_nombre"),
         )

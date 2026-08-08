@@ -245,6 +245,22 @@ def reasignar_rol_usuario(
         )
 
 
+def actualizar_aerolinea_usuario(
+    conn: Connection, *, id: int, tenant_id: int, aerolinea_id: int | None
+) -> None:
+    """Asigna (o desasigna, con None) la aerolinea de un usuario -- hallazgo
+    3 de la auditoria de la capa operativa (2026-08-08).
+
+    Filtra por tenant_id explicito por el mismo motivo que
+    `actualizar_estado_usuario` mas abajo: sin el, el guardian G2 rechaza
+    el UPDATE con TenantScopeViolation."""
+    conn.execute(
+        update(usuario)
+        .where(usuario.c.id == id, usuario.c.tenant_id == tenant_id)
+        .values(aerolinea_id=aerolinea_id)
+    )
+
+
 def actualizar_estado_usuario(
     conn: Connection, *, id: int, tenant_id: int, estado_nuevo: str
 ) -> None:

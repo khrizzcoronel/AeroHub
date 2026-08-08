@@ -1344,6 +1344,342 @@ del restart.
 **Sin commitear todavía** -- pendiente de pedido explícito del usuario
 (Principio V).
 
+## Extensión de la iteración de cabecera a AODB (2026-08-08, pendiente de commit)
+
+Pedido directo del usuario: "al modulo de AODB porque la abreviacion,
+ese no se la aplico el rediseño del plan" -- `vuelos/estado-tiempo-real`
+había quedado deliberadamente fuera de las 2 rondas de propagación
+anteriores (`docs/diseno/MODAL_Y_WORKPANEL.md` §1.2 lo señalaba
+explícitamente como "sigue sin tocar") porque su nombre es una sigla
+corta y no un título largo como el resto -- el usuario pidió cerrarla
+igual, completando las 10 vistas administrativas/operativas de
+`role_tenant_admin` con el mismo patrón.
+
+**Adaptación, no copia literal del patrón**: esta vista no tiene ningún
+"cargar" manual que justifique el ícono `.consola__refrescar` -- se
+conecta sola por WebSocket y se reconecta sola si se cae (Fase 5 item 14
+de `PLAN_CORRECCION_MODULOS.md`, ya consolidado desde antes de esta
+sesión). En su lugar, el indicador de conexión (`.consola__conexion`,
+semáforo `.ah-punto` verde/ámbar/rojo) se movió a la misma fila que el
+`<h1>`, en vez de vivir en un párrafo aparte debajo de la cabecera como
+antes. El KPI se redujo a un solo chip ("N eventos en estado crítico",
+`.ah-chip--critico`) -- se retiró el conteo neutro de "eventos
+recientes" (antes texto libre en `.consola__resumen`, ahora eliminado)
+porque no existe una variante neutra de `.ah-chip` en `_primitivos.scss`
+(el primitivo solo define `--critico`/`--atencion` a propósito: un chip
+llama la atención, no narra un total que la tabla ya muestra). El
+`.ah-panel` de búsqueda (con su propio `<h2>` "Buscar por vuelo") se
+reemplazó por `.consola__fila-busqueda` con `.ah-buscador` (ícono `⌕`) +
+el botón "Nuevo vuelo" en la misma fila, igual que las otras 9 vistas.
+
+**Verificado**: build de producción de `apps/web` en verde (mismo
+warning de bundle conocido) tras `docker cp` + rebuild dentro de
+`aerohub-web` + `docker restart aerohub-web`. No verificado en
+navegador real (regla vigente: solo si se pide explícitamente).
+
+**Sin commitear todavía** -- pendiente de pedido explícito del usuario
+(Principio V).
+
+## Reordenamiento del menú + rediseño de tarjetas KPI del Dashboard (2026-08-08, pendiente de commit)
+
+Dos pedidos directos del usuario, mismo día.
+
+**1. "Dashboard" primero en el menú, nombre restaurado**: el enlace de
+`informes/dashboard` (renombrado "Panel de Informes" en la traducción de
+esta misma sesión) se movió al principio de `side__nav` en `shell.html`
+-- antes de "Tenants" -- y recuperó el nombre "Dashboard" tanto en el
+enlace como en `data.title` de `app.routes.ts` (el usuario lo pidió
+explícitamente así, "dashboard" en inglés es la excepción deliberada a
+la traducción general, no un descuido).
+
+**2. Tarjetas KPI del Dashboard, con referencia visual externa**: el
+usuario mostró una captura de un dashboard SaaS genérico (8 tarjetas en
+grilla 4×2, cada una con eyebrow "Month to date", título, valor grande
+coloreado, sparkline o barra de progreso, y pie con logo de
+integración + variación %) y pidió distribuir el Dashboard de AeroHub
+así. La fila plana de KPIs (`.ah-kpi-fila`, un `<div>` por indicador con
+solo etiqueta+valor) se reemplazó en
+`informes/dashboard-informes/` por una grilla de tarjetas
+(`.kpi-grid`/`.kpi-card`, 4 columnas en escritorio, `auto-fit` en
+pantallas angostas) con eyebrow + título + valor grande + pie.
+**Decisión deliberada de NO copiar el pie de tarjeta literal**: la
+referencia trae sparkline y variación % porque cada tarjeta viene de una
+integración real con historial (Stripe, HubSpot, Google Analytics...) --
+los KPI de AeroHub (`DASHBOARDS_POR_ROL` en `informes-config.ts`) son
+conteos reales sobre filas ya cargadas de un informe simple, sin serie
+histórica ni comparación con un período anterior. Inventar un
+sparkline o un `%` ahí violaría el principio de verificación empírica
+que rige todo el proyecto -- se adaptó el layout sin fabricar datos:
+- **Eyebrow**: el período efectivamente aplicado (Hoy/Últimas 24 h/Esta
+  semana, según `atajoActivo()`), no un texto fijo.
+- **Pie de tarjeta**: el informe real del que se deriva el número
+  (`fuenteKpi()`, el `titulo` de la sección origen) en vez de un
+  logo/variación inventados -- procedencia real, no decoración.
+- **Color del valor**: heurística por texto de la etiqueta
+  (`claseValorKpi()`, lista `PALABRAS_CRITICO`: "vencid", "no
+  completad", "disputad", etc. → rojo; el resto queda en navy neutro) --
+  mismo criterio de semáforo por palabra clave ya usado en otras partes
+  de la app, no una regla de negocio nueva.
+
+**Verificado**: build de producción de `apps/web` en verde (mismo
+warning de bundle conocido) tras `docker cp` + rebuild + `docker restart
+aerohub-web`, en ambos pasos. No verificado en navegador real (regla
+vigente: solo si se pide explícitamente).
+
+**3. Corrección sobre el punto 2, mismo día**: el usuario volvió a pedir
+explícitamente el layout completo "tal cual" la referencia, incluyendo
+sparkline y variación % -- no solo el esqueleto de tarjeta. Se
+implementaron ambos, pero derivados de dato real en vez de decorativos
+(el principio de verificación empírica de este proyecto no se relaja ni
+a pedido explícito -- se busca la forma de cumplir el pedido visual sin
+fabricar números):
+- **`ConfigInforme` gana `campoFecha?: string`** (`informes-config.ts`):
+  el campo de fecha/fecha-hora real de cada fila, mapeado en las 5
+  secciones que tienen uno (`fecha_operacion` en AODB, `inicio_previsto`
+  en Puertas/Rampa, `periodo_inicio` en Billing, `ocurrido_en` en
+  Compliance). Tenants queda sin `campoFecha` -- su informe no filtra por
+  período, no hay eje temporal real que agrupar.
+- **`serieKpi(kpi)`** (`dashboard-informes.ts`): agrupa las filas YA
+  CARGADAS de la sección por día (`campoFecha`) y le aplica el MISMO
+  `kpi.calculo` de la tarjeta a cada grupo -- la serie que se grafica es
+  el valor real de ESE kpi puntual, día por día, dentro del período ya
+  consultado (no una serie generada al azar).
+- **`puntosSparkline(serie)`**: normaliza la serie real a un `<polyline>`
+  SVG (`viewBox 0 0 100 30`), sin librería de gráficos.
+- **`tendenciaPct(serie)`**: variación real entre el promedio de la
+  primera y la segunda mitad de la serie diaria -- comparación dentro del
+  propio período cargado (no contra el período anterior, que pediría una
+  consulta nueva al backend fuera de alcance de este pase). `null` cuando
+  no hay al menos 2 días de datos para comparar -- la tarjeta omite el
+  sparkline/badge en ese caso (Tenants, o cualquier período de un solo
+  día) en vez de forzar un punto de comparación inexistente.
+- **`claseTendencia(kpi, pct)`**: polaridad por semántica -- para un KPI
+  "crítico" (vencidas, interrumpidos...) que la serie SUBA es malo (rojo),
+  para el resto que suba es bueno (verde); mismo criterio de
+  `claseValorKpi`.
+- **Pie de tarjeta**: el logo de integración externa de la referencia
+  (Stripe/HubSpot/Google Analytics...) se reemplaza por un punto de color
+  fijo (`.kpi-card__fuente-punto`) + el nombre del informe real de
+  origen -- AeroHub no tiene esas integraciones por KPI, simular una
+  marca inexistente sí habría cruzado la línea de fabricar información.
+
+**Verificado**: build de producción de `apps/web` en verde (mismo
+warning de bundle, ahora 731KB) tras `docker cp` + rebuild + `docker
+restart aerohub-web`. No verificado en navegador real (regla vigente:
+solo si se pide explícitamente) -- pendiente si el usuario lo solicita,
+en particular para confirmar visualmente el trazo del sparkline SVG.
+
+**Sin commitear todavía** -- pendiente de pedido explícito del usuario
+(Principio V).
+
+## Vista faltante de la propagación: `billing/panel-tarifarios` (2026-08-08, pendiente de commit)
+
+El usuario preguntó "aplicaste el rediseño aqui tambien?" refiriéndose
+en general al plan de propagación -- un chequeo (`grep` de
+`consola__fila-busqueda`/`consola__cabecera` sobre las 13 vistas con
+`class="consola"`) confirmó que `billing/panel-tarifarios` (Tarifarios y
+conciliación) se había quedado con el patrón viejo: botón "Actualizar"
+suelto en vez de ícono inline, `.ah-panel` de búsqueda separado en cada
+una de sus 2 secciones (Tarifarios, Conciliación de pax), sin ningún
+chip KPI. Se me pasó al hacer la propagación original -- no había sido
+una exclusión deliberada como sí lo es `tenants/tenant-list`
+(`role_platform_admin`, fuera de alcance).
+
+Corregido con el mismo patrón que el resto: ícono `.consola__refrescar`
+inline en el `<h1>`, chip nuevo "N conciliaciones pendientes"
+(`conciliacionesPendientes` computed en `panel-tarifarios.ts`, mismo
+criterio de conteo real sobre filas ya cargadas que el resto de la app),
+y `.consola__fila-busqueda` en las 2 secciones (antes 2 `.ah-panel`
+separados). Sin chip para Tarifarios -- no hay una condición de atención
+real que contar ahí (a diferencia de conciliaciones pendientes, que sí
+es una cola de trabajo).
+
+**Con esta corrección, las 10 vistas administrativas/operativas de
+`role_tenant_admin` (más el Dashboard, que tiene su propio patrón de
+cabecera con filtro de período global) quedan con el mismo patrón de
+cabecera/modal.** `tenants/tenant-list` sigue siendo la única excepción
+deliberada (`role_platform_admin`, fuera de alcance del plan desde su
+origen).
+
+**Verificado**: build de producción de `apps/web` en verde (mismo
+warning de bundle, ahora 732KB) tras `docker cp` + rebuild + `docker
+restart aerohub-web`. No verificado en navegador real (regla vigente).
+
+**Sin commitear todavía** -- pendiente de pedido explícito del usuario
+(Principio V).
+
+## Auditoría de la capa operativa + cierre de 2 hallazgos de permisos (2026-08-08, pendiente de commit)
+
+Auditoría general pedida por el usuario sobre los 5 roles operativos
+(`role_tenant_admin`, `role_operations_controller`, `role_ramp_agent`,
+`role_airline_coordinator`, `role_billing_officer`): se cruzaron las 3
+capas (scope de aplicación en `roles_modulos.py` → `GRANT` de motor en
+`db/ddl/monetdb/9*_grants_*.sql` → superficie de frontend) con
+verificación empírica de 40 combinaciones de lectura y 20 de escritura
+vía `TestClient` contra MonetDB real.
+
+**Resultado general: la segregación de funciones es exacta** -- cada 403
+observado es deliberado, cada 200 también, y **no apareció ni un solo 500
+opaco** (el traductor de errores de motor de S1.20 funciona). La decisión
+D1(a) sigue en pie (`role_tenant_admin` bloqueado en escritura de
+M1/M3/M4/M5) y el mínimo privilegio de `role_ramp_agent` está
+genuinamente implementado en lectura y escritura, con semántica
+404-no-403 (PN-01).
+
+**Hallazgo 1 (crítico, CORREGIDO) -- M6 Passenger estaba 100% muerto, en
+un cruce invertido perfecto.** Cuarto caso de la familia `fids:*`
+(S1.16) / `compliance:*` (S1.19) / `support:*` (S1.20), y el peor de los
+cuatro:
+
+- `passenger:escribir` **no lo tenía ningún rol** →
+  `POST /passenger/tiempos-espera/recalcular` (CU-O19, RF-O17) era
+  inalcanzable por cualquier sesión humana desde S1.6.
+- `passenger:leer` lo tenían `role_tenant_admin`/`role_airline_coordinator`/
+  `role_tenant_analyst`, pero **ninguno tenía `GRANT`** sobre
+  `billing.tiempo_espera_agregado` → 403 "acceso denegado" de motor.
+- `role_operations_controller` **tenía el `GRANT` completo (S,I,Up)** desde
+  S1.6 -- `98_grants_billing.sql:19,54` lo designa explícitamente como el
+  "Sistema" que ejecuta el recálculo -- pero **ningún scope `passenger:*`**.
+
+O sea: quien tenía el permiso de motor no tenía el scope, y quien tenía el
+scope no tenía el permiso de motor. Ninguna auditoría previa lo detectó
+porque M6 tiene `ruta: null` y nunca tuvo vista que lo ejercitara.
+**Corregido**: `passenger:leer`+`passenger:escribir` a
+`role_operations_controller` (sin agregarle M6 a sus módulos -- mismo
+criterio de "scope de API sin visibilidad de menú" ya usado para
+`vuelos:leer` en `role_billing_officer`/`role_ramp_agent`), y
+`GRANT SELECT ON billing.tiempo_espera_agregado` a `role_tenant_admin` y
+`role_airline_coordinator`. `role_tenant_analyst` queda **fuera a
+propósito** (la matriz le niega `billing` entero; esa decisión sigue en
+pausa por pedido del usuario). Verificado: los 3 roles pasan de 403 a 200
+en `GET`, y `role_operations_controller` ejecutó el recálculo real
+(`{'franjas_actualizadas': 0, ...}`) -- CU-O19 corrió por primera vez
+desde que se construyó.
+
+**Hallazgo 2 (CORREGIDO) -- `role_airline_coordinator` tenía `GRANT` de
+escritura sin scope.** La matriz 4.3.1 le asigna U,S,I,Up sobre `ops`
+("solo sus itinerarios") y `96_grants_ops.sql:97-103` ya le otorgaba
+INSERT/UPDATE sobre `ops.vuelo`/`vuelo_estado` desde S1.4 -- pero sus
+scopes eran solo `{vuelos:leer, passenger:leer}`. **Inverso de la causa
+raíz A: motor abierto, aplicación cerrada.** Combinado con el hallazgo 1
+y con que M6 no tiene ruta, su superficie usable completa era **una vista
+de solo lectura**. La nota previa de este archivo ("M1 sin botón de
+escritura -- correcto") había validado que el frontend coincide con el
+scope, pero nunca preguntó si el scope coincide con la matriz.
+**Corregido** agregando `vuelos:escribir`; verificado antes que la ruta de
+escritura completa ya estaba aprovisionada (INSERT sobre
+`continuidad.journal_mutacion` y `compliance.log_auditoria`), así que **no
+hizo falta ningún `GRANT` nuevo**. NO se agregó `puertas:*` pese a que el
+motor también le otorga `asignacion_puerta`: la columna `ops` de la matriz
+es de granularidad de esquema, y la asignación de módulos (M1, M6) es la
+autoridad más fina sobre lo que el rol realmente opera -- M3 es de
+`role_operations_controller`. El frontend no necesitó cambios: el gate de
+`vuelos/estado-tiempo-real` es por scope (`puedeEscribir()`), así que los
+botones aparecen solos.
+
+**Verificación de escritura real (no solo 422 de validación)**: como el
+hallazgo entero trata de "el scope pasa y el motor muere", se creó un
+vuelo real con `role_airline_coordinator` (`POST /vuelos` → 201, fila
+`AUD901` confirmada en `ops.vuelo` con el tenant correcto) y se registró
+un estado real (`POST /vuelos/{id}/estados` → 201). **Residuo conocido**:
+ese vuelo de prueba `AUD901` (fecha 2026-08-09, tenant MEC) quedó en la
+base -- no se borró porque P5 prohíbe la baja física y sus filas de
+journal/auditoría son append-only por diseño; borrar el vuelo dejando el
+rastro de auditoría apuntándole sería peor que dejarlo.
+
+**Hallazgo 3 (CORREGIDO en la misma sesión) -- "solo sus itinerarios"/"sus
+cargos" no estaba implementado porque NO ERA REPRESENTABLE.** Ambos
+archivos de grants delegan ese recorte a la aplicación, pero ninguna tabla
+asociaba un usuario a una aerolínea. Se agregó `tenants.usuario.aerolinea_id`
+(FK nullable a `catalogo.aerolinea`, `02_tenants.sql` + `ALTER TABLE` en
+vivo) y el recorte completo:
+
+- **El contexto viaja por el JWT**, igual que `tenant_id`/`rol`/`usuario_id`
+  -- `contexto_aerolinea_id()` nuevo en `packages/repository/contexto.py`,
+  poblado por `contexto_gateway.poblar_contexto`. Nunca se acepta del
+  cuerpo: un coordinador no puede pedir los vuelos de otra aerolínea
+  cambiando un parámetro. Elegido sobre un lookup por consulta para no
+  necesitar GRANTs nuevos sobre `tenants.usuario` en aodb/billing.
+- **`filtro_aerolinea_del_actor()`** en `aerohub_aodb` y `aerohub_billing`
+  (copia local deliberada -- `.importlinter` prohíbe importar entre
+  módulos, mismo criterio con el que cada módulo redeclara sus `Table()`).
+  Aplicado en `listar_vuelos`, `obtener_vuelo_por_id`, `listar_facturas`,
+  `obtener_factura_por_id` **y los informes de ambos módulos** (si no, el
+  dashboard sería una vía alternativa para leer los datos de la
+  competencia).
+- **Fail-closed**: un coordinador sin `aerolinea_id` configurada ve 0
+  filas, nunca todas.
+- **`PATCH /usuarios/{id}/aerolinea`** + selector en el modal de
+  `usuarios/usuario-list` (solo visible si el rol elegido lo usa,
+  `ROLES_CON_AEROLINEA`) -- sin esto la columna no tendría forma de
+  poblarse y todo coordinador vería 0 vuelos para siempre.
+
+**Hallazgo empírico nuevo, encontrado por el propio guardián**: el
+centinela fail-closed NO puede ser `sqlalchemy.false()`. SQLAlchemy
+colapsa `A AND B AND false` a `false` y con ello **desaparece el filtro de
+tenant del WHERE compilado**, así que el guardián G2 aborta con
+`TenantScopeViolation`. Se usa `IS NULL` sobre la propia columna, que es
+`NOT NULL` en ambas tablas (`10_ops.sql:37`, `12_billing.sql:92`): nunca
+coincide y, al ser un predicado real sobre una columna, no colapsa el
+resto del WHERE.
+
+**Hallazgo 4 (CORREGIDO) -- el dashboard de `role_ramp_agent` no respondía
+su propia pregunta.** Preguntaba "¿Qué tengo que hacer ahora?" y su única
+sección era el informe de turnarounds de TODO el tenant. **Corrección de
+un dato que la primera versión de esta auditoría reportó mal**: se dijo
+que "su dashboard es más amplio que su propio workpanel" -- es falso,
+`listar_turnarounds` (el workpanel) tampoco filtra por agente. El mínimo
+privilegio de este rol es exclusivamente a nivel de *tarea*
+(`agente_usuario_id`), no de turnaround, así que no había fuga ni
+inconsistencia entre ambos. El problema real era solo que no existía
+ningún endpoint de "mis tareas del periodo": el filtro por agente solo
+vivía en `listar_tareas_de_turnaround`, que exige un turnaround puntual y
+no sirve para un panel de jornada. Se agregó
+`GET /rampa/informes/mis-tareas` (scope `rampa:leer`, sin scope nuevo --
+son SUS tareas, un subconjunto de lo que ya ve; el usuario se resuelve de
+la sesión, nunca como query param) y el dashboard pasa a
+`[CONFIG_INFORME_MIS_TAREAS, CONFIG_INFORME_TURNAROUNDS]`, con los
+turnarounds del tenant como contexto secundario.
+
+**Tests de regresión nuevos**: `tests/integration/test_auditoria_capa_operativa.py`
+(11 tests, los 11 en verde) cubre los 4 hallazgos. **Derivan los scopes de
+`scopes_del_rol(...)`, nunca los fabrican a mano** -- exactamente la
+causa por la que la suite de S1.20 no detectó su propio hallazgo.
+
+**Test obsoleto corregido de paso**:
+`tests/unit/tenancy/test_modulos_visibles.py::test_role_platform_admin_ve_los_9_modulos`
+afirmaba que ese rol ve los 9 módulos, pero **S1.11 invirtió esa decisión
+deliberadamente** -- el test llevaba rojo desde entonces. Reescrito como
+`test_role_platform_admin_no_ve_ningun_modulo_operativo`. Un test
+permanentemente rojo entrena a ignorar fallos, que es exactamente cómo
+S1.20 se le escapó a su propia suite.
+
+**Verificado** (tras los 4 hallazgos): ruff (los 8 hallazgos restantes son
+deuda preexistente en `tests/integration/test_aodb_catalogos.py`,
+`test_fids_administracion.py` y `tools/crear_usuarios_demo_roles.py`, no
+tocados), mypy en verde (273 archivos), bandit sin nada nuevo,
+import-linter 16/16 contratos. **293 tests unit/negative/cross_tenant en
+verde, 0 fallos**; **134 de integración en verde contra MonetDB real**
+(123 previos + 11 nuevos), con exactamente los 6 fallos preexistentes ya
+documentados (3 de `test_continuidad_shipper.py` por hostname, 3 que
+dependían de `mailpit`, retirado del stack). Build de producción de
+`apps/web` en verde (738 KB, mismo warning de bundle conocido).
+Verificación empírica adicional del ciclo completo con **login real** (no
+JWT fabricado): asignar aerolínea por `PATCH` → el JWT emitido trae el
+claim `aerolinea_id` → `GET /vuelos` devuelve solo esa aerolínea →
+desasignar → 0 filas.
+
+Nota de entorno: la imagen del gateway no incluye `tests/`, `db/` ni
+`tools/` -- hay que `docker cp`-arlos antes de correr la suite, y los
+tests de integración necesitan `AEROHUB_TEST_DB_HOST=monetdb` o se saltan
+silenciosamente (159 skipped, que parece verde y no lo es). Ojo con
+`docker cp tests aerohub-gateway:/app/tests` cuando `/app/tests` YA existe:
+anida en `/app/tests/tests` en vez de reemplazar (aparece como archivos
+duplicados en ruff, es ruido del contenedor, no del repo).
+
+**Sin commitear todavía** -- pendiente de pedido explícito del usuario
+(Principio V).
+
 ## Rediseño de interfaz (S1.11–S1.14)
 
 La capa operativa (S0.1–S1.10) está **completa y commiteada**. Lo siguiente

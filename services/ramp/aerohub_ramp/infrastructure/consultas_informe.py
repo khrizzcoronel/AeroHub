@@ -38,6 +38,55 @@ def listar_turnarounds_informe(
     return list(conn.execute(stmt))
 
 
+def listar_mis_tareas_informe(
+    conn: Connection, *, periodo_inicio: date, periodo_fin: date, usuario_id: int
+) -> list[Row]:
+    """Tareas del periodo asignadas al agente que consulta (hallazgo 4 de
+    la auditoria de la capa operativa, 2026-08-08).
+
+    El dashboard de role_ramp_agent pregunta "¿Que tengo que hacer ahora?"
+    pero su unica seccion era el informe de turnarounds de TODO el tenant
+    -- un conteo que no responde esa pregunta. No existia ningun endpoint
+    de "mis tareas del periodo": el filtro por `agente_usuario_id` solo
+    vivia en `listar_tareas_de_turnaround`, que exige un turnaround
+    puntual y por lo tanto no sirve para un panel de jornada.
+
+    A diferencia de `listar_tareas_de_turnaround`, aqui el filtro por
+    agente NO es condicional al rol: este informe es, por definicion, "las
+    tareas de quien pregunta". Un rol supervisor que quiera ver todo tiene
+    `listar_turnarounds_informe`.
+    """
+    desde, hasta = _limites_periodo(periodo_inicio, periodo_fin)
+    t = tarea_turnaround.alias("t")
+    tu = turnaround.alias("tu")
+    stmt = (
+        select(
+            t.c.id,
+            t.c.turnaround_id,
+            t.c.tipo_tarea_id,
+            t.c.estado,
+            t.c.inicio_real,
+            t.c.fin_real,
+            tu.c.inicio_previsto,
+            tu.c.fin_previsto,
+            tu.c.estado.label("estado_turnaround"),
+        )
+        .select_from(t.join(tu, tu.c.id == t.c.turnaround_id))
+        .where(
+            t.c.tenant_id == contexto_tenant_id(),
+            # El guardian G2 solo inspecciona el WHERE, no el ON del JOIN
+            # (hallazgo ya documentado en CLAUDE.md) -- por eso el filtro
+            # de tenant se repite para la tabla unida.
+            tu.c.tenant_id == contexto_tenant_id(),
+            t.c.agente_usuario_id == usuario_id,
+            tu.c.inicio_previsto >= desde,
+            tu.c.inicio_previsto <= hasta,
+        )
+        .order_by(tu.c.inicio_previsto)
+    )
+    return list(conn.execute(stmt))
+
+
 def agrupar_turnarounds_por_tipo_tarea(
     conn: Connection, *, periodo_inicio: date, periodo_fin: date
 ) -> list[Row]:

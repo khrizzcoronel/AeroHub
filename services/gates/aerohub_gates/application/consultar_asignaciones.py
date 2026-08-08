@@ -7,7 +7,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from ..infrastructure import listar_asignaciones, listar_puertas, sesion
+from ..infrastructure import (
+    listar_asignaciones,
+    listar_puertas,
+    listar_vuelos_sin_asignacion_con_envergadura,
+    sesion,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +35,34 @@ class PuertaTablero:
     tipo: str
     envergadura_max_m: float
     tiene_pasarela: bool
+
+
+@dataclass(frozen=True, slots=True)
+class VueloSinAsignar:
+    id: int
+    numero_vuelo: str
+    sta_utc: datetime
+    std_utc: datetime
+    envergadura_m: float
+
+
+def consultar_vuelos_sin_asignacion() -> list[VueloSinAsignar]:
+    """Sprint S1.4 ya tenia esta consulta (asignador automatico PuLP) sin
+    ningun listado expuesto por API -- el formulario "Asignar puerta
+    manualmente" pedia el id de vuelo a mano (hallazgo 2026-08-08, pedido
+    directo del usuario: "deberia ser combo seleccioname")."""
+    with sesion() as conn:
+        filas = listar_vuelos_sin_asignacion_con_envergadura(conn)
+    return [
+        VueloSinAsignar(
+            id=f.id,
+            numero_vuelo=f.numero_vuelo,
+            sta_utc=f.sta_utc,
+            std_utc=f.std_utc,
+            envergadura_m=float(f.envergadura_m),
+        )
+        for f in filas
+    ]
 
 
 def consultar_tablero_de_puertas() -> tuple[list[PuertaTablero], list[AsignacionTablero]]:

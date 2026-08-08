@@ -14,6 +14,7 @@ from aerohub_repository.contexto import contexto_tenant_id
 from sqlalchemy import case, func, select
 from sqlalchemy.engine import Connection, Row
 
+from .consultas import filtro_aerolinea_del_actor
 from .tablas import vuelo
 
 
@@ -31,6 +32,11 @@ def listar_vuelos_informe(
     ]
     if aerolinea_id is not None:
         condiciones.append(vuelo.c.aerolinea_id == aerolinea_id)
+    # Minimo privilegio dentro del tenant (hallazgo 3, 2026-08-08): el
+    # informe respeta el mismo recorte por aerolinea que el listado
+    # operativo -- si no, el dashboard de role_airline_coordinator seria
+    # una via alternativa para leer los vuelos de toda la competencia.
+    condiciones.extend(filtro_aerolinea_del_actor())
     stmt = select(vuelo).where(*condiciones).order_by(vuelo.c.fecha_operacion)
     return list(conn.execute(stmt))
 
@@ -66,6 +72,11 @@ def agrupar_vuelos_por_aerolinea(
             v.c.tenant_id == contexto_tenant_id(),
             v.c.fecha_operacion >= periodo_inicio,
             v.c.fecha_operacion <= periodo_fin,
+            # Sobre el alias `v`, no sobre la tabla sin alias: el GROUP BY
+            # de esta consulta exige el alias por el hallazgo de MonetDB
+            # con columnas a 3 partes, y el filtro debe referirse a la
+            # MISMA relacion o MonetDB no la resuelve.
+            *filtro_aerolinea_del_actor(v.c.aerolinea_id),
         )
         .group_by(v.c.aerolinea_id)
         .order_by(v.c.aerolinea_id)

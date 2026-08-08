@@ -36,6 +36,22 @@ GRANT SELECT ON billing.factura_linea TO role_platform_admin;
 GRANT SELECT ON billing.conciliacion_pax TO role_platform_admin;
 GRANT SELECT ON billing.tiempo_espera_agregado TO role_platform_admin;
 
+-- 2026-08-08, hallazgo 1 de la auditoria de la capa operativa: los 2
+-- roles operativos que tienen el scope de aplicacion `passenger:leer`
+-- (role_tenant_admin, role_airline_coordinator) NUNCA tuvieron GRANT de
+-- motor sobre la unica tabla que M6 expone -- GET /passenger/tiempos-espera
+-- moria con "403 acceso denegado" para ambos desde S1.6 (causa raiz A del
+-- checklist de correccion de modulos). La matriz 4.3.1 no lista una
+-- columna para M6 por separado: `tiempo_espera_agregado` vive en el
+-- esquema `billing` por decision de modelo (S1.6), no porque sea un dato
+-- de facturacion -- ambos roles ya tienen SELECT sobre el resto de
+-- `billing`, asi que esto no amplia su alcance real, lo alinea.
+-- role_tenant_analyst tambien tiene `passenger:leer` pero queda FUERA a
+-- proposito: la matriz le niega el GRANT sobre `billing` por completo y
+-- esa decision sigue en pausa por pedido del usuario (capa tactica).
+GRANT SELECT ON billing.tiempo_espera_agregado TO role_tenant_admin;
+GRANT SELECT ON billing.tiempo_espera_agregado TO role_airline_coordinator;
+
 GRANT SELECT ON billing.concepto_cargo TO role_tenant_admin;
 GRANT SELECT ON billing.tarifario TO role_tenant_admin;
 GRANT SELECT ON billing.tarifario_concepto TO role_tenant_admin;

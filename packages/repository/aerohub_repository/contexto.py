@@ -17,6 +17,7 @@ from dataclasses import dataclass
 _tenant_id: ContextVar[int | None] = ContextVar("aerohub_tenant_id", default=None)
 _rol_actor: ContextVar[str | None] = ContextVar("aerohub_rol_actor", default=None)
 _usuario_id: ContextVar[int | None] = ContextVar("aerohub_usuario_id", default=None)
+_aerolinea_id: ContextVar[int | None] = ContextVar("aerohub_aerolinea_id", default=None)
 _alcance_global_activo: ContextVar[AlcanceGlobalInfo | None] = ContextVar(
     "aerohub_alcance_global", default=None
 )
@@ -94,6 +95,32 @@ def contexto_usuario_id() -> int | None:
 def _establecer_usuario_id(usuario_id: int | None) -> Token[int | None]:
     """Uso exclusivo del middleware del Gateway (services/gateway/api/)."""
     return _usuario_id.set(usuario_id)
+
+
+def contexto_aerolinea_id() -> int | None:
+    """Aerolinea a la que pertenece el actor humano, o None.
+
+    Solo tiene valor para un usuario asociado a una aerolinea concreta
+    (`tenants.usuario.aerolinea_id`) -- None para la gran mayoria, que es
+    personal del aeropuerto y no de una aerolinea. Igual que `usuario_id`,
+    su ausencia NO es un error de programacion.
+
+    Existe para que infrastructure/ pueda aplicar la restriccion "solo sus
+    itinerarios"/"sus cargos" que la matriz 4.3.1 asigna a
+    role_airline_coordinator y que los archivos de GRANT delegan
+    explicitamente a la aplicacion (MonetDB no tiene RLS) -- ver
+    `_ROL_CON_ACCESO_RESTRINGIDO` en aerohub_aodb/aerohub_billing.
+
+    Viaja en el JWT como el resto de la identidad, nunca se acepta del
+    cuerpo de la peticion: un coordinador no puede pedir los vuelos de
+    otra aerolinea cambiando un parametro.
+    """
+    return _aerolinea_id.get()
+
+
+def _establecer_aerolinea_id(aerolinea_id: int | None) -> Token[int | None]:
+    """Uso exclusivo del middleware del Gateway (services/gateway/api/)."""
+    return _aerolinea_id.set(aerolinea_id)
 
 
 def alcance_global_activo() -> AlcanceGlobalInfo | None:

@@ -147,31 +147,131 @@
   cursor: not-allowed;
 }
 
-// ===== Fila de KPIs =====
-.ah-kpi-fila {
+// ===== Grilla de tarjetas KPI (pedido directo del usuario 2026-08-08,
+// referencia visual: grilla de 4 columnas, cada tarjeta con eyebrow +
+// titulo + valor grande + pie con procedencia). 4 por fila en escritorio,
+// se acomoda solo en pantallas angostas -- mismo criterio de
+// auto-fit ya usado en el resto de la app.
+.kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
 }
 
-.ah-kpi-fila .ah-kpi {
+.kpi-card {
   display: flex;
   flex-direction: column;
+  gap: 0.35rem;
+  background: #fff;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--ah-shadow-card);
 }
 
-.ah-kpi-fila .ah-kpi__etiqueta {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.7rem;
-  color: var(--ah-ink-600);
+.kpi-card__eyebrow {
+  font-size: 0.72rem;
+  color: var(--ah-ink-400);
 }
 
-.ah-kpi-fila .ah-kpi__valor {
-  font-family: var(--ah-font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 1.7rem;
+.kpi-card__titulo {
+  font-size: 0.92rem;
   font-weight: 600;
   color: var(--ah-ink-900);
+}
+
+.kpi-card__valor {
+  font-family: var(--ah-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ah-navy-900);
+  line-height: 1.1;
+  margin: 0.15rem 0;
+}
+
+.kpi-card__valor--critico {
+  color: var(--ah-estado-critico);
+}
+
+// Sparkline SVG (viewBox 0 0 100 30, ver puntosSparkline en el .ts) --
+// serie real derivada de las filas ya cargadas, nunca decorativa.
+.kpi-card__sparkline {
+  width: 100%;
+  height: 32px;
+  display: block;
+}
+
+.kpi-card__sparkline--vacio {
+  // Sin suficientes dias de datos para una tendencia real (p. ej.
+  // Tenants, o un periodo de un solo dia) -- un espacio en blanco es mas
+  // honesto que forzar una linea con 1 solo punto.
+  background: none;
+}
+
+.kpi-card__linea {
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.kpi-card__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ah-line-200);
+}
+
+.kpi-card__fuente {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--ah-ink-400);
+}
+
+// Punto de origen -- reemplaza el logo de integracion externa de la
+// referencia (Stripe/HubSpot/...): AeroHub no tiene esas integraciones
+// por KPI, este punto solo marca visualmente "de aca sale el dato" sin
+// simular una marca que no existe.
+.kpi-card__fuente-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ah-blue-500);
+  flex: none;
+}
+
+.kpi-card__tendencia {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.kpi-card__tendencia--ok {
+  color: var(--ah-estado-ok);
+}
+
+.kpi-card__tendencia--critico {
+  color: var(--ah-estado-critico);
+}
+
+.kpi-card__tendencia--neutro {
+  color: var(--ah-estado-neutro);
+}
+
+polyline.kpi-card__tendencia--ok {
+  stroke: var(--ah-estado-ok);
+}
+
+polyline.kpi-card__tendencia--critico {
+  stroke: var(--ah-estado-critico);
+}
+
+polyline.kpi-card__tendencia--neutro {
+  stroke: var(--ah-estado-neutro);
 }
 
 .ah-vacio--compacto {

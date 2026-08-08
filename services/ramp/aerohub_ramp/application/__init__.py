@@ -6,6 +6,7 @@ from .consultar import (
     consultar_tareas_de_turnaround,
     consultar_turnarounds,
 )
+from .consultar_catalogos import TipoTarea, consultar_tipos_tarea
 from .crear_turnaround import (
     ResultadoCrearTurnaround,
     TurnaroundYaExiste,
@@ -19,6 +20,14 @@ from .finalizar_tarea import (
     TareaTurnaroundInvalida,
     finalizar_tarea,
 )
+from .informes import (
+    GrupoInforme,
+    InformeCompuesto,
+    InformeSimple,
+    consultar_informe_mis_tareas,
+    consultar_informe_turnarounds_compuesto,
+    consultar_informe_turnarounds_simple,
+)
 from .iniciar_tarea import (
     ResultadoIniciarTarea,
     TipoTareaNoEncontrado,
@@ -26,14 +35,6 @@ from .iniciar_tarea import (
     UsuarioNoIdentificado,
     iniciar_tarea,
 )
-from .informes import (
-    GrupoInforme,
-    InformeCompuesto,
-    InformeSimple,
-    consultar_informe_turnarounds_compuesto,
-    consultar_informe_turnarounds_simple,
-)
-from .consultar_catalogos import TipoTarea, consultar_tipos_tarea
 
 __all__ = [
     "crear_turnaround",
@@ -56,6 +57,7 @@ __all__ = [
     "TareaTablero",
     "consultar_incidencias",
     "IncidenciaTablero",
+    "consultar_informe_mis_tareas",
     "consultar_informe_turnarounds_simple",
     "consultar_informe_turnarounds_compuesto",
     "InformeSimple",

@@ -52,12 +52,16 @@ def codificar_jwt(
     usuario_id: int | None = None,
     scopes: list[str] | None = None,
     minutos_expiracion: int = _MINUTOS_EXPIRACION_POR_DEFECTO,
+    aerolinea_id: int | None = None,
 ) -> str:
     claims = {
         "rol": rol,
         "tenant_id": tenant_id,
         "usuario_id": usuario_id,
         "scopes": scopes or [],
+        # Ver emitir_jwt_sesion (aerohub_contracts) -- hallazgo 3 de la
+        # auditoria de la capa operativa, 2026-08-08.
+        "aerolinea_id": aerolinea_id,
         "exp": datetime.now(UTC) + timedelta(minutes=minutos_expiracion),
     }
     return jwt.encode(claims, _secreto(), algorithm=_ALGORITMO)

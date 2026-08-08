@@ -3,7 +3,7 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AuthService, mensajeDeError } from '../../auth/auth.service';
-import { COLOR_DEFAULT, ConfigInforme, DASHBOARDS_POR_ROL, DashboardRolConfig } from '../informes-config';
+import { COLOR_DEFAULT, ConfigInforme, DASHBOARDS_POR_ROL, DashboardRolConfig, KpiOperativo } from '../informes-config';
 import { InformeService, InformeSimple } from '../informe.service';
 
 // docs/diseno/PLAN_DASHBOARDS_OPERATIVOS.md (implementado 2026-08-07,
@@ -143,6 +143,117 @@ export class DashboardInformes {
           alTerminar();
         },
       });
+  }
+
+  // Distribución en tarjetas (pedido directo del usuario 2026-08-08, con
+  // referencia visual externa de un dashboard de KPIs). Eyebrow real (el
+  // período efectivamente aplicado, no un texto fijo tipo "Month to
+  // date"): la referencia trae sparkline + variación % por integración
+  // externa (Stripe/HubSpot/Google Analytics...) que AeroHub no tiene por
+  // KPI -- se adapta el layout de tarjetas sin inventar series históricas
+  // ni porcentajes que no existen; el pie de tarjeta muestra el informe
+  // real del que se deriva el número en su lugar (procedencia real).
+  protected readonly etiquetaPeriodoActivo = () => {
+    switch (this.atajoActivo()) {
+      case 'hoy':
+        return 'Hoy';
+      case '24h':
+        return 'Últimas 24 h';
+      case 'semana':
+        return 'Esta semana';
+    }
+  };
+
+  // Heuristica de semaforo por texto de la etiqueta (mismo criterio ya
+  // usado en toda la app para mapear un estado crudo a un tono): un KPI
+  // que nombra una condicion negativa (vencidas, no completados, etc.) se
+  // resalta en critico: el resto queda en el tono neutro por defecto.
+  private static readonly PALABRAS_CRITICO = [
+    'no completad',
+    'vencid',
+    'disputad',
+    'suspendid',
+    'interrumpid',
+    'con conflicto',
+    'con incidencia',
+  ];
+
+  protected claseValorKpi(kpi: KpiOperativo): string {
+    const etiqueta = kpi.etiqueta.toLowerCase();
+    const esCritico = DashboardInformes.PALABRAS_CRITICO.some((palabra) => etiqueta.includes(palabra));
+    return esCritico ? 'kpi-card__valor--critico' : '';
+  }
+
+  protected fuenteKpi(kpi: KpiOperativo): string {
+    return this.secciones[kpi.seccionIndice]?.config.titulo ?? '';
+  }
+
+  // Mini-tendencia real (2026-08-08, pedido explicito del usuario de
+  // replicar el layout completo de la referencia -- sparkline + variacion
+  // %). En vez de fabricar una serie/porcentaje decorativos, se agrupan
+  // las filas YA CARGADAS de la seccion por dia (config.campoFecha) y se
+  // le aplica el MISMO `kpi.calculo` de la tarjeta a cada dia -- la
+  // tendencia que se muestra es el valor real de ese KPI puntual, dia por
+  // dia, dentro del periodo ya consultado. Sin campoFecha (Tenants, sin
+  // eje temporal en su informe) o con un solo dia de datos, la tarjeta
+  // simplemente no ofrece sparkline/variacion -- nunca se inventa un
+  // punto de comparacion que no existe.
+  protected serieKpi(kpi: KpiOperativo): number[] {
+    const seccion = this.secciones[kpi.seccionIndice];
+    const campoFecha = seccion?.config.campoFecha;
+    const filas = seccion?.resultado()?.filas;
+    if (!seccion || !campoFecha || !filas || filas.length === 0) return [];
+
+    const porDia = new Map<string, Record<string, unknown>[]>();
+    for (const fila of filas) {
+      const crudo = fila[campoFecha];
+      if (crudo === null || crudo === undefined) continue;
+      const dia = String(crudo).slice(0, 10);
+      const grupo = porDia.get(dia);
+      if (grupo) grupo.push(fila);
+      else porDia.set(dia, [fila]);
+    }
+    return Array.from(porDia.keys())
+      .sort()
+      .map((dia) => kpi.calculo(porDia.get(dia)!));
+  }
+
+  // Puntos de un sparkline SVG (viewBox 0 0 100 30) normalizado al rango
+  // real de la serie -- sin libreria de graficos, mismo criterio "thin
+  // marks" del skill dataviz para una serie unica sin eje visible.
+  protected puntosSparkline(serie: number[]): string {
+    if (serie.length < 2) return '';
+    const max = Math.max(...serie);
+    const min = Math.min(...serie);
+    const rango = max - min || 1;
+    const pasoX = 100 / (serie.length - 1);
+    return serie.map((valor, i) => `${i * pasoX},${28 - ((valor - min) / rango) * 26}`).join(' ');
+  }
+
+  // Variacion real entre la primera y la segunda mitad de la serie diaria
+  // (promedio a promedio) -- honesto dentro de lo que hay: no es una
+  // comparacion contra el periodo anterior (eso pediria una consulta
+  // nueva al backend), es la tendencia dentro del propio periodo ya
+  // cargado. null cuando no hay base de comparacion valida.
+  protected tendenciaPct(serie: number[]): number | null {
+    if (serie.length < 2) return null;
+    const mitad = Math.max(1, Math.floor(serie.length / 2));
+    const promedio = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const antes = promedio(serie.slice(0, mitad));
+    const despues = promedio(serie.slice(mitad));
+    if (antes === 0) return despues === 0 ? 0 : null;
+    return Math.round(((despues - antes) / antes) * 100);
+  }
+
+  // Polaridad: para un KPI "critico" (vencidas, interrumpidos...) subir es
+  // malo -- se invierte el color respecto a un KPI neutro, donde subir es
+  // bueno. Mismo criterio semantico que claseValorKpi.
+  protected claseTendencia(kpi: KpiOperativo, pct: number | null): string {
+    if (pct === null || pct === 0) return 'kpi-card__tendencia--neutro';
+    const esCritico = DashboardInformes.PALABRAS_CRITICO.some((p) => kpi.etiqueta.toLowerCase().includes(p));
+    const sube = pct > 0;
+    const esBueno = esCritico ? !sube : sube;
+    return esBueno ? 'kpi-card__tendencia--ok' : 'kpi-card__tendencia--critico';
   }
 
   protected recargarSeccion(seccion: EstadoSeccion): void {

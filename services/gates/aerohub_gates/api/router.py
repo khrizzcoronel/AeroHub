@@ -33,6 +33,7 @@ from ..application import (
     consultar_informe_asignaciones_compuesto,
     consultar_informe_asignaciones_simple,
     consultar_tablero_de_puertas,
+    consultar_vuelos_sin_asignacion,
     crear_puerta,
     crear_terminal,
     ejecutar_asignacion_automatica,
@@ -83,6 +84,14 @@ class AsignacionTableroResponse(BaseModel):
 class TableroResponse(BaseModel):
     puertas: list[PuertaTableroResponse]
     asignaciones: list[AsignacionTableroResponse]
+
+
+class VueloSinAsignarResponse(BaseModel):
+    id: str
+    numero_vuelo: str
+    sta_utc: datetime
+    std_utc: datetime
+    envergadura_m: float
 
 
 class AsignacionAutomaticaResponse(BaseModel):
@@ -250,6 +259,28 @@ def editar_puerta_endpoint(puerta_id: int, cuerpo: PuertaEditarRequest) -> None:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PuertaDuplicada as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get(
+    "/vuelos-sin-asignar",
+    response_model=list[VueloSinAsignarResponse],
+    dependencies=[Depends(requiere_scope("puertas:leer"))],
+)
+def listar_vuelos_sin_asignar_endpoint() -> list[VueloSinAsignarResponse]:
+    """Catalogo para el <select> de vuelo del formulario "Asignar puerta
+    manualmente" (2026-08-08, pedido directo del usuario) -- la consulta
+    ya existia desde S1.4 para el asignador automatico, sin ningun
+    listado expuesto por API hasta ahora."""
+    return [
+        VueloSinAsignarResponse(
+            id=str(v.id),
+            numero_vuelo=v.numero_vuelo,
+            sta_utc=v.sta_utc,
+            std_utc=v.std_utc,
+            envergadura_m=v.envergadura_m,
+        )
+        for v in consultar_vuelos_sin_asignacion()
+    ]
 
 
 @router.get(

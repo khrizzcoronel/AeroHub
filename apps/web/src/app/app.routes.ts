@@ -63,7 +63,7 @@ export const appRoutes: Route[] = [
         component: PanelTarifarios,
         data: { title: 'Tarifarios y conciliación' },
       },
-      { path: 'informes/dashboard', component: DashboardInformes, data: { title: 'Panel de Informes' } },
+      { path: 'informes/dashboard', component: DashboardInformes, data: { title: 'Dashboard' } },
     ],
   },
 ];

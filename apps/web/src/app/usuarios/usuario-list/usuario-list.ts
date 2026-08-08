@@ -2,7 +2,13 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { UsuarioResumen, UsuarioService, etiquetaEstadoUsuario } from '../usuario.service';
+import {
+  ROLES_CON_AEROLINEA,
+  UsuarioResumen,
+  UsuarioService,
+  etiquetaEstadoUsuario,
+} from '../usuario.service';
+import { Aerolinea, VueloService } from '../../vuelos/vuelo.service';
 import { Invitar } from '../invitar/invitar';
 import { ToastService } from '../../shared/toast.service';
 import { mensajeDeError } from '../../auth/auth.service';
@@ -55,6 +61,7 @@ const TRANSICIONES: Record<string, string[]> = {
 export class UsuarioList implements OnInit {
   private readonly usuarioService = inject(UsuarioService);
   private readonly toast = inject(ToastService);
+  private readonly vueloService = inject(VueloService);
 
   protected readonly usuarios = signal<UsuarioResumen[]>([]);
   protected readonly cargando = signal(false);
@@ -75,6 +82,18 @@ export class UsuarioList implements OnInit {
   // ni el rol ni el estado se envian al backend hasta presionar "Guardar",
   // el switch solo mueve este signal.
   protected readonly estadoEdit = signal('');
+  // Hallazgo 3 de la auditoría de la capa operativa (2026-08-08): la
+  // aerolínea del usuario, de la que depende el recorte "solo sus
+  // itinerarios" de role_airline_coordinator. Se guarda con el mismo
+  // botón "Guardar" que rol y estado, no de inmediato.
+  protected readonly aerolineaEdit = signal('');
+  protected readonly aerolineas = signal<Aerolinea[]>([]);
+  // Solo se ofrece el selector si el rol elegido EN EL MODAL lo usa --
+  // se lee de rolIdEdit, no del rol guardado, para que aparezca en el
+  // mismo momento en que el admin cambia el rol a coordinador.
+  protected readonly requiereAerolinea = computed(() =>
+    (ROLES_CON_AEROLINEA as readonly string[]).includes(this.rolIdEdit()),
+  );
 
   // Paginacion
   protected readonly paginaActual = signal(1);
@@ -118,6 +137,11 @@ export class UsuarioList implements OnInit {
 
   ngOnInit(): void {
     this.cargarUsuarios();
+    // role_tenant_admin ya tiene el scope vuelos:leer, así que este
+    // catálogo no exige ningún permiso nuevo.
+    this.vueloService.listarAerolineas().subscribe({
+      next: (lista) => this.aerolineas.set(lista),
+    });
   }
 
   protected cargarUsuarios(): void {
@@ -209,6 +233,7 @@ export class UsuarioList implements OnInit {
     this.usuarioEditando.set(u);
     this.rolIdEdit.set(u.rol_codigo ?? '');
     this.estadoEdit.set(u.estado);
+    this.aerolineaEdit.set(u.aerolinea_id ?? '');
   }
 
   protected cerrarModalEditar(): void {
@@ -225,19 +250,37 @@ export class UsuarioList implements OnInit {
 
     const rolCambio = this.rolIdEdit() !== (u.rol_codigo ?? '');
     const estadoCambio = this.estadoEdit() !== u.estado;
+    // Si el rol dejó de requerir aerolínea, se desasigna explícitamente:
+    // dejar un aerolinea_id colgado en un usuario que ya no es
+    // coordinador sería dato muerto que reaparecería si vuelve a serlo.
+    const aerolineaObjetivo = this.requiereAerolinea() ? this.aerolineaEdit() : '';
+    const aerolineaCambio = aerolineaObjetivo !== (u.aerolinea_id ?? '');
 
-    if (!rolCambio && !estadoCambio) {
+    if (!rolCambio && !estadoCambio && !aerolineaCambio) {
       this.usuarioEditando.set(null);
       return;
     }
 
-    const aplicarEstado = (): void => {
-      if (!estadoCambio) {
+    const aplicarAerolinea = (): void => {
+      if (!aerolineaCambio) {
         this.finalizarEdicion();
         return;
       }
+      this.usuarioService
+        .asignarAerolineaUsuario(u.id, aerolineaObjetivo || null)
+        .subscribe({
+          next: () => this.finalizarEdicion(),
+          error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
+        });
+    };
+
+    const aplicarEstado = (): void => {
+      if (!estadoCambio) {
+        aplicarAerolinea();
+        return;
+      }
       this.usuarioService.cambiarEstadoUsuario(u.id, this.estadoEdit()).subscribe({
-        next: () => this.finalizarEdicion(),
+        next: () => aplicarAerolinea(),
         error: (err: HttpErrorResponse) => this.error.set(mensajeDeError(err)),
       });
     };

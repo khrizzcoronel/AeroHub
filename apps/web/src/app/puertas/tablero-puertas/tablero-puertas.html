@@ -145,12 +145,26 @@
       </div>
       <div class="formulario">
         <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="vueloId">Vuelo id</label>
-          <input id="vueloId" type="text" [ngModel]="vueloId()" (ngModelChange)="vueloId.set($event)" name="vueloId" />
+          <label class="ah-campo__etiqueta" for="vueloId">Vuelo</label>
+          @if (vuelosSinAsignar().length === 0) {
+            <p class="ah-vacio ah-vacio--compacto">Sin vuelos pendientes de asignar en este tenant.</p>
+          } @else {
+            <select id="vueloId" [ngModel]="vueloId()" (ngModelChange)="vueloId.set($event)" name="vueloId">
+              <option value="" disabled selected>Seleccionar...</option>
+              @for (v of vuelosSinAsignar(); track v.id) {
+                <option [value]="v.id">{{ v.numero_vuelo }} ({{ v.sta_utc | date: 'dd/MM HH:mm' }})</option>
+              }
+            </select>
+          }
         </div>
         <div class="ah-campo">
-          <label class="ah-campo__etiqueta" for="puertaId">Puerta id</label>
-          <input id="puertaId" type="text" [ngModel]="puertaId()" (ngModelChange)="puertaId.set($event)" name="puertaId" />
+          <label class="ah-campo__etiqueta" for="puertaId">Puerta</label>
+          <select id="puertaId" [ngModel]="puertaId()" (ngModelChange)="puertaId.set($event)" name="puertaId">
+            <option value="" disabled selected>Seleccionar...</option>
+            @for (p of puertas(); track p.id) {
+              <option [value]="p.id">{{ p.codigo }} ({{ p.tipo }})</option>
+            }
+          </select>
         </div>
         <div class="ah-campo">
           <label class="ah-campo__etiqueta" for="inicioPrevisto">Inicio previsto (UTC)</label>

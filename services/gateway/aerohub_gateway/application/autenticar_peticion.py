@@ -28,12 +28,20 @@ def autenticar_peticion(token: str) -> Identidad:
     if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
         raise TokenInvalido("claim 'scopes' con formato invalido en el token")
     sesion_id = claims.get("sesion_id")
+    # Hallazgo 3 de la auditoria de la capa operativa (2026-08-08): la
+    # aerolinea del usuario viaja en el JWT como el resto de la identidad,
+    # nunca se acepta del cuerpo -- un coordinador no puede pedir los
+    # vuelos de otra aerolinea cambiando un parametro. Ausente en todo JWT
+    # emitido antes de este cambio (y en los de API Key), que quedan con
+    # None -- sin aerolinea asociada no se aplica ningun filtro extra.
+    aerolinea_id = claims.get("aerolinea_id")
     return Identidad(
         tenant_id=claims.get("tenant_id"),
         rol=rol,
         usuario_id=claims.get("usuario_id"),
         scopes=frozenset(scopes),
         sesion_id=int(sesion_id) if sesion_id is not None else None,
+        aerolinea_id=int(aerolinea_id) if aerolinea_id is not None else None,
     )
 
 

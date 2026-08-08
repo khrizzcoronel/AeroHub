@@ -1,12 +1,27 @@
 <section class="consola">
   <div class="consola__cabecera">
-    <h1>Tarifarios y conciliación</h1>
-    <div class="consola__acciones">
-      <button type="button" class="ah-btn ah-btn--secundario" (click)="cargarTodo()" [disabled]="cargando()">
-        Actualizar
+    <h1>
+      Tarifarios y conciliación
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="cargarTodo()"
+        [disabled]="cargando()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
       </button>
-    </div>
+    </h1>
   </div>
+
+  @if (conciliacionesPendientes() > 0) {
+    <div class="consola__kpis">
+      <span class="ah-chip ah-chip--atencion">
+        {{ conciliacionesPendientes() }} {{ conciliacionesPendientes() === 1 ? 'conciliación pendiente' : 'conciliaciones pendientes' }}
+      </span>
+    </div>
+  }
 
   @if (error()) {
     <p class="ah-alerta" role="alert">{{ error() }}</p>
@@ -15,27 +30,22 @@
   <!-- ============ Sección Tarifarios (US1/US2) ============ -->
   <h2>Tarifarios</h2>
 
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar tarifario</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroTarifario">Nombre o moneda</label>
-        <input
-          id="filtroTarifario"
-          type="text"
-          [ngModel]="filtroTarifario()"
-          (ngModelChange)="actualizarFiltroTarifario($event)"
-          name="filtroTarifario"
-        />
-      </div>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por nombre o moneda"
+        [ngModel]="filtroTarifario()"
+        (ngModelChange)="actualizarFiltroTarifario($event)"
+        name="filtroTarifario"
+        aria-label="Buscar por nombre o moneda"
+      />
     </div>
-  </div>
-
-  @if (puedeEscribir()) {
-    <div class="consola__acciones">
+    @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalTarifario()">Nuevo tarifario</button>
-    </div>
-  }
+    }
+  </div>
 
   @if (tarifarios().length === 0) {
     <p class="ah-vacio">Sin tarifarios creados todavía.</p>
@@ -80,27 +90,22 @@
   <!-- ============ Sección Conciliación de pax (US3) ============ -->
   <h2>Conciliación de pax</h2>
 
-  <div class="ah-panel">
-    <h2 class="ah-panel__titulo">Buscar conciliación</h2>
-    <div class="ah-panel__campos">
-      <div class="ah-campo">
-        <label class="ah-campo__etiqueta" for="filtroConciliacion">Vuelo o período</label>
-        <input
-          id="filtroConciliacion"
-          type="text"
-          [ngModel]="filtroConciliacion()"
-          (ngModelChange)="actualizarFiltroConciliacion($event)"
-          name="filtroConciliacion"
-        />
-      </div>
+  <div class="consola__fila-busqueda">
+    <div class="ah-buscador">
+      <span class="ah-buscador__icono" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        placeholder="Buscar por vuelo o período"
+        [ngModel]="filtroConciliacion()"
+        (ngModelChange)="actualizarFiltroConciliacion($event)"
+        name="filtroConciliacion"
+        aria-label="Buscar por vuelo o período"
+      />
     </div>
-  </div>
-
-  @if (puedeEscribir()) {
-    <div class="consola__acciones">
+    @if (puedeEscribir()) {
       <button type="button" class="ah-btn" (click)="abrirModalConciliacion()">Nueva conciliación</button>
-    </div>
-  }
+    }
+  </div>
 
   @if (errorConciliar()) {
     <p class="ah-alerta" role="alert">{{ errorConciliar() }}</p>

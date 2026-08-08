@@ -189,6 +189,28 @@
           }
         </div>
 
+        @if (requiereAerolinea()) {
+          <div class="ah-campo">
+            <label class="ah-campo__etiqueta" for="aerolineaEdit">Aerolínea</label>
+            <select
+              id="aerolineaEdit"
+              [ngModel]="aerolineaEdit()"
+              (ngModelChange)="aerolineaEdit.set($event)"
+              name="aerolineaEdit"
+            >
+              <option value="">Sin asignar</option>
+              @for (a of aerolineas(); track a.id) {
+                <option [value]="a.id">{{ a.nombre }} ({{ a.codigo_iata }})</option>
+              }
+            </select>
+            @if (!aerolineaEdit()) {
+              <p class="ah-vacio ah-vacio--compacto">
+                Un coordinador sin aerolínea asignada no ve ningún vuelo ni factura.
+              </p>
+            }
+          </div>
+        }
+
         @if (error()) {
           <p class="ah-alerta" role="alert">{{ error() }}</p>
         }

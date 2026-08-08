@@ -46,6 +46,12 @@ export interface ConfigInforme {
   // Etiqueta legible para un valor crudo (p. ej. 'L' -> 'Llegada'). Sin
   // entrada -> se usa el valor con guiones bajos reemplazados por espacios.
   etiquetasCategoria?: Record<string, string>;
+  // Campo de fecha/fecha-hora real de cada fila (2026-08-08, tarjetas KPI
+  // del dashboard): permite agrupar las filas YA CARGADAS por día para una
+  // mini-tendencia real, sin pedir nada nuevo al backend -- mismo principio
+  // que campoAgrupacion. Sin entrada -> la tarjeta no ofrece tendencia
+  // (Tenants: el informe no filtra por período, no hay eje temporal real).
+  campoFecha?: string;
 }
 
 // Los 4 tonos de semaforo ya establecidos en toda la app
@@ -87,6 +93,7 @@ export const CONFIG_INFORME_VUELOS: ConfigInforme = {
   ],
   campoAgrupacion: 'sentido',
   etiquetasCategoria: { L: 'Llegada', S: 'Salida' },
+  campoFecha: 'fecha_operacion',
 };
 
 export const CONFIG_INFORME_ASIGNACIONES: ConfigInforme = {
@@ -110,6 +117,7 @@ export const CONFIG_INFORME_ASIGNACIONES: ConfigInforme = {
   columnaGrupo: 'Puerta',
   columnasMetricas: [{ campo: 'con_conflicto', etiqueta: 'Con conflicto' }],
   campoAgrupacion: 'estado',
+  campoFecha: 'inicio_previsto',
 };
 
 export const CONFIG_INFORME_TURNAROUNDS: ConfigInforme = {
@@ -145,6 +153,54 @@ export const CONFIG_INFORME_TURNAROUNDS: ConfigInforme = {
     completado: COLOR_OK,
     interrumpido: COLOR_CRITICO,
   },
+  campoFecha: 'inicio_previsto',
+};
+
+// Hallazgo 4 de la auditoría de la capa operativa (2026-08-08): el
+// dashboard de role_ramp_agent preguntaba "¿Qué tengo que hacer ahora?"
+// pero su única sección era el informe de turnarounds de TODO el tenant --
+// un conteo que no responde esa pregunta. Esta configuración consume el
+// endpoint nuevo `/rampa/informes/mis-tareas`, que devuelve solo las
+// tareas asignadas a quien consulta (el usuario se resuelve de la sesión,
+// nunca viaja como parámetro).
+//
+// Sin `endpointCompuesto`: "mis tareas" es por definición una vista
+// operativa de jornada, no un agregado táctico. El dashboard no ofrece
+// gráfico para esta sección (sin `campoAgrupacion` no lo hace... pero sí
+// se agrupa por estado, que es la lectura útil: qué me queda pendiente).
+export const CONFIG_INFORME_MIS_TAREAS: ConfigInforme = {
+  titulo: 'Mis tareas',
+  moduloCodigo: 'rampa',
+  endpointSimple: '/rampa/informes/mis-tareas',
+  endpointCompuesto: '/rampa/informes/compuesto',
+  filtros: [
+    { id: 'periodo_inicio', etiqueta: 'Desde', tipo: 'fecha' },
+    { id: 'periodo_fin', etiqueta: 'Hasta', tipo: 'fecha' },
+  ],
+  columnasSimple: [
+    { campo: 'tarea_id', etiqueta: 'Tarea' },
+    { campo: 'turnaround_id', etiqueta: 'Turnaround' },
+    { campo: 'estado', etiqueta: 'Estado' },
+    { campo: 'inicio_previsto', etiqueta: 'Inicio previsto' },
+    { campo: 'fin_previsto', etiqueta: 'Fin previsto' },
+    { campo: 'estado_turnaround', etiqueta: 'Estado del turnaround' },
+  ],
+  columnaGrupo: 'Tipo de tarea',
+  columnasMetricas: [
+    { campo: 'completadas', etiqueta: 'Completadas' },
+    { campo: 'con_incidencia', etiqueta: 'Con incidencia' },
+  ],
+  campoAgrupacion: 'estado',
+  // Los 4 valores reales de rampa.tarea_turnaround.estado
+  // (11_rampa.sql:80) -- mapeo exhaustivo, sin inventar semántica:
+  // 'omitida' queda neutro (una tarea saltada no es un fallo por sí sola).
+  colorPorValor: {
+    pendiente: COLOR_NEUTRO,
+    en_curso: COLOR_ATENCION,
+    completada: COLOR_OK,
+    omitida: COLOR_NEUTRO,
+  },
+  campoFecha: 'inicio_previsto',
 };
 
 export const CONFIG_INFORME_FACTURACION: ConfigInforme = {
@@ -177,6 +233,7 @@ export const CONFIG_INFORME_FACTURACION: ConfigInforme = {
     vencida: COLOR_CRITICO,
     disputada: COLOR_CRITICO,
   },
+  campoFecha: 'periodo_inicio',
 };
 
 export const CONFIG_INFORME_TENANTS: ConfigInforme = {
@@ -231,6 +288,7 @@ export const CONFIG_INFORME_COMPLIANCE: ConfigInforme = {
   // ("que tabla concentra la actividad auditada"), sin semaforo (no es
   // un valor evaluativo bueno/malo).
   campoAgrupacion: 'tabla',
+  campoFecha: 'ocurrido_en',
 };
 
 // ---------------------------------------------------------------------------
@@ -318,14 +376,26 @@ export const DASHBOARDS_POR_ROL: Record<string, DashboardRolConfig> = {
       { etiqueta: 'Salidas', seccionIndice: 0, calculo: contarPorValor('sentido', 'S') },
     ],
   },
+  // Hallazgo 4 de la auditoría de la capa operativa (2026-08-08): antes
+  // este dashboard preguntaba "¿Qué tengo que hacer ahora?" y respondía
+  // con el informe de turnarounds de TODO el tenant. Ahora la sección
+  // principal son SUS tareas (endpoint nuevo, filtrado por el usuario de
+  // la sesión) y los turnarounds del tenant quedan como contexto
+  // secundario -- un agente sí necesita ver la rampa completa, pero esa
+  // no es la respuesta a su pregunta de jornada.
   role_ramp_agent: {
     rolCodigo: 'role_ramp_agent',
     pregunta: '¿Qué tengo que hacer ahora?',
-    secciones: [CONFIG_INFORME_TURNAROUNDS],
+    secciones: [CONFIG_INFORME_MIS_TAREAS, CONFIG_INFORME_TURNAROUNDS],
     kpis: [
-      { etiqueta: 'Turnarounds del período', seccionIndice: 0, calculo: contarTotal },
+      { etiqueta: 'Mis tareas del período', seccionIndice: 0, calculo: contarTotal },
+      { etiqueta: 'Pendientes', seccionIndice: 0, calculo: contarPorValor('estado', 'pendiente') },
       { etiqueta: 'En curso', seccionIndice: 0, calculo: contarPorValor('estado', 'en_curso') },
-      { etiqueta: 'Interrumpidos', seccionIndice: 0, calculo: contarPorValor('estado', 'interrumpido') },
+      {
+        etiqueta: 'Turnarounds interrumpidos',
+        seccionIndice: 1,
+        calculo: contarPorValor('estado', 'interrumpido'),
+      },
     ],
   },
   role_tenant_admin: {

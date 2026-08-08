@@ -10,7 +10,12 @@ JWT previo (FR-026).
 
 from __future__ import annotations
 
-from aerohub_contracts import EnvioDeCorreoFallo, emitir_jwt_sesion, requiere_scope, sesion_id_de_jwt
+from aerohub_contracts import (
+    EnvioDeCorreoFallo,
+    emitir_jwt_sesion,
+    requiere_scope,
+    sesion_id_de_jwt,
+)
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
@@ -26,6 +31,7 @@ from ..application import (
     VerificacionTokenInvalido,
     aceptar_invitacion,
     actualizar_rol_usuario,
+    asignar_aerolinea_usuario,
     cambiar_estado_usuario,
     cambiar_password,
     cerrar_sesion,
@@ -125,6 +131,7 @@ def login(cuerpo: LoginRequest, request: Request) -> LoginResponse:
         scopes=resultado.scopes,
         sesion_id=resultado.sesion_id,
         minutos_expiracion=resultado.expira_en_minutos,
+        aerolinea_id=resultado.aerolinea_id,
     )
     perfil = consultar_perfil(
         usuario_id=resultado.usuario_id,
@@ -283,6 +290,7 @@ class UsuarioResumenResponse(BaseModel):
     ultimo_acceso_en: str | None
     rol_codigo: str | None
     rol_nombre: str | None
+    aerolinea_id: str | None = None
 
 
 @router_auth.get(
@@ -302,6 +310,7 @@ def listar_usuarios() -> list[UsuarioResumenResponse]:
             ultimo_acceso_en=u.ultimo_acceso_en.isoformat() if u.ultimo_acceso_en else None,
             rol_codigo=u.rol_codigo,
             rol_nombre=u.rol_nombre,
+            aerolinea_id=u.aerolinea_id,
         )
         for u in usuarios
     ]
@@ -314,6 +323,7 @@ class UsuarioDetalleResponse(BaseModel):
     estado: str
     rol_codigo: str | None
     rol_nombre: str | None
+    aerolinea_id: str | None = None
 
 
 def _detalle_a_response(d) -> UsuarioDetalleResponse:  # noqa: ANN001
@@ -324,6 +334,8 @@ def _detalle_a_response(d) -> UsuarioDetalleResponse:  # noqa: ANN001
         estado=d.estado,
         rol_codigo=d.rol_codigo,
         rol_nombre=d.rol_nombre,
+        # Snowflake -> string en JSON, como el resto de ids (CLAUDE.md).
+        aerolinea_id=str(d.aerolinea_id) if d.aerolinea_id is not None else None,
     )
 
 
@@ -358,6 +370,37 @@ def actualizar_usuario_endpoint(
         raise HTTPException(status_code=404, detail="usuario no encontrado") from exc
     except RolDestinoInvalido as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _detalle_a_response(resultado)
+
+
+class UsuarioAsignarAerolineaRequest(BaseModel):
+    aerolinea_id: str | None = Field(
+        default=None,
+        description="Id de catalogo.aerolinea, o null para desasignar.",
+    )
+
+
+@router_auth.patch(
+    "/usuarios/{usuario_id}/aerolinea",
+    response_model=UsuarioDetalleResponse,
+    dependencies=[Depends(requiere_scope("usuarios:administrar"))],
+)
+def asignar_aerolinea_endpoint(
+    usuario_id: int, cuerpo: UsuarioAsignarAerolineaRequest
+) -> UsuarioDetalleResponse:
+    """Hallazgo 3 de la auditoria de la capa operativa (2026-08-08): puebla
+    `tenants.usuario.aerolinea_id`, de la que depende el recorte "solo sus
+    itinerarios"/"sus cargos" de role_airline_coordinator.
+
+    Sin este endpoint la columna no tendria forma de poblarse y todo
+    coordinador veria 0 vuelos (el filtro es fail-closed a proposito)."""
+    try:
+        resultado = asignar_aerolinea_usuario(
+            usuario_id=usuario_id,
+            aerolinea_id=int(cuerpo.aerolinea_id) if cuerpo.aerolinea_id else None,
+        )
+    except UsuarioDelTenantNoEncontrado as exc:
+        raise HTTPException(status_code=404, detail="usuario no encontrado") from exc
     return _detalle_a_response(resultado)
 
 
