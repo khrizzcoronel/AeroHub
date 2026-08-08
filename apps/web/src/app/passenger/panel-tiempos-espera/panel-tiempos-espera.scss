@@ -1,0 +1,237 @@
+// M6 Experiencia del Pasajero (2026-08-08) -- primera vista del modulo.
+// Sigue la direccion visual de docs/diseno/DIRECCION_VISUAL.md, que ya
+// preveia este caso: "si mas adelante se les crea vista, debera seguir
+// esta misma direccion visual". Cabecera + chips KPI + fila de controles,
+// mismo patron de MODAL_Y_WORKPANEL.md §1.2 que el resto de las vistas.
+
+.consola {
+  width: 100%;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+.consola__cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.consola__cabecera h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.consola__apertura {
+  margin: 0;
+  color: var(--ah-ink-600);
+  font-size: 0.9rem;
+  max-width: 62ch;
+}
+
+.consola__refrescar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--ah-ink-400);
+  padding: 0.2rem;
+}
+
+.consola__refrescar:hover:not(:disabled) {
+  color: var(--ah-navy-900);
+}
+
+.consola__refrescar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.consola__kpis {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.consola__fila-busqueda {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+// Ver el equivalente en soporte/panel-soporte: .ah-campo por defecto apila
+// etiqueta sobre campo; este modificador lo pone en fila para filtros
+// compactos dentro de .consola__fila-busqueda.
+.ah-campo--inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 1 auto;
+}
+
+.ah-campo--inline .ah-campo__etiqueta {
+  white-space: nowrap;
+}
+
+.ah-campo--inline select,
+.ah-campo--inline input {
+  height: 2.8rem;
+}
+
+.ah-vacio--compacto {
+  padding: 0.5rem 0;
+  margin: 0;
+}
+
+// -- .perfil -- el elemento propio de esta vista.
+//
+// El resto de los modulos lista ENTIDADES (un vuelo, una puerta, una
+// factura) y por eso usan .ah-tabla o .ah-tira. Acá el contenido no es una
+// lista de entidades: es el PERFIL DE UN DIA -- una misma medida repetida
+// franja a franja, donde lo que importa es la forma (cuando sube, cuando
+// baja, donde esta el pico), no cada fila por separado. Una tabla obligaria
+// a leer 48 numeros y compararlos de memoria; una barra proporcional se lee
+// de un vistazo. Es la misma idea estructural que .ah-tira (una fila = una
+// unidad de trabajo, con una barra que la califica), aplicada a su caso
+// natural.
+//
+// Se mantiene local a esta vista a proposito: si un segundo modulo
+// necesita el mismo perfil temporal, ahi se promueve a _primitivos.scss
+// (mismo criterio con el que .ah-chip se promovio recien en su tercer uso).
+.perfil {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ah-line-200);
+  border-radius: var(--ah-radius);
+  background: #fff;
+  overflow: hidden;
+}
+
+.perfil__franja {
+  display: grid;
+  // hora | pista (elastica) | minutos | muestra
+  grid-template-columns: 7.5rem 1fr 5rem 3.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  border-bottom: 1px solid var(--ah-paper-100);
+}
+
+.perfil__franja:last-child {
+  border-bottom: none;
+}
+
+.perfil__hora {
+  font-family: var(--ah-font-mono);
+  font-size: 0.8rem;
+  color: var(--ah-ink-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.perfil__pista {
+  display: block;
+  background: var(--ah-paper-100);
+  border-radius: 2px;
+  height: 0.85rem;
+  overflow: hidden;
+}
+
+// Azul neutro, NO semaforo: no existe ningun umbral de "espera aceptable"
+// en el dominio (domain/tiempo_espera.py solo define que una franja sin
+// muestras no se publica), asi que pintar de rojo un valor alto seria
+// inventar un estandar de servicio que el negocio nunca fijo. Mismo
+// criterio que COLOR_DEFAULT en informes-config.ts: color categorico
+// neutro para lo que no es un estado evaluativo.
+.perfil__barra {
+  display: block;
+  height: 100%;
+  background: var(--ah-blue-400);
+  border-radius: 2px;
+  transition: width 180ms ease-out;
+}
+
+.perfil__minutos {
+  font-family: var(--ah-font-mono);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ah-ink-900);
+
+  abbr {
+    font-size: 0.7rem;
+    color: var(--ah-ink-400);
+    margin-left: 0.15rem;
+    text-decoration: none;
+  }
+}
+
+// El tamano de muestra es la unica senal de confianza real que expone el
+// backend -- se muestra siempre, atenuado, sin convertirlo en un juicio.
+.perfil__muestra {
+  font-family: var(--ah-font-mono);
+  font-size: 0.72rem;
+  color: var(--ah-ink-400);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+// El pico del dia es la unica franja destacada: responde "cuando conviene
+// reforzar", que es la pregunta operativa real de esta vista.
+.perfil__franja--pico {
+  background: var(--ah-paper-50);
+}
+
+.perfil__franja--pico .perfil__barra {
+  background: var(--ah-blue-500);
+}
+
+.perfil__franja--pico .perfil__minutos {
+  font-weight: 600;
+}
+
+.perfil__nota {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ah-ink-400);
+  max-width: 72ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .perfil__barra {
+    transition: none;
+  }
+}
+
+// Movil: la pista elastica deja de tener sentido con poco ancho -- la
+// franja pasa a 2 lineas (hora + muestra arriba, barra y minutos abajo)
+// en vez de comprimir la barra hasta volverla ilegible.
+@media (max-width: 640px) {
+  .perfil__franja {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'hora muestra'
+      'pista minutos';
+    row-gap: 0.35rem;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .perfil__hora {
+    grid-area: hora;
+  }
+  .perfil__muestra {
+    grid-area: muestra;
+  }
+  .perfil__pista {
+    grid-area: pista;
+  }
+  .perfil__minutos {
+    grid-area: minutos;
+  }
+}

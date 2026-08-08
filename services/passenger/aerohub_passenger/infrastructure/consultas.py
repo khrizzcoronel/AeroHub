@@ -22,6 +22,30 @@ def obtener_terminal_por_id(conn: Connection, terminal_id: int) -> Row | None:
     return conn.execute(stmt).first()
 
 
+def listar_terminales(conn: Connection) -> list[Row]:
+    """Catalogo de terminales del tenant para el selector de la vista de
+    M6 (2026-08-08).
+
+    `ops.terminal` NO es un catalogo global: tiene `tenant_id` real, asi
+    que filtra por tenant como cualquier otra lectura (PN-01) -- mismo
+    tratamiento que ya le da aerohub_fids.
+
+    Existe aca, y no se reusa `GET /puertas/terminales` de M3, porque ese
+    endpoint exige `puertas:leer`: role_airline_coordinator tiene M6 y
+    `passenger:leer` pero NO `puertas:leer`, asi que dependeria de un
+    scope de otro modulo para poder usar el suyo. Verificado que los 3
+    roles con `passenger:leer` tienen GRANT SELECT sobre ops.terminal
+    (96_grants_ops.sql) salvo role_tenant_analyst, a quien la matriz le
+    niega `ops` entero -- decision en pausa, ver hallazgo 3.
+    """
+    stmt = (
+        select(terminal)
+        .where(terminal.c.tenant_id == contexto_tenant_id())
+        .order_by(terminal.c.codigo)
+    )
+    return list(conn.execute(stmt))
+
+
 def listar_asignaciones_completadas_de_terminal(
     conn: Connection, *, terminal_id: int, fecha: date
 ) -> list[Row]:

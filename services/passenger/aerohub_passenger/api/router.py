@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from ..application import (
     TerminalNoEncontrado,
+    consultar_terminales,
     consultar_tiempos_espera,
     recalcular_tiempos_espera,
 )
@@ -47,6 +48,29 @@ class TiemposEsperaResponse(BaseModel):
     terminal_id: str
     fecha: date
     franjas: list[FranjaTiempoEsperaResponse]
+
+
+class TerminalResponse(BaseModel):
+    id: str
+    codigo: str
+    nombre: str
+
+
+@router.get(
+    "/catalogo/terminales",
+    response_model=list[TerminalResponse],
+    dependencies=[Depends(requiere_scope("passenger:leer"))],
+)
+def listar_terminales_endpoint() -> list[TerminalResponse]:
+    """Catalogo para el selector de terminal de la vista de M6 (2026-08-08).
+
+    Bajo `passenger:leer` y no reusando `GET /puertas/terminales`: ese
+    exige `puertas:leer`, que role_airline_coordinator no tiene aunque M6
+    SI sea su modulo."""
+    return [
+        TerminalResponse(id=str(t.id), codigo=t.codigo, nombre=t.nombre)
+        for t in consultar_terminales()
+    ]
 
 
 @router.post(

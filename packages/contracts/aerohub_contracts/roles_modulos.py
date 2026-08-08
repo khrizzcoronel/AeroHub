@@ -36,7 +36,11 @@ MODULOS: dict[str, Modulo] = {
     "M3": Modulo("M3", "Gestión de Terminales y Puertas", "/puertas/tablero"),
     "M4": Modulo("M4", "Operaciones de Rampa", "/rampa/turnaround"),
     "M5": Modulo("M5", "Facturación e Ingresos", "/billing/facturas"),
-    "M6": Modulo("M6", "Experiencia del Pasajero", None),
+    # 2026-08-08 -- antes sin vista en apps/web (ruta None). Esa ausencia
+    # es exactamente por lo que el hallazgo 1 de la auditoria de la capa
+    # operativa (M6 inalcanzable para todos los roles) sobrevivio sin que
+    # nadie lo notara: ningun actor humano ejercitaba sus permisos.
+    "M6": Modulo("M6", "Experiencia del Pasajero", "/passenger/tiempos-espera"),
     "M7": Modulo("M7", "ETL y Analítica", None),
     "M8": Modulo("M8", "Observabilidad", None),
     "M9": Modulo("M9", "Centro de Cumplimiento", "/compliance/panel"),
@@ -166,7 +170,15 @@ _MAPEO: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         ),
     ),
     "role_operations_controller": (
-        frozenset({"M1", "M3", "M4"}),
+        # M6 se agrega el 2026-08-08, al crearse la vista del modulo. Cuando
+        # se le dieron los scopes passenger:* (hallazgo 1 de la auditoria)
+        # M6 tenia ruta=None, asi que se aplico el criterio "scope de API
+        # sin visibilidad de menu" (el mismo de vuelos:leer en
+        # role_billing_officer/role_ramp_agent). Con la vista ya construida
+        # ese criterio se vuelve al reves: este es el UNICO rol que puede
+        # ejecutar el recalculo (passenger:escribir), y sin M6 en su menu
+        # seria el unico que no puede llegar a la pantalla que opera.
+        frozenset({"M1", "M3", "M4", "M6"}),
         frozenset(
             {
                 "vuelos:leer",

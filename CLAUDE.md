@@ -1688,6 +1688,76 @@ duplicados en ruff, es ruido del contenedor, no del repo).
 **Sin commitear todavía** -- pendiente de pedido explícito del usuario
 (Principio V).
 
+## Vista de M6 Experiencia del Pasajero (2026-08-08, pendiente de commit)
+
+Pedido directo del usuario tras la auditoría. Cierra el pendiente que esa
+auditoría dejó explícito: el hallazgo 1 arregló los permisos de M6, pero
+el módulo seguía con `ruta: None` y sin ninguna interfaz -- **y esa
+ausencia de vista es justamente por lo que el hallazgo sobrevivió sin que
+nadie lo notara desde S1.6**: ningún actor humano ejercitaba sus permisos.
+
+1. **Endpoint nuevo `GET /passenger/catalogo/terminales`** (`passenger:leer`).
+   Deliberadamente NO se reusa `GET /puertas/terminales` de M3: ese exige
+   `puertas:leer`, que `role_airline_coordinator` no tiene aunque M6 SÍ
+   sea su módulo -- dependería del scope de otro módulo para poder usar el
+   propio. `ops.terminal` ya estaba declarada en el módulo desde S1.6.
+2. **Vista nueva `passenger/panel-tiempos-espera`** siguiendo
+   `DIRECCION_VISUAL.md`, que ya preveía este caso ("si más adelante se les
+   crea vista, deberá seguir esta misma dirección visual"): cabecera +
+   chips KPI + fila de controles, igual que el resto.
+3. **Decisión de diseño con consecuencia real -- no se usa semáforo.** El
+   contenido no es una lista de entidades sino el *perfil de un día*, así
+   que cada franja se dibuja como una barra proporcional (`.perfil`, local
+   a la vista; se promueve a `_primitivos.scss` si un segundo módulo lo
+   necesita, mismo criterio con el que se promovió `.ah-chip`). La barra
+   es **azul neutro, no verde/ámbar/rojo**: `domain/tiempo_espera.py` no
+   define ningún umbral de "espera aceptable" -- la única regla es que una
+   franja sin muestras no se publica --, así que pintar de rojo un valor
+   alto habría inventado un estándar de servicio que el negocio nunca
+   fijó. La escala es relativa al pico del propio día y la vista lo dice
+   explícitamente. Se destaca solo el pico, que sí responde una pregunta
+   operativa real ("cuándo conviene reforzar"), y se muestra siempre
+   `muestra_n`, la única señal de confianza que el backend expone.
+4. **`MODULOS["M6"].ruta`** pasa de `None` a `/passenger/tiempos-espera`, y
+   `shell.ts::modulosConVista` gana una exclusión por `passenger:leer`
+   (mismo mecanismo que M9/`compliance:leer` de S1.19): `role_implementation`
+   tiene M6 en sus módulos pero ningún scope `passenger:*`.
+5. **Corrección de una inconsistencia propia, detectada en el navegador**:
+   `role_operations_controller` recibió M6 en sus módulos. Cuando el
+   hallazgo 1 le dio los scopes `passenger:*`, M6 no tenía vista y se
+   aplicó el criterio "scope de API sin visibilidad de menú" (el mismo de
+   `vuelos:leer` en `role_billing_officer`/`role_ramp_agent`). Con la
+   vista ya construida ese criterio se invierte: es el ÚNICO rol que puede
+   ejecutar el recálculo y era el único que no podía llegar a la pantalla
+   que opera.
+6. **2 errores de redacción encontrados y corregidos en el navegador**, no
+   por lectura de código: "1 franjas actualizadas" y "1 observaciones"
+   (plural mal), y horas mostradas como `08:00:00` cuando los segundos
+   siempre son 00 y solo agregan ruido.
+
+**Verificado**: ruff/mypy (273 archivos)/import-linter (16/16) en verde;
+build de producción en verde (754 KB); 293 tests unit/negative/cross_tenant
+y 134 de integración, con exactamente los 6 fallos preexistentes ya
+documentados. **Verificado en navegador real** con `role_tenant_admin`
+(ve el perfil, sin botón de recálculo -- no tiene `passenger:escribir`) y
+`role_operations_controller` (ve el enlace en el menú, recalcula de verdad
+desde la interfaz: `POST 200`, toast "1 franja actualizada", perfil
+re-renderizado con dato real de 18 min en la franja 08:00–08:30). Móvil
+verificado: la franja pasa a 2 columnas sin scroll horizontal de página.
+
+**Nota de datos**: para poder verificar con dato real se ejecutó CU-O19
+sobre las asignaciones ya sembradas -- eso creó filas legítimas en
+`billing.tiempo_espera_agregado` para ~20 terminales (2026-08-07/08). No
+es un artefacto fabricado como fue `AUD901`: es la salida real del caso de
+uso sobre datos que ya existían.
+
+**Hallazgo de entorno (no de código)**: en una corrida completa de
+integración apareció un fallo de `test_billing_facturacion.py::test_cargos_calculados_despues_del_cambio_usan_la_tarifa_nueva`
+que NO se reproduce aislado, ni corriendo su archivo completo (8/8), ni en
+una segunda corrida completa (vuelve a 134/6). Es intermitencia de estado
+entre archivos, del mismo tipo ya documentado para este entorno -- no una
+regresión de este cambio, pero queda anotado por si reaparece.
+
 ## Rediseño de interfaz (S1.11–S1.14)
 
 La capa operativa (S0.1–S1.10) está **completa y commiteada**. Lo siguiente

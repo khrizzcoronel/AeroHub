@@ -1,0 +1,126 @@
+<section class="consola">
+  <div class="consola__cabecera">
+    <h1>
+      Experiencia del Pasajero
+      <button
+        type="button"
+        class="consola__refrescar"
+        (click)="consultar()"
+        [disabled]="cargando() || !terminalId()"
+        aria-label="Actualizar"
+        title="Actualizar"
+      >
+        ↻
+      </button>
+    </h1>
+    <p class="consola__apertura">
+      Cuánto espera un pasajero en cada franja del día, estimado a partir de la ocupación de
+      puertas y los turnarounds ya cerrados.
+    </p>
+  </div>
+
+  @if (franjas().length > 0) {
+    <div class="consola__kpis">
+      @if (franjaPico(); as pico) {
+        <span class="ah-chip ah-chip--atencion">
+          Pico {{ minutosDe(pico) | number: '1.0-0' }} min · {{ hhmm(pico.franja_inicio) }}
+        </span>
+      }
+      <span class="ah-chip">Promedio {{ promedioDelDia() | number: '1.0-0' }} min</span>
+      <span class="ah-chip">{{ textoMuestraTotal() }}</span>
+    </div>
+  }
+
+  <div class="consola__fila-busqueda">
+    <div class="ah-campo ah-campo--inline">
+      <label class="ah-campo__etiqueta" for="terminalId">Terminal</label>
+      @if (terminales().length === 0) {
+        <p class="ah-vacio ah-vacio--compacto">Sin terminales registradas en este tenant.</p>
+      } @else {
+        <select
+          id="terminalId"
+          [ngModel]="terminalId()"
+          (ngModelChange)="terminalId.set($event); consultar()"
+          name="terminalId"
+        >
+          <option value="" disabled selected>Seleccionar...</option>
+          @for (t of terminales(); track t.id) {
+            <option [value]="t.id">{{ t.codigo }} — {{ t.nombre }}</option>
+          }
+        </select>
+      }
+    </div>
+
+    <div class="ah-campo ah-campo--inline">
+      <label class="ah-campo__etiqueta" for="fecha">Día</label>
+      <input
+        id="fecha"
+        type="date"
+        [ngModel]="fecha()"
+        (ngModelChange)="fecha.set($event); consultar()"
+        name="fecha"
+      />
+    </div>
+
+    @if (puedeRecalcular()) {
+      <div class="ah-campo ah-campo--inline">
+        <label class="ah-campo__etiqueta" for="franjaMinutos">Franja</label>
+        <select
+          id="franjaMinutos"
+          [ngModel]="franjaMinutos()"
+          (ngModelChange)="franjaMinutos.set(+$event)"
+          name="franjaMinutos"
+        >
+          @for (a of anchosFranja; track a) {
+            <option [value]="a">{{ a }} min</option>
+          }
+        </select>
+      </div>
+      <button
+        type="button"
+        class="ah-btn"
+        (click)="recalcular()"
+        [disabled]="recalculando() || !terminalId() || !fecha()"
+      >
+        {{ recalculando() ? 'Recalculando…' : 'Recalcular el día' }}
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="ah-alerta" role="alert">{{ error() }}</p>
+  }
+
+  @if (franjas().length > 0) {
+    <div class="perfil" role="list" [attr.aria-label]="'Perfil de espera de ' + nombreTerminal(terminalId())">
+      @for (f of franjasOrdenadas(); track f.franja_inicio) {
+        <div class="perfil__franja" role="listitem" [class.perfil__franja--pico]="esPico(f)">
+          <span class="perfil__hora">{{ hhmm(f.franja_inicio) }}–{{ hhmm(f.franja_fin) }}</span>
+          <span class="perfil__pista">
+            <span class="perfil__barra" [style.width.%]="anchoBarra(f)"></span>
+          </span>
+          <span class="perfil__minutos">{{ minutosDe(f) | number: '1.0-1' }}<abbr title="minutos">min</abbr></span>
+          <span class="perfil__muestra" [title]="f.muestra_n === 1 ? '1 observación respalda este estimado' : f.muestra_n + ' observaciones respaldan este estimado'">
+            n={{ f.muestra_n }}
+          </span>
+        </div>
+      }
+    </div>
+    <p class="perfil__nota">
+      Cada barra es relativa al pico del día, no a un objetivo de servicio: AeroHub no define un
+      umbral de espera aceptable. Una franja sin observaciones no se publica.
+    </p>
+  } @else if (consultado() && !error()) {
+    <p class="ah-vacio">
+      No hay franjas publicadas para {{ nombreTerminal(terminalId()) }} en esta fecha. Se publican
+      al recalcular el día, y solo para las franjas que tengan observaciones.
+      @if (puedeRecalcular()) {
+        <button type="button" class="ah-btn ah-btn--sm" (click)="recalcular()">
+          Recalcular el día
+        </button>
+      }
+    </p>
+  } @else if (!terminalId()) {
+    <p class="ah-vacio">Elegí una terminal para ver su perfil de espera.</p>
+  }
+</section>

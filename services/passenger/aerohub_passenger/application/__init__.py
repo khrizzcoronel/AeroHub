@@ -1,4 +1,9 @@
-from .consultar import FranjaTiempoEspera, consultar_tiempos_espera
+from .consultar import (
+    FranjaTiempoEspera,
+    Terminal,
+    consultar_terminales,
+    consultar_tiempos_espera,
+)
 from .recalcular_tiempos_espera import (
     ResultadoRecalcular,
     TerminalNoEncontrado,
@@ -11,4 +16,6 @@ __all__ = [
     "TerminalNoEncontrado",
     "consultar_tiempos_espera",
     "FranjaTiempoEspera",
+    "consultar_terminales",
+    "Terminal",
 ]

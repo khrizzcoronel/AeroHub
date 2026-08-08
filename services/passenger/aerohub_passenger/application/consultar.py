@@ -8,7 +8,21 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
 
-from ..infrastructure import listar_tiempos_espera, sesion
+from ..infrastructure import listar_terminales, listar_tiempos_espera, sesion
+
+
+@dataclass(frozen=True, slots=True)
+class Terminal:
+    id: int
+    codigo: str
+    nombre: str
+
+
+def consultar_terminales() -> list[Terminal]:
+    """Catalogo para el selector de terminal de la vista de M6."""
+    with sesion() as conn:
+        filas = listar_terminales(conn)
+    return [Terminal(id=f.id, codigo=f.codigo, nombre=f.nombre) for f in filas]
 
 
 @dataclass(frozen=True, slots=True)

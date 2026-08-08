@@ -18,6 +18,7 @@ import { ApiKeyList } from './api-keys/api-key-list/api-key-list';
 import { LicenciaList } from './licencias/licencia-list/licencia-list';
 import { EstadoTiempoReal } from './vuelos/estado-tiempo-real/estado-tiempo-real';
 import { PanelCompliance } from './compliance/panel-compliance/panel-compliance';
+import { PanelTiemposEspera } from './passenger/panel-tiempos-espera/panel-tiempos-espera';
 import { PanelSoporte } from './soporte/panel-soporte/panel-soporte';
 import { InicioComponent } from './inicio.component';
 import { PantallaList } from './fids/pantalla-list/pantalla-list';
@@ -54,6 +55,11 @@ export const appRoutes: Route[] = [
       },
       { path: 'fids/pantallas', component: PantallaList, data: { title: 'Administración de FIDS' } },
       { path: 'compliance/panel', component: PanelCompliance, data: { title: 'Centro de Cumplimiento' } },
+      {
+        path: 'passenger/tiempos-espera',
+        component: PanelTiemposEspera,
+        data: { title: 'Experiencia del Pasajero' },
+      },
       { path: 'soporte/panel', component: PanelSoporte, data: { title: 'Soporte' } },
       { path: 'puertas/tablero', component: TableroPuertas, data: { title: 'Gestión de Terminales y Puertas' } },
       { path: 'rampa/turnaround', component: PanelTurnaround, data: { title: 'Operaciones de Rampa' } },

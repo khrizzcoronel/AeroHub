@@ -36,11 +36,19 @@ export class Shell {
   // sin este filtro veria el enlace y cada llamada del panel devolveria
   // 403 al cargar. Mismo tipo de exclusion que role_platform_admin en
   // S1.11, aplicada aqui por modulo en vez de por rol completo.
+  // Exclusiones por modulo (no por rol completo): un modulo puede estar en
+  // modulos_visibles de un rol que NO tiene el scope para operarlo, y sin
+  // este filtro el enlace aparece y cada llamada de la vista devuelve 403
+  // al entrar. M9 desde S1.19 (role_support), M6 desde 2026-08-08
+  // (role_implementation tiene M6 pero ningun scope passenger:*).
   protected readonly modulosConVista = computed(() => {
     const scopes = this.perfil()?.scopes ?? [];
     return (
       this.perfil()?.modulos_visibles.filter(
-        (m) => m.ruta !== null && (m.codigo !== 'M9' || scopes.includes('compliance:leer')),
+        (m) =>
+          m.ruta !== null &&
+          (m.codigo !== 'M9' || scopes.includes('compliance:leer')) &&
+          (m.codigo !== 'M6' || scopes.includes('passenger:leer')),
       ) ?? []
     );
   });
