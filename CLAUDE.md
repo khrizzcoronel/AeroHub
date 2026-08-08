@@ -1581,11 +1581,19 @@ botones aparecen solos.
 hallazgo entero trata de "el scope pasa y el motor muere", se creó un
 vuelo real con `role_airline_coordinator` (`POST /vuelos` → 201, fila
 `AUD901` confirmada en `ops.vuelo` con el tenant correcto) y se registró
-un estado real (`POST /vuelos/{id}/estados` → 201). **Residuo conocido**:
-ese vuelo de prueba `AUD901` (fecha 2026-08-09, tenant MEC) quedó en la
-base -- no se borró porque P5 prohíbe la baja física y sus filas de
-journal/auditoría son append-only por diseño; borrar el vuelo dejando el
-rastro de auditoría apuntándole sería peor que dejarlo.
+un estado real (`POST /vuelos/{id}/estados` → 201). **Residuo ya
+limpiado** (pedido explícito del usuario, misma sesión): el vuelo de
+prueba `AUD901` (2026-08-09, tenant MEC) se borró físicamente con el
+usuario admin de MonetDB -- ningún rol de aplicación tiene `DELETE` (P5,
+toda baja de negocio es lógica) --, junto con su única fila hija en
+`ops.vuelo_estado`. Se verificó ANTES de borrar que no tenía ninguna otra
+dependencia: 0 filas en `asignacion_puerta`, `cargo_aeronautico`,
+`turnaround` (por llegada y por salida) y `conciliacion_pax`. **El rastro
+de auditoría y el journal NO se tocaron**: son append-only por diseño y su
+función es justamente registrar que ese vuelo existió -- borrar registros
+de auditoría hubiera sido peor que el residuo. Verificado después:
+`GET /vuelos` en 200 con 386 filas y el informe simple en 200 con 330,
+ninguna con `AUD901`.
 
 **Hallazgo 3 (CORREGIDO en la misma sesión) -- "solo sus itinerarios"/"sus
 cargos" no estaba implementado porque NO ERA REPRESENTABLE.** Ambos
